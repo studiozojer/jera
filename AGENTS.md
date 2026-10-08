@@ -1,6 +1,6 @@
 # Jera entry point
 
-Read `README.md` and the current design in `../../zojercommons/projects/astrofeed/specs/2026-10-08-composer-and-posts-design.md` when composed. The evolving north star is `../../operators/kepler/athanor/astrology-atproto-north-star.md`. Prioritize typing quality and preserve exact symbol representations. Relative paths resolve from this repo. User content is local-only in the current prototype; do not silently add network publishing or import Kepler’s account credentials.
+Read `README.md` and the current design in `../../zojercommons/projects/jera/specs/2026-10-08-composer-and-posts-design.md` when composed. The evolving north star is `../../operators/kepler/athanor/astrology-atproto-north-star.md`. Prioritize typing quality and preserve exact symbol representations. Relative paths resolve from this repo. User content is local-only in the current prototype; do not silently add network publishing or import Kepler’s account credentials.
 
 Use EAS Build for native builds and EAS Simulator for simulator checks. Do not use local Xcode builds or local native simulators. Native typing requires physical-device evidence; web rendering and JS exports cannot establish it.
 

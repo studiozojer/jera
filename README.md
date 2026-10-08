@@ -1,6 +1,6 @@
 # Jera
 
-An Expo SDK 57 prototype for an astrology-coded ATproto app, starting with an excellent typing experience. Named Jera by David on 2026-10-08. Native application identity: `studio.zojer.jera`; deep-link scheme: `jera`. The checkout and EAS project slug retain `astrofeed` for now; the product display name is Jera.
+An Expo SDK 57 prototype for an astrology-coded ATproto app, starting with an excellent typing experience. Named Jera by David on 2026-10-08. Native application identity: `studio.zojer.jera`; deep-link scheme: `jera`. The checkout is `repos/jera`; the EAS project slug remains `astrofeed`, with display name Jera.
 
 The first slice is local: a posts feed, native multiline composer, recoverable draft, explicit symbol insertion and family filtering. Sample posts are marked. Add post stores text on the device and opens the first recognized symbol’s feed. It does not publish to Bluesky or another ATproto service. Exact shortcode and Unicode presentation forms are preserved unless the user accepts an insertion.
 
@@ -20,7 +20,7 @@ Observe can measure startup and route timings. First edit and symbol acceptance 
 
 ## Design and provenance
 
-The design lives in [the commons](../../zojercommons/projects/astrofeed/specs/2026-10-08-composer-and-posts-design.md). The [evolving north star](../../operators/kepler/athanor/astrology-atproto-north-star.md) and [Albers exploration](../../operators/kepler/athanor/astrology-composer-albers.md) hold the intent and research.
+The design lives in [the commons](../../zojercommons/projects/jera/specs/2026-10-08-composer-and-posts-design.md). The [evolving north star](../../operators/kepler/athanor/astrology-atproto-north-star.md) and [Albers exploration](../../operators/kepler/athanor/astrology-composer-albers.md) hold the intent and research.
 
 System fonts and native mechanics are the starting point. daoUI colors are generated and committed with provenance; run `npm run sync-tokens` with `../daoUI` available. EAS consumes only committed generated output. FlashList, automatic shortcode conversion and semantic related-symbol recommendations remain candidates for later comparisons, not measured improvements.
 
