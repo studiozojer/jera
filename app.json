@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Jera",
-    "slug": "astrofeed",
+    "slug": "jera",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -32,7 +32,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "8157245a-7ca9-453e-8936-d922d4a0c894"
+        "projectId": "180cdb3c-fa7e-4664-96b0-ed750d57c167"
       }
     }
   }
