@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Astrofeed",
+    "name": "Jera",
     "slug": "astrofeed",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -8,7 +8,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "studio.zojer.astrofeed"
+      "bundleIdentifier": "studio.zojer.jera"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": true,
-      "package": "studio.zojer.astrofeed"
+      "package": "studio.zojer.jera"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -28,7 +28,7 @@
       "expo-splash-screen"
     ],
     "owner": "studiozojer",
-    "scheme": "astrofeed",
+    "scheme": "jera",
     "extra": {
       "router": {},
       "eas": {

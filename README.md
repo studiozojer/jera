@@ -1,6 +1,6 @@
-# Astrofeed
+# Jera
 
-An Expo SDK 57 prototype for an astrology-coded ATproto app, starting with an excellent typing experience. Astrofeed is a working name; the separate-app boundary awaits David’s confirmation.
+An Expo SDK 57 prototype for an astrology-coded ATproto app, starting with an excellent typing experience. Named Jera by David on 2026-10-08. Native application identity: `studio.zojer.jera`; deep-link scheme: `jera`. The checkout and EAS project slug retain `astrofeed` for now; the product display name is Jera.
 
 The first slice is local: a posts feed, native multiline composer, recoverable draft, explicit symbol insertion and family filtering. Sample posts are marked. Add post stores text on the device and opens the first recognized symbol’s feed. It does not publish to Bluesky or another ATproto service. Exact shortcode and Unicode presentation forms are preserved unless the user accepts an insertion.
 
@@ -14,7 +14,7 @@ Use Node 22 and npm. Install with `npm ci`; run `npm start`, `npm run typecheck`
 
 Project: https://expo.dev/accounts/studiozojer/projects/astrofeed . Observe is installed and configured for startup, per-route readiness and bounded interaction events. No draft text, post text or account credentials are recorded in custom events. Preview and production environments are separate; debug event dispatch stays off by default. Source-map upload is configured for release builds.
 
-Use `npx eas-cli@latest build --platform ios --profile preview` or the Android equivalent after selecting the target device and provisioning signing. Cloud builds only: do not invoke local Xcode or an on-machine native simulator. EAS Observe requires a native build and is unavailable in Expo Go. A linked dashboard and installed library do not establish metrics ingestion. No cloud native build has been started yet.
+Use `npx eas-cli@latest build --platform ios --profile preview` or the Android equivalent after selecting the target device and provisioning signing. Cloud builds only: do not invoke local Xcode or an on-machine native simulator. EAS Observe requires a native build and is unavailable in Expo Go. A linked dashboard and installed library do not establish metrics ingestion. The first iPhone preview attempt stopped before upload because EAS has no suitable internal-distribution signing credentials. The Zojer Studio Apple team currently has no registered iPhone; register the trial device and provision credentials before retrying.
 
 Observe can measure startup and route timings. First edit and symbol acceptance are interaction events, not keystroke-to-display latency measurements. Use physical-device editing trials and native performance profiling alongside p50/p90/p99 route and startup comparisons. See [the device protocol](docs/typing-trial.md).
 
