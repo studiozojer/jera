@@ -1,0 +1,8 @@
+{
+  "cli": { "version": ">=24.11.0", "appVersionSource": "remote" },
+  "build": {
+    "development": { "developmentClient": true, "distribution": "internal" },
+    "preview": { "distribution": "internal", "env": { "EXPO_PUBLIC_OBSERVE_ENV": "preview" }, "uploadSourceMaps": true },
+    "production": { "autoIncrement": true, "env": { "EXPO_PUBLIC_OBSERVE_ENV": "production" }, "uploadSourceMaps": true }
+  }
+}
