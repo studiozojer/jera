@@ -23,7 +23,7 @@ DAOUI_PATH=/path/to/daoUI SYMBOL_FONT_PYTHON=.local/font-tools/bin/python npm ru
 npm run check:symbols
 ```
 
-Run this after `sync-foundation` if that changes the body font. Do not hand-edit `symbols.gen.ts`, the bundled symbol font or the companion font. The initial source is daoUI `22b4293`, on `feat/elder-futhark-font`; its font assets are not yet on daoUI main.
+Run this after `sync-foundation` if that changes the body font. Do not hand-edit `symbols.gen.ts`, the bundled symbol font or the companion font. The initial source is daoUI `22b4293`; its font assets and the reading components are now integrated into daoUI main. The app integration is also on Jera main.
 
 ## Verification
 
