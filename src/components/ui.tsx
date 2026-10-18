@@ -1,7 +1,10 @@
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import type { ComponentProps, ReactNode } from "react";
+import { Children, type ComponentProps, type ReactNode } from "react";
+import { Text } from "react-native";
+import { symbolRuns } from "../lib/symbols";
+import { symbolFonts } from "../theme/symbols";
 import { useColors } from "../theme";
 import {
   Text as DaoText,
@@ -21,11 +24,20 @@ const variants = {
 } as const;
 export function Type({
   variant = "body",
+  children,
   ...props
 }: Omit<ComponentProps<typeof DaoText>, "variant"> & {
   variant?: keyof typeof variants;
 }) {
-  return <DaoText {...props} variant={variants[variant]} />;
+  return (
+    <DaoText {...props} variant={variants[variant]}>
+      {Children.map(children, (child) => typeof child === "string"
+        ? symbolRuns(child).map((run, index) => run.symbol
+          ? <Text key={index} style={{ fontFamily: symbolFonts.symbols, fontWeight: "normal", letterSpacing: 0 }}>{run.text}</Text>
+          : run.text)
+        : child)}
+    </DaoText>
+  );
 }
 
 export type IconName = ComponentProps<typeof Feather>["name"];

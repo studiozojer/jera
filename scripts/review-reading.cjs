@@ -120,7 +120,7 @@ const pass = (s) => {
     assert.equal(await editor.inputValue(), "");
     await editor.fill("Hello :vir");
     await page
-      .getByRole("button", { name: "Zodiac symbols", exact: true })
+      .getByRole("button", { name: "Symbols", exact: true })
       .click();
     await page
       .getByRole("button", { name: "Insert Virgo symbol", exact: true })
@@ -195,7 +195,7 @@ const pass = (s) => {
     await v.screenshot({ path: `${out}/composer-narrow.png` });
     await v.setViewportSize({ width: 390, height: 844 });
     await v
-      .getByRole("button", { name: "Zodiac symbols", exact: true })
+      .getByRole("button", { name: "Symbols", exact: true })
       .click();
     await v.screenshot({ path: `${out}/composer-symbols.png` });
     // Browser-only live text enlargement smoke: does not simulate native Dynamic Type.

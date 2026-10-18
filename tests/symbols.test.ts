@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { familiesIn, recognizeSymbols, replaceRange, shortcodeAt } from '../src/lib/symbols.ts';
+import { familiesIn, recognizeSymbols, replaceRange, shortcodeAt, symbols, symbolRuns } from '../src/lib/symbols.ts';
 
 test('equivalent Virgo forms keep their distinct original sequences', () => {
   const source = ':virgo: ♍ ♍︎ ♍️ :VIRGO:';
@@ -32,6 +32,28 @@ test('partial candidates only apply at a collapsed caret; unknown text stays int
 test('all zodiac families are recognized with presentation variants', () => {
   assert.equal(familiesIn('♈︎♉️♊♋︎♌️♍♎︎♏️♐♑︎♒️♓').length, 12);
   assert.throws(() => replaceRange('a', -1, 0, '♍︎'), RangeError);
+});
+
+test('the full repertoire recognizes literal and shortcode forms without changing them', () => {
+  assert.equal(symbols.length, 55);
+  for (const symbol of symbols) {
+    assert.deepEqual(familiesIn(symbol.glyph), [symbol.id]);
+    assert.deepEqual(familiesIn(`:${symbol.id}:`), [symbol.id]);
+    const candidate = shortcodeAt(`:${symbol.id}:`, { start: 3, end: 3 })!;
+    assert.equal(candidate.end, symbol.id.length + 2);
+  }
+  assert.equal(symbols.find((s) => s.id === 'ingwaz')?.glyph, 'ᛝ');
+  assert.equal(symbols.find((s) => s.id === 'pluto')?.glyph, '⯕');
+  assert.deepEqual(familiesIn('♇ ⯓'), []);
+  assert.deepEqual(familiesIn('♡'), ['heart']); // A generic heart is not an asteroid tag.
+});
+
+test('rendering spans preserve emoji, shortcodes, unknown glyphs and UTF-16 offsets', () => {
+  const text = '🌙 :ceres: ⚳ ♍️ ♍︎ ᛝ ⯕ ♇ ordinary';
+  const runs = symbolRuns(text);
+  assert.equal(runs.map((r) => r.text).join(''), text);
+  assert.deepEqual(runs.filter((r) => r.symbol).map((r) => r.text), ['⚳', '♍︎', 'ᛝ', '⯕']);
+  for (const tag of recognizeSymbols(text)) assert.equal(text.slice(tag.start, tag.end), tag.raw);
 });
 
 test('a caret inside or before the closing colon consumes the whole shortcode, not following prose', () => {

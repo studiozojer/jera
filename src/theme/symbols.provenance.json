@@ -1,0 +1,18 @@
+{
+  "source": "daoUI",
+  "commit": "22b42930e899de8cb33ca4f3605e60049fdafc59",
+  "dirty": false,
+  "inputs": {
+    "fonts/kairos-astrology/proof/ZojerSymbols-Regular.ttf": "306ee3e3dc836161e2ba6c218c056c72ef9a8bdf64dfc34ce32d0c48329fdcf0",
+    "fonts/kairos-astrology/manifest.json": "36bf8d36ae50f1942cdaa59244f5739277f33e697b00b7b6fa0cdccfd24492d3",
+    "fonts/elder-futhark/repertoire.json": "59c7b84cce8eea6bf3e20879d214e721ac11a043830e31400b98e028bdb90b59"
+  },
+  "files": {
+    "assets/fonts/ZojerSymbols-Regular.ttf": "306ee3e3dc836161e2ba6c218c056c72ef9a8bdf64dfc34ce32d0c48329fdcf0",
+    "assets/fonts/JeraEditor-Regular.otf": "a0dc46a8e8911c256920c4e4cf12f18a1fb5c8e51dffdfe8898aee292c06feca",
+    "assets/fonts/ABCWhyteEdu-Book.otf": "427e310b6116e2cb00e3c84f7e7157ee64a723b4da88af6c226b4a4ae06e44d0",
+    "src/lib/symbols.gen.ts": "2ddde7b6763bbd22aa832849b07c1e2cc634f0ae9756a66d725fe9f0029c7c90",
+    "scripts/build-editor-font.py": "992433bd20c7010d8ace75951d2fa5de9d0c0841e57fa7b7b5f4fb5114977492",
+    "scripts/requirements-fonts.txt": "4b57cb7b0057a93667ac0541a2afb4aa8b9537fd15a3d50892b046688d856efa"
+  }
+}

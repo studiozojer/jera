@@ -1,0 +1,87 @@
+// Isolated synthetic browser checks; native keyboard/IME behavior needs device evidence.
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const base = process.env.JERA_PREVIEW_URL || 'http://localhost:8091';
+const out = '.local/design/symbols';
+fs.mkdirSync(out, { recursive: true });
+(async () => {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(base);
+    await page.getByRole('button', { name: 'Write', exact: true }).click();
+    const editor = page.getByRole('textbox', { name: 'Post text', exact: true });
+    await editor.waitFor();
+    await page.evaluate(() => document.fonts.ready);
+    assert.match(await editor.evaluate((el) => getComputedStyle(el).fontFamily), /JeraEditor-Regular/);
+    const faces = await page.evaluate(() => [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family));
+    assert(faces.includes('JeraEditor-Regular') && faces.includes('ZojerSymbols-Regular'));
+    await page.getByRole('button', { name: 'Symbols', exact: true }).click();
+    for (const [category, glyphName] of [['Planets', 'Pluto'], ['Minor bodies', 'Ceres'], ['Runes', 'Ingwaz']]) {
+      await page.getByRole('button', { name: category, exact: true }).click();
+      const option = page.getByRole('button', { name: `Insert ${glyphName} symbol`, exact: true });
+      await option.scrollIntoViewIfNeeded();
+      await option.click();
+    }
+    assert.equal(await editor.inputValue(), '⯕⚳ᛝ');
+    await editor.fill('Harvest ᛃ · ☉ ♍︎ ⚳ ⯱ ᛝ ♡\nExact forms: :virgo: ♍ ♍︎ ♍️\n🌙 :phol');
+    await editor.press('End');
+    await page.getByRole('button', { name: 'Insert Pholus symbol', exact: true }).click();
+    const expected = 'Harvest ᛃ · ☉ ♍︎ ⚳ ⯱ ᛝ ♡\nExact forms: :virgo: ♍ ♍︎ ♍️\n🌙 ⯛';
+    assert.equal(await editor.inputValue(), expected);
+    assert.deepEqual(await editor.evaluate((el) => [el.selectionStart, el.selectionEnd]), [expected.length, expected.length]);
+    await page.getByRole('button', { name: 'Minor bodies', exact: true }).click();
+    await page.getByRole('button', { name: 'Insert Ceres symbol', exact: true }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${out}/composer-light.png` });
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.reload();
+    await page.getByRole('button', { name: 'Write', exact: true }).click();
+    assert.equal(await editor.inputValue(), expected);
+    await page.getByRole('button', { name: 'Add post', exact: true }).click();
+    const post = page.getByRole('button', { name: 'Open post by You', exact: true });
+    await post.waitFor();
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('astrofeed.posts.v1'))[0].record.text), expected);
+    const symbolSpan = post.locator('[style*="ZojerSymbols-Regular"]').first();
+    await symbolSpan.waitFor();
+    // Ask Chromium which font actually drew this span, beyond checking CSS alone.
+    await symbolSpan.evaluate((el) => el.setAttribute('data-font-review', 'symbol'));
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('DOM.enable'); await cdp.send('CSS.enable');
+    const { root } = await cdp.send('DOM.getDocument');
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: '[data-font-review="symbol"]' });
+    const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+    assert(fonts.some((f) => f.familyName === 'Zojer Symbols' && f.isCustomFont && f.glyphCount > 0));
+    await page.screenshot({ path: `${out}/feed-light.png` });
+    await post.click();
+    await page.getByRole('button', { name: 'Save post', exact: true }).click();
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.screenshot({ path: `${out}/detail-dark.png` });
+    await page.setViewportSize({ width: 320, height: 844 });
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.goto(base + '/compose');
+    await editor.fill('ᛃ ☉ ⚳ ⯱');
+    await page.getByRole('button', { name: 'Symbols', exact: true }).click();
+    await page.getByRole('button', { name: 'Minor bodies', exact: true }).click();
+    await page.screenshot({ path: `${out}/composer-320-dark.png` });
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(base);
+    await page.getByRole('button', { name: 'Open post by You', exact: true }).waitFor();
+    await page.screenshot({ path: `${out}/feed-wide-dark.png` });
+    await page.goto(base + '/compose');
+    await editor.fill(':ingwaz-diamond:');
+    await editor.press('End');
+    await page.getByRole('button', { name: 'Symbols', exact: true }).click();
+    await page.getByRole('button', { name: 'Insert Ingwaz (diamond) symbol', exact: true }).click();
+    assert.equal(await editor.inputValue(), 'ᛜ');
+    await page.getByRole('button', { name: 'Add post', exact: true }).click();
+    await page.getByRole('button', { name: 'ingwaz-diamond ×', exact: true }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Open post by You', exact: true }).count(), 1);
+    assert.deepEqual(errors, []);
+    fs.writeFileSync(`${out}/verification.json`, JSON.stringify({ expected, fonts, faces, errors }, null, 2));
+    console.log('PASS font loading and actual glyph rendering; category/shortcode insertion; exact draft and post round trip; detail/save; 320/390/1280px layouts');
+  } finally { await browser.close(); }
+})();

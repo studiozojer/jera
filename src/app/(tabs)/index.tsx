@@ -11,6 +11,8 @@ import { usePosts } from "../../lib/storage";
 import { useColors } from "../../theme";
 import { spacing } from "../../theme/foundation.gen";
 
+import { symbols } from "../../lib/symbols";
+
 export default function Feed() {
   const c = useColors();
   const { posts, error } = usePosts();
@@ -33,7 +35,7 @@ export default function Feed() {
       (!kind || kind === "mine" || postRecord(post).$type === kind) &&
       (!family ||
         presentation(post).tags.some(
-          (tag) => tag.toLowerCase() === family.toLowerCase(),
+          (tag) => tag.toLowerCase() === (symbols.find((s) => s.id === family)?.name ?? family).toLowerCase(),
         )),
   );
   return (

@@ -28,7 +28,16 @@ import {
   type SymbolFamily,
 } from "../lib/symbols";
 import { useColors } from "../theme";
-import { fonts, spacing } from "../theme/foundation.gen";
+import { spacing } from "../theme/foundation.gen";
+
+import { symbolFonts } from "../theme/symbols";
+
+const categories = [
+  { id: "zodiac", name: "Zodiac" },
+  { id: "planet", name: "Planets" },
+  { id: "minor_body", name: "Minor bodies" },
+  { id: "rune", name: "Runes" },
+] as const;
 
 export default function Composer() {
   const c = useColors();
@@ -45,6 +54,7 @@ export default function Composer() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSymbols, setShowSymbols] = useState(false);
+  const [category, setCategory] = useState<(typeof categories)[number]["id"]>("zodiac");
   const draftLoaded = useRef(false);
   const firstEdit = useRef(false);
 
@@ -208,8 +218,8 @@ export default function Composer() {
     query !== null
       ? symbols.filter((s) => s.id.startsWith(query))
       : [
-          ...symbols.filter((s) => families.includes(s.id)),
-          ...symbols.filter((s) => !families.includes(s.id)),
+          ...symbols.filter((s) => s.category === category && families.includes(s.id)),
+          ...symbols.filter((s) => s.category === category && !families.includes(s.id)),
         ];
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bgSolidBase }}>
@@ -291,7 +301,7 @@ export default function Composer() {
                 }}
                 style={{
                   color: c.txBody,
-                  fontFamily: fonts.body,
+                  fontFamily: symbolFonts.editor,
                   fontSize: 16,
                   lineHeight: 24,
                   minHeight: 260,
@@ -322,7 +332,7 @@ export default function Composer() {
               }}
             >
               <Chip
-                label="Zodiac symbols"
+                label="Symbols"
                 selected={showSymbols}
                 onPress={() => setShowSymbols((shown) => !shown)}
               />
@@ -332,13 +342,18 @@ export default function Composer() {
             </View>
             {showSymbols && (
               <>
+                <ScrollView horizontal keyboardShouldPersistTaps="always" showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}>
+                  {categories.map((item) => (
+                    <Chip key={item.id} label={item.name} selected={category === item.id} onPress={() => setCategory(item.id)} />
+                  ))}
+                </ScrollView>
                 <Type
                   variant="label"
                   muted
                   style={{ paddingHorizontal: 24, marginBottom: 6 }}
                 >
                   {query !== null
-                    ? "Choose a symbol"
+                    ? "Matches across all symbols"
                     : "Type :virgo: or choose a symbol"}
                 </Type>
                 <ScrollView

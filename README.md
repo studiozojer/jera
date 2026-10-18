@@ -2,9 +2,11 @@
 
 An Expo SDK 57 text-social app shell for trying custom ATproto record shapes. It uses daoUI typography, layout tokens and semantic colors, with native tabs on mobile and responsive navigation on web. Named Jera by David on 2026-10-08. Native application identity: `studio.zojer.jera`; deep-link scheme: `jera`. The checkout is `repos/jera`; the linked EAS project is `@studiozojer/jera`.
 
-The shell is local: Feed, Explore, Saved, Profile, a native multiline composer with recoverable drafts, and a shared post view. Search covers authors, projected text, titles and topics. Bookmarks persist across restarts. Sample posts are marked. Zodiac assistance is optional in the composer; enabling it keeps the original first-symbol feed-filter experiment. Exact shortcode and Unicode presentation forms remain intact unless the user accepts an insertion.
+The shell is local: Feed, Explore, Saved, Profile, a native multiline composer with recoverable drafts, and a shared post view. Search covers authors, projected text, titles and topics. Bookmarks persist across restarts. Sample posts are marked. Symbol assistance (zodiac, planets, minor bodies and runes) is optional in the composer; enabling it keeps the original first-symbol feed-filter experiment. Exact shortcode and Unicode presentation forms remain intact unless the user accepts an insertion.
 
 Open **Explore → Record playground** to edit an example or paste JSON, preview its feed card, and add it locally. `$type` selects a small display adapter. Ordinary `app.bsky.feed.post` and an experimental `studio.zojer.jera.note` demonstrate two shapes; unknown types retain their fields behind a fallback card. These are rendering experiments, not full ATproto schema validation or network publishing. See [the extension guide](docs/social-shell.md).
+
+The [symbol font integration](docs/symbol-font.md) brings the carved runes and Kairos-style astrology into the composer and posts, with exact Unicode text preserved.
 
 The [reading and writing foundation](docs/design-foundation.md) adds shared daoUI controls, a refined stream composition, a retained card alternative and a repeatable browser review.
 

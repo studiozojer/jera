@@ -16,6 +16,8 @@ import { usePosts } from "../../lib/storage";
 import { useColors } from "../../theme";
 import { radius, spacing } from "../../theme/foundation.gen";
 
+import { symbolFonts } from "../../theme/symbols";
+
 export default function Explore() {
   const c = useColors();
   const { posts } = usePosts();
@@ -32,6 +34,7 @@ export default function Explore() {
       <View style={{ padding: spacing.xl, gap: spacing.md }}>
         <Field
           accessibilityLabel="Search posts"
+          style={{ fontFamily: symbolFonts.editor }}
           placeholder="Search words, people, or topics"
           value={query}
           onChangeText={setQuery}

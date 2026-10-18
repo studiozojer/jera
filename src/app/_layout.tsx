@@ -11,6 +11,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PostProvider, usePosts } from "../lib/storage";
 import { useColors } from "../theme";
 import { fontMap } from "../theme/foundation.gen";
+import { symbolFontMap } from "../theme/symbols";
 import { ReadingTheme } from "../theme/ReadingTheme";
 
 Observe.configure({
@@ -29,7 +30,7 @@ function Routes() {
   const { ready } = usePosts();
   const c = useColors();
   const [splashHidden, setSplashHidden] = useState(false);
-  const [fontsLoaded, fontError] = useFonts(fontMap);
+  const [fontsLoaded, fontError] = useFonts({ ...fontMap, ...symbolFontMap });
   useEffect(() => {
     if (ready && (fontsLoaded || fontError))
       SplashScreen.hideAsync().then(() => setSplashHidden(true));

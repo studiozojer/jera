@@ -43,7 +43,9 @@
     "sync-tokens": "node scripts/sync-tokens.mjs",
     "sync-foundation": "node scripts/sync-foundation.mjs",
     "sync-reading": "node scripts/sync-reading.mjs",
-    "check:dao": "node scripts/sync-reading.mjs --check"
+    "check:dao": "node scripts/sync-reading.mjs --check",
+    "sync-symbols": "node scripts/sync-symbols.mjs",
+    "check:symbols": "node scripts/sync-symbols.mjs --check"
   },
   "private": true
 }
