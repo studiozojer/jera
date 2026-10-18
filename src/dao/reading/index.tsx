@@ -191,7 +191,7 @@ export function Badge({ label }: { label: string }) {
 /** A compact visual inside a full-size target; selection is explicit, not color alone. */
 export function FilterChip({
   label,
-  selected = false,
+  selected,
   onPress,
   disabled = false,
 }: {
@@ -202,6 +202,7 @@ export function FilterChip({
 }) {
   const t = useReadingTheme();
   const [focused, setFocused] = useState(false);
+  const toggle = selected !== undefined;
   return (
     <Pressable
       accessibilityRole="button"
@@ -218,7 +219,8 @@ export function FilterChip({
         minHeight: 44,
         justifyContent: "center",
         opacity: disabled ? 0.5 : 1,
-        paddingHorizontal: t.space.xs,
+        flexShrink: 1,
+        minWidth: 44,
         borderRadius: t.radius.md,
         backgroundColor: pressed
           ? t.colors.bgPressed
@@ -231,17 +233,35 @@ export function FilterChip({
     >
       <View
         style={{
-          paddingHorizontal: t.space.sm,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: t.space.xs,
+          minHeight: 28,
+          paddingHorizontal: toggle ? t.space.sm : t.space.md,
           paddingVertical: t.space.xs,
-          borderRadius: t.radius.md,
-          backgroundColor: selected ? t.colors.bgSolidButton : "transparent",
+          borderRadius: t.radius.full,
+          borderWidth: 1,
+          borderColor: selected ? t.colors.bgSolidButton : t.colors.bdPrimary,
+          backgroundColor: selected
+            ? t.colors.bgSolidButton
+            : t.colors.bgSolidBase,
         }}
       >
+        {toggle && (
+          <Text
+            variant="whyteXs"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            aria-hidden
+            style={{ color: t.colors.txButton, opacity: selected ? 1 : 0 }}
+          >
+            ✓
+          </Text>
+        )}
         <Text
           variant="whyteXs"
           style={{ color: selected ? t.colors.txButton : t.colors.txSecondary }}
         >
-          {selected ? "✓ " : ""}
           {label}
         </Text>
       </View>
@@ -303,7 +323,7 @@ export function AuthorRow({
   const t = useReadingTheme();
   return (
     <View
-      style={{ flexDirection: "row", alignItems: "center", gap: t.space.md }}
+      style={{ flexDirection: "row", alignItems: "flex-start", gap: t.space.md }}
     >
       {avatar && <Avatar name={name} />}
       <View style={{ flex: 1, minWidth: 0, gap: t.space.xxs }}>
@@ -347,8 +367,10 @@ export function ReadingItem({
       }}
     >
       {author}
-      <View style={{ gap: t.space.sm }}>{children}</View>
-      {footer}
+      <View style={{ gap: t.space.xs }}>
+        <View style={{ gap: t.space.sm }}>{children}</View>
+        {footer}
+      </View>
     </View>
   );
 }
@@ -371,6 +393,7 @@ export const Field = forwardRef<
     leading,
     trailing,
     containerStyle,
+    editable = true,
     ...props
   },
   ref,
@@ -382,7 +405,10 @@ export const Field = forwardRef<
     <TextInput
       {...props}
       ref={ref}
-      placeholderTextColor={t.colors.txSecondary}
+      editable={editable}
+      placeholderTextColor={
+        editable ? t.colors.txSecondary : t.colors.txDisabled
+      }
       onFocus={(e) => {
         setFocused(true);
         onFocus?.(e);
@@ -395,8 +421,9 @@ export const Field = forwardRef<
         t.type.whyteSm,
         {
           minHeight: editor ? 240 : 44,
-          color: t.colors.txBody,
+          color: editable ? t.colors.txBody : t.colors.txDisabled,
           padding: t.space.md,
+          paddingHorizontal: editor ? t.space.sm : t.space.md,
           backgroundColor: "transparent",
           flex: editor ? undefined : 1,
           minWidth: 0,
@@ -423,10 +450,16 @@ export const Field = forwardRef<
         {
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: t.colors.bgSolidCard,
+          backgroundColor: editable
+            ? t.colors.bgSolidCard
+            : t.colors.bgSolidBase,
           borderRadius: t.radius.md,
           borderWidth: 1,
-          borderColor: focused ? t.colors.txAccent : t.colors.bdPrimary,
+          borderColor: !editable
+            ? t.colors.bdSecondary
+            : focused
+              ? t.colors.txAccent
+              : t.colors.bdPrimary,
           paddingLeft: leading ? t.space.md : 0,
           paddingRight: trailing ? t.space.xs : 0,
         },

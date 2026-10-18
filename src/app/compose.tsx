@@ -16,7 +16,7 @@ import {
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
-import { Chip, Type } from "../components/ui";
+import { Chip, IconButton, Type } from "../components/ui";
 import { AuthorRow, Field, Header } from "../dao/reading";
 import { loadDraft, saveDraft, usePosts } from "../lib/storage";
 import { replaceWebText } from "../lib/web-editor";
@@ -219,8 +219,8 @@ export default function Composer() {
         <Header
           title="New post"
           leading={
-            <Button
-              quiet
+            <IconButton
+              icon="x"
               label="Close"
               disabled={busy}
               onPress={() => {

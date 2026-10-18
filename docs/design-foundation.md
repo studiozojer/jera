@@ -10,6 +10,8 @@ Run `npm run sync-reading` with sibling daoUI available (or `DAOUI_PATH` set exp
 
 The component bench is daoUI's `/page/reading`. It documents and exercises both compositions with synthetic in-memory state; Jera is the persistent app integration. See daoUI's `rn/reading/README.md` for choosing and composing the eleven building blocks. The initial family is a pilot, not a complete replacement for every existing daoUI implementation.
 
+The refinement pass gives topic actions an outlined pill, keeps selected filters stationary and groups footers closer to their text. Explore uses the same 20pt content inset as the feed. On wide web layouts, the 228pt sidebar meets the 640pt reading column without an extra gutter. The composer uses an accessible Close icon to leave more room for its title and posting action. The bench includes a narrow-content specimen for long names and labels. These are shared defaults and app composition decisions; the canonical palette and type scale are unchanged.
+
 ## Repeatable review
 
 Start `npm run web -- --port 8091`, then run `node scripts/review-reading.cjs` with Playwright installed separately. Set `PLAYWRIGHT_MODULE` to use an existing installation and `JERA_PREVIEW_URL` to change the URL. Captures and the verification receipt go to `.local/design/foundation/` and remain untracked. Use synthetic records only.

@@ -29,6 +29,15 @@ const pass = (s) => {
     await page.getByRole("heading", { name: "Feed", exact: true }).waitFor();
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: `${out}/feed-stream.png` });
+    const mine = page.getByRole("button", { name: "Your posts", exact: true });
+    const beforeSelection = await mine.boundingBox();
+    await mine.click();
+    const afterSelection = await mine.boundingBox();
+    assert(Math.abs(beforeSelection.x - afterSelection.x) < 1);
+    assert(Math.abs(beforeSelection.width - afterSelection.width) < 1);
+    assert(afterSelection.height >= 44);
+    await page.getByRole("button", { name: "All posts", exact: true }).click();
+    pass("Selecting a filter preserves its position, width and 44px target");
     await page
       .getByRole("button", { name: "Save post", exact: true })
       .first()
@@ -174,6 +183,17 @@ const pass = (s) => {
       .getByRole("textbox", { name: "Post text" })
       .fill("A little room for a new thought.\n\nWhat are you noticing today?");
     await v.screenshot({ path: `${out}/composer.png` });
+    await v.setViewportSize({ width: 320, height: 740 });
+    const titleBox = await v
+      .getByRole("heading", { name: "New post", exact: true })
+      .boundingBox();
+    const actionBox = await v
+      .getByRole("button", { name: "Add post", exact: true })
+      .boundingBox();
+    assert(titleBox.x + titleBox.width <= actionBox.x);
+    assert(actionBox.x + actionBox.width <= 320);
+    await v.screenshot({ path: `${out}/composer-narrow.png` });
+    await v.setViewportSize({ width: 390, height: 844 });
     await v
       .getByRole("button", { name: "Zodiac symbols", exact: true })
       .click();

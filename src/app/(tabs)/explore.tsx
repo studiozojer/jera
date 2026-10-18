@@ -29,7 +29,7 @@ export default function Explore() {
         title="Explore"
         subtitle="Follow a word. See where it leads."
       />
-      <View style={{ padding: spacing.xxl, gap: spacing.lg }}>
+      <View style={{ padding: spacing.xl, gap: spacing.md }}>
         <Field
           accessibilityLabel="Search posts"
           placeholder="Search words, people, or topics"
@@ -48,8 +48,8 @@ export default function Explore() {
         />
         {!query && (
           <>
-            <Type variant="meta" muted>
-              IN THIS SPACE
+            <Type variant="label" muted>
+              Topics in this space
             </Type>
             <View
               style={{

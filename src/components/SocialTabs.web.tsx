@@ -19,7 +19,7 @@ export function SocialTabs() {
       style={{
         flex: 1,
         width: "100%",
-        maxWidth: wide ? 920 : undefined,
+        maxWidth: wide ? 868 : undefined,
         alignSelf: "center",
       }}
     >
@@ -32,8 +32,6 @@ export function SocialTabs() {
                     width: 228,
                     padding: spacing.xxl,
                     paddingTop: 40,
-                    borderRightWidth: 1,
-                    borderColor: c.bdPrimary,
                     gap: spacing.xxxl,
                   }
                 : {
@@ -52,7 +50,7 @@ export function SocialTabs() {
                 accessibilityLabel="Jera home"
               >
                 <Type variant="title">jera</Type>
-                <Type variant="meta" muted style={{ marginTop: spacing.xs }}>
+                <Type variant="label" muted style={{ marginTop: spacing.xs }}>
                   A place for your words.
                 </Type>
               </Pressable>
@@ -143,7 +141,7 @@ export function SocialTabs() {
                   <Avatar name="You" />
                   <View>
                     <Type>You</Type>
-                    <Type variant="meta" muted>
+                    <Type variant="label" muted>
                       Local profile
                     </Type>
                   </View>

@@ -59,13 +59,15 @@ export default function Feed() {
         style={{
           borderBottomWidth: 1,
           borderColor: c.bdSecondary,
-          paddingHorizontal: spacing.md,
         }}
       >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: spacing.xxs }}
+          contentContainerStyle={{
+            gap: spacing.sm,
+            paddingHorizontal: spacing.xl,
+          }}
         >
           {[
             { id: "", label: "All posts" },
@@ -90,6 +92,7 @@ export default function Feed() {
               flexWrap: "wrap",
               alignItems: "center",
               gap: spacing.sm,
+              paddingHorizontal: spacing.xl,
             }}
           >
             <Type variant="label" muted>
