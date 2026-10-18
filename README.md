@@ -1,8 +1,10 @@
 # Jera
 
-An Expo SDK 57 prototype for an astrology-coded ATproto app, starting with an excellent typing experience. Named Jera by David on 2026-10-08. Native application identity: `studio.zojer.jera`; deep-link scheme: `jera`. The checkout is `repos/jera`; the linked EAS project is `@studiozojer/jera`.
+An Expo SDK 57 text-social app shell for trying custom ATproto record shapes. It uses daoUI typography, layout tokens and semantic colors, with native tabs on mobile and responsive navigation on web. Named Jera by David on 2026-10-08. Native application identity: `studio.zojer.jera`; deep-link scheme: `jera`. The checkout is `repos/jera`; the linked EAS project is `@studiozojer/jera`.
 
-The first slice is local: a posts feed, native multiline composer, recoverable draft, explicit symbol insertion and family filtering. Sample posts are marked. Add post stores text on the device and opens the first recognized symbol’s feed. It does not publish to Bluesky or another ATproto service. Exact shortcode and Unicode presentation forms are preserved unless the user accepts an insertion.
+The shell is local: Feed, Explore, Saved, Profile, a native multiline composer with recoverable drafts, and a shared post view. Search covers authors, projected text, titles and topics. Bookmarks persist across restarts. Sample posts are marked. Zodiac assistance is optional in the composer; enabling it keeps the original first-symbol feed-filter experiment. Exact shortcode and Unicode presentation forms remain intact unless the user accepts an insertion.
+
+Open **Explore → Record playground** to edit an example or paste JSON, preview its feed card, and add it locally. `$type` selects a small display adapter. Ordinary `app.bsky.feed.post` and an experimental `studio.zojer.jera.note` demonstrate two shapes; unknown types retain their fields behind a fallback card. These are rendering experiments, not full ATproto schema validation or network publishing. See [the extension guide](docs/social-shell.md).
 
 ## Run and check
 
@@ -22,6 +24,6 @@ Observe can measure startup and route timings. First edit and symbol acceptance 
 
 The design lives in [the commons](../../zojercommons/projects/jera/specs/2026-10-08-composer-and-posts-design.md). The [evolving north star](../../operators/kepler/athanor/astrology-atproto-north-star.md) and [Albers exploration](../../operators/kepler/athanor/astrology-composer-albers.md) hold the intent and research.
 
-System fonts and native mechanics are the starting point. daoUI colors are generated and committed with provenance; run `npm run sync-tokens` with `../daoUI` available. EAS consumes only committed generated output. FlashList, automatic shortcode conversion and semantic related-symbol recommendations remain candidates for later comparisons, not measured improvements.
+daoUI colors, layout tokens, the canonical type scale, and Whyte/Inktrap/Fraktion fonts are generated and committed with provenance; run `npm run sync-tokens` and `npm run sync-foundation` with `../daoUI` available. EAS consumes only committed output. Platform navigation and ordinary native editing supply the mechanics. FlashList, automatic shortcode conversion and semantic related-symbol recommendations remain candidates for later comparisons, not measured improvements.
 
 Drafts and local posts use AsyncStorage and are not encrypted. Keep prototype trials synthetic. npm audit currently reports advisories in the SDK’s dependency/tooling tree; its suggested forced fixes include incompatible SDK downgrades. SDK compatibility passes, but this is not a dependency security clearance or release approval.

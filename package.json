@@ -4,12 +4,14 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/metro-runtime": "~57.0.16",
+    "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.2",
     "expo": "~57.0.27",
     "expo-constants": "~57.0.21",
     "expo-dev-client": "~57.0.19",
+    "expo-font": "~57.0.4",
     "expo-linking": "~57.0.12",
     "expo-observe": "~57.0.25",
     "expo-router": "~57.0.25",
@@ -38,7 +40,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "sync-tokens": "node scripts/sync-tokens.mjs"
+    "sync-tokens": "node scripts/sync-tokens.mjs",
+    "sync-foundation": "node scripts/sync-foundation.mjs"
   },
   "private": true
 }
