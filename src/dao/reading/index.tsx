@@ -212,59 +212,72 @@ export function FilterChip({
       onPress={onPress}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      style={({
-        pressed,
-        hovered,
-      }: PressableStateCallbackType & { hovered?: boolean }) => ({
+      style={{
         minHeight: 44,
         justifyContent: "center",
         opacity: disabled ? 0.5 : 1,
         flexShrink: 1,
         minWidth: 44,
-        borderRadius: t.radius.md,
-        backgroundColor: pressed
-          ? t.colors.bgPressed
-          : hovered
-            ? t.colors.bgHover
-            : "transparent",
+        // Keep the hit area invisible. Every visible state belongs to the pill.
         borderWidth: 1,
-        borderColor: focused ? t.colors.txAccent : "transparent",
-      })}
+        borderColor: "transparent",
+        outlineStyle: "solid",
+        outlineWidth: 0,
+      }}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: t.space.xs,
-          minHeight: 28,
-          paddingHorizontal: toggle ? t.space.sm : t.space.md,
-          paddingVertical: t.space.xs,
-          borderRadius: t.radius.full,
-          borderWidth: 1,
-          borderColor: selected ? t.colors.bgSolidButton : t.colors.bdPrimary,
-          backgroundColor: selected
-            ? t.colors.bgSolidButton
-            : t.colors.bgSolidBase,
-        }}
-      >
-        {toggle && (
+      {({
+        pressed,
+        hovered,
+      }: PressableStateCallbackType & { hovered?: boolean }) => (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: t.space.xs,
+            minHeight: 28,
+            paddingHorizontal: toggle ? t.space.sm : t.space.md,
+            paddingVertical: t.space.xs,
+            borderRadius: t.radius.full,
+            borderWidth: 1,
+            borderColor: focused
+              ? t.colors.txAccent
+              : selected
+                ? t.colors.bgSolidButton
+                : t.colors.bdPrimary,
+            backgroundColor: selected
+              ? pressed
+                ? t.colors.bgSolidButtonPressed
+                : hovered
+                  ? t.colors.bgSolidButtonHover
+                  : t.colors.bgSolidButton
+              : pressed
+                ? t.colors.bgSolidCardPressed
+                : hovered
+                  ? t.colors.bgSolidCardHover
+                  : t.colors.bgSolidBase,
+          }}
+        >
+          {toggle && (
+            <Text
+              variant="whyteXs"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              aria-hidden
+              style={{ color: t.colors.txButton, opacity: selected ? 1 : 0 }}
+            >
+              ✓
+            </Text>
+          )}
           <Text
             variant="whyteXs"
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            aria-hidden
-            style={{ color: t.colors.txButton, opacity: selected ? 1 : 0 }}
+            style={{
+              color: selected ? t.colors.txButton : t.colors.txSecondary,
+            }}
           >
-            ✓
+            {label}
           </Text>
-        )}
-        <Text
-          variant="whyteXs"
-          style={{ color: selected ? t.colors.txButton : t.colors.txSecondary }}
-        >
-          {label}
-        </Text>
-      </View>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -323,7 +336,11 @@ export function AuthorRow({
   const t = useReadingTheme();
   return (
     <View
-      style={{ flexDirection: "row", alignItems: "flex-start", gap: t.space.md }}
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: t.space.md,
+      }}
     >
       {avatar && <Avatar name={name} />}
       <View style={{ flex: 1, minWidth: 0, gap: t.space.xxs }}>
