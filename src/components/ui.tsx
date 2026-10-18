@@ -1,4 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import type { ComponentProps, ReactNode } from "react";
 import { useColors } from "../theme";
@@ -28,6 +29,24 @@ export function Type({
 }
 
 export type IconName = ComponentProps<typeof Feather>["name"];
+// Feather has no filled bookmark. Use a matched pair from the installed icon set.
+function BookmarkIcon({
+  filled = false,
+  size = 20,
+  color,
+}: {
+  filled?: boolean;
+  size?: number;
+  color: string;
+}) {
+  return (
+    <Ionicons
+      name={filled ? "bookmark" : "bookmark-outline"}
+      size={size}
+      color={color}
+    />
+  );
+}
 export function Icon({
   name,
   size = 20,
@@ -38,6 +57,8 @@ export function Icon({
   color?: string;
 }) {
   const c = useColors();
+  if (name === "bookmark")
+    return <BookmarkIcon size={size} color={color ?? c.icPrimary} />;
   return <Feather name={name} size={size} color={color ?? c.icPrimary} />;
 }
 export function IconButton({
@@ -54,10 +75,11 @@ export function IconButton({
   disabled?: boolean;
 }) {
   const c = useColors();
+  const color = disabled ? c.txDisabled : active ? c.icPrimary : c.icSecondary;
   return (
     <Button
       iconOnly
-      kind={active ? "secondary" : "ghost"}
+      kind={active && icon !== "bookmark" ? "secondary" : "ghost"}
       onPress={onPress}
       accessibilityLabel={label}
       accessibilityState={
@@ -65,10 +87,11 @@ export function IconButton({
       }
       disabled={disabled}
     >
-      <Icon
-        name={icon}
-        color={disabled ? c.txDisabled : active ? c.icPrimary : c.icSecondary}
-      />
+      {icon === "bookmark" ? (
+        <BookmarkIcon filled={active} color={color} />
+      ) : (
+        <Icon name={icon} color={color} />
+      )}
     </Button>
   );
 }

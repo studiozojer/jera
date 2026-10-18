@@ -71,7 +71,7 @@ export function PostCard({
           {!preview && (
             <Toolbar style={{ marginLeft: "auto" }}>
               <IconButton
-                icon={isSaved ? "check" : "bookmark"}
+                icon="bookmark"
                 label={isSaved ? "Unsave post" : "Save post"}
                 active={isSaved}
                 disabled={busy}
