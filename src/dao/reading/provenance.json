@@ -1,9 +1,9 @@
 {
   "source": "daoUI/rn/reading",
-  "commit": "41032b80100f10873b74168c7ebbacc9bbbfd505",
+  "commit": "430790b4b0a7aa9f442766c46774a75e4749b7ce",
   "dirty": false,
   "files": {
-    "index.tsx": "edcfd4ae73f750fe6e370fea060c94d2a81677e251e6a13d33001e244ed6e9c5",
+    "index.tsx": "dd0699783eeb846373edcf19b952a574927f6020e28f4973e58a08d8dc9226a8",
     "theme.tsx": "b14f53cd6b8e256de65b1afd81fe53bb6a2790c7ffa3ec798c0489353b55aa35"
   }
 }

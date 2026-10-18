@@ -188,7 +188,7 @@ export function Badge({ label }: { label: string }) {
   );
 }
 
-/** A compact visual inside a full-size target; selection is explicit, not color alone. */
+/** A compact pill inside an invisible full-size target; selection changes colors only. */
 export function FilterChip({
   label,
   selected,
@@ -202,39 +202,6 @@ export function FilterChip({
 }) {
   const t = useReadingTheme();
   const [focused, setFocused] = useState(false);
-  const toggle = selected !== undefined;
-  const content = (check: boolean) => (
-    <>
-      {check && (
-        <Text
-          variant="whyteXs"
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          aria-hidden
-          style={{ color: t.colors.txButton, flexShrink: 0 }}
-        >
-          ✓
-        </Text>
-      )}
-      <Text
-        variant="whyteXs"
-        style={{
-          color: selected ? t.colors.txButton : t.colors.txSecondary,
-          textAlign: "center",
-        }}
-      >
-        {label}
-      </Text>
-    </>
-  );
-  const contentStyle: ViewStyle = {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: t.space.xs,
-    paddingHorizontal: toggle ? t.space.sm : t.space.md,
-    paddingVertical: t.space.xs,
-  };
   return (
     <Pressable
       accessibilityRole="button"
@@ -264,6 +231,8 @@ export function FilterChip({
         <View
           style={{
             minHeight: 28,
+            paddingHorizontal: t.space.md,
+            paddingVertical: t.space.xs,
             justifyContent: "center",
             borderRadius: t.radius.full,
             borderWidth: 1,
@@ -285,19 +254,15 @@ export function FilterChip({
                   : t.colors.bgSolidBase,
           }}
         >
-          {/* Size for the complete selected label, then center the visible content.
-              This preserves intrinsic width and wrapping without a blank leading slot. */}
-          <View
-            aria-hidden
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={[contentStyle, { opacity: 0 }]}
+          <Text
+            variant="whyteXs"
+            style={{
+              color: selected ? t.colors.txButton : t.colors.txSecondary,
+              textAlign: "center",
+            }}
           >
-            {content(toggle)}
-          </View>
-          <View style={[StyleSheet.absoluteFill, contentStyle]}>
-            {content(!!selected)}
-          </View>
+            {label}
+          </Text>
         </View>
       )}
     </Pressable>
