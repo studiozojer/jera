@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
-import { Observe, ObserveInteractiveMarker } from 'expo-observe';
-import { useEffect, useRef, useState } from 'react';
+import { router } from "expo-router";
+import { Observe, ObserveInteractiveMarker } from "expo-observe";
+import { useEffect, useRef, useState } from "react";
 import {
   AppState,
   Platform,
@@ -9,31 +9,32 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
+} from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardStickyView,
-} from 'react-native-keyboard-controller';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from '../components/Button';
-import { Avatar, Chip, Type } from '../components/ui';
-import { loadDraft, saveDraft, usePosts } from '../lib/storage';
-import { replaceWebText } from '../lib/web-editor';
+} from "react-native-keyboard-controller";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "../components/Button";
+import { Chip, Type } from "../components/ui";
+import { AuthorRow, Field, Header } from "../dao/reading";
+import { loadDraft, saveDraft, usePosts } from "../lib/storage";
+import { replaceWebText } from "../lib/web-editor";
 import {
   familiesIn,
   replaceRange,
   shortcodeAt,
   symbols,
   type SymbolFamily,
-} from '../lib/symbols';
-import { useColors } from '../theme';
-import { fonts, spacing } from '../theme/foundation.gen';
+} from "../lib/symbols";
+import { useColors } from "../theme";
+import { fonts, spacing } from "../theme/foundation.gen";
 
 export default function Composer() {
   const c = useColors();
   const { addPost } = usePosts();
   const input = useRef<TextInput>(null);
-  const text = useRef('');
+  const text = useRef("");
   const selection = useRef({ start: 0, end: 0 });
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -58,7 +59,7 @@ export default function Composer() {
     if (draftLoaded.current)
       saveDraft(text.current).catch(() =>
         setError(
-          'Your draft could not be saved. Keep this screen open and try again.',
+          "Your draft could not be saved. Keep this screen open and try again.",
         ),
       );
   }
@@ -71,7 +72,7 @@ export default function Composer() {
       if (!editor || firstEdit.current || editor.isFocused()) return;
       editor.focus();
       const end = initial.length;
-      if (Platform.OS === 'web')
+      if (Platform.OS === "web")
         (editor as unknown as HTMLTextAreaElement).setSelectionRange(end, end);
       else editor.setNativeProps({ selection: { start: end, end } });
       selection.current = { start: end, end };
@@ -93,11 +94,11 @@ export default function Composer() {
       .catch(() => {
         if (active)
           setError(
-            'Your saved draft could not be loaded. Close and try again.',
+            "Your saved draft could not be loaded. Close and try again.",
           );
       });
-    const background = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') persist();
+    const background = AppState.addEventListener("change", (state) => {
+      if (state !== "active") persist();
     });
     return () => {
       active = false;
@@ -112,7 +113,7 @@ export default function Composer() {
     text.current = value;
     if (!firstEdit.current) {
       firstEdit.current = true;
-      Observe.logEvent('composer.first_edit');
+      Observe.logEvent("composer.first_edit");
     }
     setCanPost(!!value.trim());
     if (timer.current) clearTimeout(timer.current);
@@ -126,7 +127,7 @@ export default function Composer() {
   }
   function accept(symbol: (typeof symbols)[number]) {
     const webInput =
-      Platform.OS === 'web'
+      Platform.OS === "web"
         ? (input.current as unknown as HTMLTextAreaElement | null)
         : null;
     if (webInput) {
@@ -156,7 +157,7 @@ export default function Composer() {
     refreshSuggestions();
     persist();
     // An interaction event, not a measurement of keystroke-to-display latency.
-    Observe.logEvent('composer.symbol_accept');
+    Observe.logEvent("composer.symbol_accept");
   }
   async function close() {
     try {
@@ -164,9 +165,9 @@ export default function Composer() {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       if (draftLoaded.current) await saveDraft(text.current);
       if (router.canGoBack()) router.back();
-      else router.replace('/');
+      else router.replace("/");
     } catch {
-      setError('Could not save your draft. Please try again before closing.');
+      setError("Could not save your draft. Please try again before closing.");
     }
   }
   async function post() {
@@ -178,28 +179,28 @@ export default function Composer() {
     try {
       await addPost(submitted);
     } catch {
-      setError('Could not add your post. Your draft is still here.');
+      setError("Could not add your post. Your draft is still here.");
       setBusy(false);
       return;
     }
     if (timer.current) clearTimeout(timer.current);
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    text.current = '';
+    text.current = "";
     let draftClearFailed = false;
     try {
-      await saveDraft('');
+      await saveDraft("");
     } catch {
       draftClearFailed = true;
     }
-    Observe.logEvent('composer.local_post', {
+    Observe.logEvent("composer.local_post", {
       attributes: { tagged: !!family },
     });
     router.dismissTo({
-      pathname: '/',
+      pathname: "/",
       params: {
-        kind: '',
-        family: family ?? '',
-        draftClearFailed: draftClearFailed ? '1' : '',
+        kind: "",
+        family: family ?? "",
+        draftClearFailed: draftClearFailed ? "1" : "",
       },
     });
   }
@@ -213,49 +214,38 @@ export default function Composer() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bgSolidBase }}>
       <View
-        style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center' }}
+        style={{ flex: 1, width: "100%", maxWidth: 640, alignSelf: "center" }}
       >
+        <Header
+          title="New post"
+          leading={
+            <Button
+              quiet
+              label="Close"
+              disabled={busy}
+              onPress={() => {
+                void close();
+              }}
+            />
+          }
+          action={
+            <Button
+              label={busy ? "Adding…" : "Add post"}
+              disabled={busy || !canPost || initial === null}
+              onPress={() => {
+                void post();
+              }}
+            />
+          }
+        />
         <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: 12,
-            paddingVertical: 8,
+            paddingHorizontal: spacing.xl,
+            paddingTop: spacing.xxl,
+            paddingBottom: spacing.md,
           }}
         >
-          <Button
-            quiet
-            label="Close"
-            disabled={busy}
-            onPress={() => {
-              void close();
-            }}
-          />
-          <Type>New post</Type>
-          <Button
-            label={busy ? 'Adding…' : 'Add post'}
-            disabled={busy || !canPost || initial === null}
-            onPress={() => {
-              void post();
-            }}
-          />
-        </View>
-        <View
-          style={{
-            padding: spacing.xxl,
-            flexDirection: 'row',
-            gap: spacing.md,
-            alignItems: 'center',
-          }}
-        >
-          <Avatar name="You" />
-          <View>
-            <Type>You</Type>
-            <Type variant="meta" muted>
-              LOCAL POST
-            </Type>
-          </View>
+          <AuthorRow name="You" metadata="Posting on this device" />
         </View>
         {!!error && (
           <Text
@@ -271,14 +261,15 @@ export default function Composer() {
           keyboardDismissMode="interactive"
           contentContainerStyle={{
             flexGrow: 1,
-            paddingHorizontal: 24,
-            paddingBottom: 140,
+            paddingHorizontal: spacing.md,
+            paddingBottom: spacing.xxl,
           }}
         >
           {initial !== null && (
             <>
               <ObserveInteractiveMarker />
-              <TextInput
+              <Field
+                appearance="editor"
                 ref={input}
                 defaultValue={initial}
                 multiline
@@ -301,11 +292,11 @@ export default function Composer() {
                 style={{
                   color: c.txBody,
                   fontFamily: fonts.body,
-                  fontSize: 20,
-                  lineHeight: 30,
+                  fontSize: 16,
+                  lineHeight: 24,
                   minHeight: 260,
-                  paddingTop: 8,
-                  paddingBottom: 24,
+                  paddingTop: spacing.md,
+                  paddingBottom: spacing.xxl,
                 }}
               />
             </>
@@ -323,9 +314,9 @@ export default function Composer() {
           >
             <View
               style={{
-                paddingHorizontal: spacing.xxl,
-                flexDirection: 'row',
-                alignItems: 'center',
+                paddingHorizontal: spacing.lg,
+                flexDirection: "row",
+                alignItems: "center",
                 gap: spacing.md,
                 paddingBottom: spacing.sm,
               }}
@@ -342,13 +333,13 @@ export default function Composer() {
             {showSymbols && (
               <>
                 <Type
-                  variant="meta"
+                  variant="label"
                   muted
                   style={{ paddingHorizontal: 24, marginBottom: 6 }}
                 >
                   {query !== null
-                    ? 'TAP TO INSERT A SYMBOL'
-                    : 'SYMBOLS · TYPE :VIRGO: OR CHOOSE ONE'}
+                    ? "Choose a symbol"
+                    : "Type :virgo: or choose a symbol"}
                 </Type>
                 <ScrollView
                   horizontal
@@ -367,8 +358,8 @@ export default function Composer() {
                         minHeight: 48,
                         minWidth: 64,
                         paddingHorizontal: 12,
-                        justifyContent: 'center',
-                        alignItems: 'center',
+                        justifyContent: "center",
+                        alignItems: "center",
                         borderRadius: 16,
                         backgroundColor: pressed
                           ? c.bgSolidCardPressed

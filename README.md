@@ -6,6 +6,8 @@ The shell is local: Feed, Explore, Saved, Profile, a native multiline composer w
 
 Open **Explore → Record playground** to edit an example or paste JSON, preview its feed card, and add it locally. `$type` selects a small display adapter. Ordinary `app.bsky.feed.post` and an experimental `studio.zojer.jera.note` demonstrate two shapes; unknown types retain their fields behind a fallback card. These are rendering experiments, not full ATproto schema validation or network publishing. See [the extension guide](docs/social-shell.md).
 
+The [reading and writing foundation](docs/design-foundation.md) adds shared daoUI controls, a refined stream composition, a retained card alternative and a repeatable browser review.
+
 ## Run and check
 
 Use Node 22 and npm. Install with `npm ci`; run `npm start`, `npm run typecheck`, `npm run lint`, `npm test` and `npx expo-doctor`. `npx expo export --platform all` checks JavaScript bundling for iOS, Android and web; it is not a native build or a device test.

@@ -1,7 +1,8 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { FlatList, Pressable, TextInput, View } from 'react-native';
-import { Page } from '../../components/Page';
-import { PostCard } from '../../components/PostCard';
+import { router, useLocalSearchParams } from "expo-router";
+import { FlatList, Pressable, View } from "react-native";
+import { Field } from "../../dao/reading";
+import { Page } from "../../components/Page";
+import { PostCard } from "../../components/PostCard";
 import {
   Chip,
   EmptyState,
@@ -9,16 +10,16 @@ import {
   IconButton,
   ScreenHeader,
   Type,
-} from '../../components/ui';
-import { presentation, searchPosts } from '../../lib/records';
-import { usePosts } from '../../lib/storage';
-import { useColors } from '../../theme';
-import { fonts, radius, spacing } from '../../theme/foundation.gen';
+} from "../../components/ui";
+import { presentation, searchPosts } from "../../lib/records";
+import { usePosts } from "../../lib/storage";
+import { useColors } from "../../theme";
+import { radius, spacing } from "../../theme/foundation.gen";
 
 export default function Explore() {
   const c = useColors();
   const { posts } = usePosts();
-  const { q = '' } = useLocalSearchParams<{ q?: string }>();
+  const { q = "" } = useLocalSearchParams<{ q?: string }>();
   const query = q;
   const setQuery = (value: string) => router.setParams({ q: value });
   const topics = [...new Set(posts.flatMap((post) => presentation(post).tags))];
@@ -29,43 +30,22 @@ export default function Explore() {
         subtitle="Follow a word. See where it leads."
       />
       <View style={{ padding: spacing.xxl, gap: spacing.lg }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.sm,
-            paddingHorizontal: spacing.md,
-            backgroundColor: c.bgSolidCard,
-            borderRadius: radius.md,
-          }}
-        >
-          <Icon name="search" />
-          <TextInput
-            accessibilityLabel="Search posts"
-            placeholder="Search words, people, or topics"
-            placeholderTextColor={c.txSecondary}
-            value={query}
-            onChangeText={setQuery}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: 48,
-              fontFamily: fonts.body,
-              fontSize: 16,
-              color: c.txPrimary,
-            }}
-          />
-          {query !== '' && (
-            <IconButton
-              icon="x"
-              label="Clear search"
-              onPress={() => {
-                setQuery('');
-                router.setParams({ q: '' });
-              }}
-            />
-          )}
-        </View>
+        <Field
+          accessibilityLabel="Search posts"
+          placeholder="Search words, people, or topics"
+          value={query}
+          onChangeText={setQuery}
+          leading={<Icon name="search" />}
+          trailing={
+            query !== "" ? (
+              <IconButton
+                icon="x"
+                label="Clear search"
+                onPress={() => setQuery("")}
+              />
+            ) : undefined
+          }
+        />
         {!query && (
           <>
             <Type variant="meta" muted>
@@ -73,9 +53,9 @@ export default function Explore() {
             </Type>
             <View
               style={{
-                flexDirection: 'row',
+                flexDirection: "row",
                 gap: spacing.sm,
-                flexWrap: 'wrap',
+                flexWrap: "wrap",
               }}
             >
               {topics.map((tag) => (
@@ -84,15 +64,15 @@ export default function Explore() {
             </View>
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.push('/playground')}
+              onPress={() => router.push("/playground")}
               style={({ pressed }) => ({
                 borderRadius: radius.lg,
                 borderWidth: 1,
                 borderColor: c.bdCard,
                 backgroundColor: pressed ? c.bgSolidCardPressed : c.bgSolidCard,
                 padding: spacing.lg,
-                flexDirection: 'row',
-                alignItems: 'center',
+                flexDirection: "row",
+                alignItems: "center",
                 gap: spacing.md,
               })}
             >

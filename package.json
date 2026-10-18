@@ -41,7 +41,9 @@
     "lint": "expo lint",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "sync-tokens": "node scripts/sync-tokens.mjs",
-    "sync-foundation": "node scripts/sync-foundation.mjs"
+    "sync-foundation": "node scripts/sync-foundation.mjs",
+    "sync-reading": "node scripts/sync-reading.mjs",
+    "check:dao": "node scripts/sync-reading.mjs --check"
   },
   "private": true
 }

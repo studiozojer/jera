@@ -1,24 +1,25 @@
-import { Stack } from 'expo-router';
-import { useFonts } from 'expo-font';
-import { Observe, ObserveRoot } from 'expo-observe';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { PostProvider, usePosts } from '../lib/storage';
-import { useColors } from '../theme';
-import { fontMap } from '../theme/foundation.gen';
+import { Stack } from "expo-router";
+import { useFonts } from "expo-font";
+import { Observe, ObserveRoot } from "expo-observe";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import { Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { PostProvider, usePosts } from "../lib/storage";
+import { useColors } from "../theme";
+import { fontMap } from "../theme/foundation.gen";
+import { ReadingTheme } from "../theme/ReadingTheme";
 
 Observe.configure({
   environment:
     process.env.EXPO_PUBLIC_OBSERVE_ENV ??
-    (__DEV__ ? 'development' : 'preview'),
+    (__DEV__ ? "development" : "preview"),
   integrations: {
-    'expo-router': {
-      filteredParams: ['text', 'draft', 'handle', 'did', 'family', 'q'],
+    "expo-router": {
+      filteredParams: ["text", "draft", "handle", "did", "family", "q"],
     },
   },
 });
@@ -46,7 +47,7 @@ function Routes() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="compose"
-          options={{ presentation: 'modal', gestureEnabled: false }}
+          options={{ presentation: "modal", gestureEnabled: false }}
         />
         <Stack.Screen name="post/[id]" />
         <Stack.Screen name="playground" />
@@ -58,7 +59,7 @@ export default function RootLayout() {
   return (
     <ObserveRoot
       errorBoundaryFallback={
-        <View style={{ flex: 1, padding: 32, justifyContent: 'center' }}>
+        <View style={{ flex: 1, padding: 32, justifyContent: "center" }}>
           <Text>
             The app could not open. Please restart it; saved drafts remain on
             this device.
@@ -70,7 +71,9 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <KeyboardProvider>
             <PostProvider>
-              <Routes />
+              <ReadingTheme>
+                <Routes />
+              </ReadingTheme>
             </PostProvider>
           </KeyboardProvider>
         </SafeAreaProvider>
