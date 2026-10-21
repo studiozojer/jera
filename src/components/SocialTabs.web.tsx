@@ -23,6 +23,24 @@ export function SocialTabs() {
         alignSelf: "center",
       }}
     >
+      {!wide && (
+        <Pressable
+          onPress={() => router.navigate("/")}
+          accessibilityRole="link"
+          accessibilityLabel="Jera home"
+          style={{
+            alignSelf: "flex-start",
+            paddingHorizontal: spacing.xl,
+            paddingVertical: spacing.sm,
+            minHeight: 44,
+            justifyContent: "center",
+          }}
+        >
+          <Type variant="title" accessibilityLabel="Jera">
+            ᛃ jera
+          </Type>
+        </Pressable>
+      )}
       <Tabs
         tabBar={({ state, navigation }) => (
           <View
@@ -49,7 +67,9 @@ export function SocialTabs() {
                 accessibilityRole="link"
                 accessibilityLabel="Jera home"
               >
-                <Type variant="title">jera</Type>
+                <Type variant="title" accessibilityLabel="Jera">
+                  ᛃ jera
+                </Type>
                 <Type variant="label" muted style={{ marginTop: spacing.xs }}>
                   A place for your words.
                 </Type>

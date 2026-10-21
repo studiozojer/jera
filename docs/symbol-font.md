@@ -4,6 +4,8 @@ Jera bundles the studio symbol font from daoUI: 25 rune characters (24 Elder Fut
 
 Literal supported characters in post text and titles use nested text spans with Zojer Symbols. Shortcodes stay visible as typed; explicit U+FE0F emoji requests stay with the surrounding text and platform fallback. No stored text is normalized or migrated. Recognition and family filtering include the new vocabulary, with UTF-16 offsets preserved for insertion. Unknown characters keep platform fallback.
 
+The web logo uses the same U+16C3 Jera glyph beside the wordmark, in the desktop sidebar and narrow-screen header. `assets/jera-logo.svg` carries the centered outline from daoUI's `fonts/elder-futhark/proof/jera.svg`, framed on a warm square for favicon use; `assets/favicon.png` is its 64px raster export. The home link announces “Jera home” rather than the rune's Unicode name.
+
 ## Native editor font
 
 A plain native TextInput needs one font that can render both letters and our symbols. `JeraEditor-Regular.otf` is an app-local companion face built from the already bundled Whyte Book plus Zojer’s 55 symbol outlines. It retains Whyte’s existing glyphs, advances, kerning/layout tables and line metrics, including its word spacing. The builder checks every original glyph’s drawing and horizontal metrics after reopening the export. This avoids replacing the native editor with a rendered overlay or a per-keystroke controlled rich-text input. Search uses the same companion face.
