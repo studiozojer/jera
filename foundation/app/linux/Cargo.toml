@@ -1,0 +1,22 @@
+[package]
+name = "app-linux"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+build = "build.rs"
+
+[[bin]]
+name = "app-linux"
+path = "src/main.rs"
+
+[dependencies]
+exact-logic = { path = "../../../tooling/exact2/logic" }
+exact-linux = { path = "../../../tooling/exact2/host/linux" }
+exact-js = { path = "../../../tooling/exact2/js" }
+
+exact-snapback4 = { path = "../../../tooling/exact2/snapback4" }
+serde_json = "1"
+
+[build-dependencies]
+exact-js-bake = { path = "../../../tooling/exact2/js/bake" }

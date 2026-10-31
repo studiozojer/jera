@@ -1,0 +1,9 @@
+
+# Exact/Snapback development stores and local tools
+.worktrees/
+.snapback4/
+.exact/
+releases/
+
+# Recreated by snapback4 check; keep schema as the source of truth.
+snapback/generated/

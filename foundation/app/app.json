@@ -1,0 +1,52 @@
+{
+  "$schema": "../../tooling/exact2/scripts/app.schema.json",
+  "name": "Jera",
+  "short_name": "Jera",
+  "id": "studio.zojer.jera.exact",
+  "start_url": "/",
+  "display": "standalone",
+  "app": {
+    "id": "studio.zojer.jera.exact",
+    "name": "Jera"
+  },
+  "host": {
+    "ios": {
+      "minimumOS": "17.0",
+      "deviceFamily": [
+        "iphone",
+        "ipad"
+      ]
+    },
+    "macos": {
+      "minimumOS": "14.0",
+      "window": {
+        "width": 900,
+        "height": 700
+      }
+    },
+    "web": {}
+  },
+  "deploy": {
+    "store": {
+      "web": "0",
+      "macos": "0",
+      "ios": "0",
+      "linux": "0"
+    }
+  },
+  "typescript": {
+    "sources": {
+      "snapback4": "../../tooling/exact2/snapback4/ts",
+      "backend": "../snapback/generated"
+    }
+  },
+  "commands": {
+    "server": [
+      "bun",
+      "test-server.mjs"
+    ]
+  },
+  "server": {
+    "database": false
+  }
+}

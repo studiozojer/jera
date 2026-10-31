@@ -1,3 +1,5 @@
+> **New foundation:** Jera’s Exact + Snapback implementation lives in [foundation/](foundation/README.md). The Expo application below remains available while that foundation develops.
+
 # Jera
 
 An Expo SDK 57 text-social app shell for trying custom ATproto record shapes. It uses daoUI typography, layout tokens and semantic colors, with native tabs on mobile and responsive navigation on web. Named Jera by David on 2026-10-08. Native application identity: `studio.zojer.jera`; deep-link scheme: `jera`. The checkout is `repos/jera`; the linked EAS project is `@studiozojer/jera`.
