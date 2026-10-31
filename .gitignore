@@ -43,3 +43,6 @@ yarn-error.*
 # Local design-review artifacts
 .local/
 .playwright-cli/
+
+# Isolated development worktrees
+.worktrees/

@@ -1,0 +1,13 @@
+{
+  "name": "jera-foundation",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "scripts": {
+    "check": "snapback4 check",
+    "dev": "snapback4 dev --port 4417",
+    "test": "node --test tests/backend.test.mjs",
+    "agent": "node scripts/agent.mjs"
+  },
+  "dependencies": { "snapback4": "0.4.33" }
+}
