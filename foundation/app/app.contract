@@ -194,6 +194,11 @@ component App
           button "Sign out" press=logout disabled=pending(signed) testId="logout"
       scroll flex=1 min-height=0
         column padding=(account.principal == "" ? "48px 24px 24px" : "12px") gap=16 max-width=(account.principal == "" ? "44rem" : "56.25rem") margin="0 auto" width="100%" box-sizing="border-box"
+          if pending(account)
+            column gap=12 testId="account-loading"
+              text "Opening your workspace…" font="-exact-title2" font-family="Whyte Inktrap" role="status" aria-live="polite"
+              text "Checking your account and loading Jera." color="tx.secondary"
+              button "Try again" press=refreshAll testId="retry-account"
           if failed(account)
             text "Could not restore your session. Try refreshing." color="-exact-system-red"
           if failed(signed)
@@ -231,9 +236,13 @@ component App
             text account.principal font="-exact-footnote" testId="account-did" overflow-wrap="anywhere" font-family="Fraktion Mono"
             text "Your armillaries" font="-exact-title2" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
             text "Each armillary holds its own modules and working context." color="-exact-secondary-label"
+            if pending(arms)
+              text "Loading your armillaries…" role="status" aria-live="polite" color="tx.secondary"
             if failed(arms) or (arms.principal == account.principal and not arms.available)
               text "Armillaries unavailable. Your saved ideas have not been cleared." testId="directory-error"
             if arms.principal == account.principal and arms.available and not failed(arms)
+              if arms.items.length == 0 and not pending(arms)
+                text "No armillaries yet. Create one below to give your ideas a home." testId="empty-armillaries" color="tx.secondary"
               for item, i in arms.items key=item.id
                 button item.name press=chooseArm(item.id) testId=`arm-${i}` buttonStyle=(armillary == item.id ? "filled" : "bordered")
               if not arms.complete

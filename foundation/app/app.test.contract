@@ -29,6 +29,7 @@ test "capture survives reload and account boundaries"
   authorize
   clock data
   expect text "account-did" == "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"
+  expect tree has "empty-armillaries"
   type "arm-name" "Shared armillary"
   tap "create-arm"
   clock data

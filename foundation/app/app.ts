@@ -26,7 +26,7 @@ async function prepareLogin(store: Store, replace = false): Promise<void> {
   store.set(pendingKey, JSON.stringify({ verifier, state, challenge }));
 }
 async function authRequest(path: string, body: unknown, token?: string): Promise<any> {
-  const response = await fetch(`${origin}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
+  const response = await fetch(`${origin}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });
   const result = await response.json();
   if (!response.ok) throw refused(result.denied ?? { code: 'E_AUTH', message: 'Sign-in could not complete. Try again.' });
   return result;
