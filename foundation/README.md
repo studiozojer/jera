@@ -62,6 +62,8 @@ The sign-in action uses David's `#F7B667` accent only for a complete, syntactica
 
 Suggestions use an anchored, scrollable auto-dismiss popover, so they do not move the FAQ. Escape and outside clicks dismiss it; Down enters the results, arrow keys navigate them, and Enter chooses the focused account without authorizing. The two supplied click glyphs switch with the primary pointer's touch/mouse capability. Public avatars have an initial fallback for missing or failed images. See `app/assets/icons/README.md` for the glyph provenance.
 
+Client auth/search HTTP requests use Exact's `exactTimeout: 15000`. With the pinned SDK, `AbortSignal.timeout()` can calculate fractional remaining milliseconds on the native live clock; the native request decoder requires an integer and rejects the request before networking. A fixed-clock agent drive did not reproduce this. On 2026-11-01, a temporary public-search probe in the signed release reproduced that rejection on the phone; changing to `exactTimeout` made the same release probe succeed. The probe was removed afterward. This verifies native search transport, not complete interactive OAuth acceptance.
+
 At large text sizes, result rows wrap and the popover can flip above its input to fit the viewport. Verification records the intentional opaque popup overlap on the invitation as a scoped exception. Long suggestion handles use an ellipsis; the accessible row label and selected input retain the full handle. The FAQ describes private Jera storage and future operator workflows without claiming protocol publication or a running operator.
 
 ## iPhone builds: local and EAS
