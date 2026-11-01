@@ -74,7 +74,8 @@ export function createHandler({ client, store, publicOrigin, callbacks, snapback
         if (!validDid(handle) && !/^(?=.{3,253}$)[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/.test(handle)) fail('Enter your full ATproto handle or DID.');
         const browser = nonce();
         if (!store.insert('flow', state, { challenge, callback, browser: digest(browser), phase: 'authorizing' }, ttl)) fail();
-        const authorization = await client.authorize(handle, { state, scope: 'atproto', prompt: 'select_account' });
+        // select_account requires an existing provider session and rejects first-time browsers.
+        const authorization = await client.authorize(handle, { state, scope: 'atproto', prompt: 'consent' });
         res.setHeader('Set-Cookie', `jera_${state}=${browser}; Path=/oauth; HttpOnly; SameSite=Lax; Max-Age=600${publicOrigin.startsWith('https:') ? '; Secure' : ''}`);
         res.writeHead(302, { location: authorization.toString() }); return res.end();
       }

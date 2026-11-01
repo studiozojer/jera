@@ -10,6 +10,7 @@ Group=jera-snapback
 WorkingDirectory=/opt/jera-snapback/auth
 Environment=JERA_AUTH_DATA=/var/lib/jera-snapback/auth
 Environment=JERA_PUBLIC_ORIGIN=https://snapback.jera.ink
+Environment="JERA_AUTH_CALLBACKS=studio.zojer.jera.exact:/oauth,http://127.0.0.1:3033/.exact/auth/callback"
 ExecStart=/opt/jera-snapback/runtime/bin/node /opt/jera-snapback/auth/server.mjs
 Restart=on-failure
 RestartSec=3

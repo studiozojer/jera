@@ -18,7 +18,12 @@ async function fixture(t) {
   let minted = 0, revoked = 0, authority = true;
   const client = {
     clientMetadata: { scope: 'atproto' }, jwks: { keys: [] },
-    authorize: async (handle, options) => new URL(`https://identity.example/authorize?state=${options.state}`),
+    authorize: async (handle, options) => {
+      // A fresh browser has no provider sessions. Bluesky refuses select_account
+      // in that case; ordinary interactive authorization must remain possible.
+      if (options.prompt === 'select_account' || options.prompt === 'none') throw new Error('account_selection_required');
+      return new URL(`https://identity.example/authorize?state=${options.state}`);
+    },
     callback: async params => {
       if (params.get('proof') !== 'verified-by-test-sdk') throw Object.assign(new Error('invalid OAuth callback'), { status: 2 });
       return { session: { did }, state: params.get('state') };

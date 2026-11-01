@@ -46,6 +46,10 @@ Enter your existing ATproto handle or DID and choose **Continue with ATproto**. 
 
 The development origin is `http://127.0.0.1:4417`. Phone builds bake `https://snapback.jera.ink`; sessions, device partitions and drafts have distinct storage names for each origin. Unknown origins are refused until explicitly configured. A phone cannot reach the laptop through its own loopback address.
 
+## Local browser with live accounts
+
+From `foundation/app`, run `bun run web:live` using Bun 1.4.2, then open `http://127.0.0.1:3033`. This uses the live Snapback backend and real ATproto authorization. The auth service explicitly allows that one loopback callback alongside the native callback. Use the numeric address and fixed port; other origins are not registered. Browser and phone sessions are separate, but the same verified DID accesses the same private backend records. `verify` continues to use its isolated fixture.
+
 ## iPhone builds: local and EAS
 
 Run these commands from `foundation/app`, using Bun 1.4.2. Both paths build **Exact**, use bundle ID `studio.zojer.jera.exact`, and connect to the deployed backend. The repository-root `expo run:ios` and EAS files build the historical Expo app.
