@@ -1,14 +1,23 @@
-# Explicit service hostname takes precedence over Jera's PDS handle wildcard.
-# Public ACME certificate; no PDS account is needed for this infrastructure host.
+# Explicit hostname takes precedence over the PDS handle wildcard.
 snapback.jera.ink {
-  # The PDS has an on-demand *.jera.ink policy. Issue this exact certificate.
-  tls force_automate
+    tls force_automate
     encode zstd gzip
     header {
         X-Content-Type-Options nosniff
         -Server
     }
-    reverse_proxy 127.0.0.1:4417 {
-        flush_interval -1
+    @oauth path /oauth/* /auth/refresh
+    handle @oauth {
+        reverse_proxy 127.0.0.1:4420
+    }
+    # Minting authority remains loopback-only even with a stolen service token.
+    @administration path /auth/session /auth/revoke /auth/delete-account
+    handle @administration {
+        respond "Not available" 403
+    }
+    handle {
+        reverse_proxy 127.0.0.1:4417 {
+            flush_interval -1
+        }
     }
 }

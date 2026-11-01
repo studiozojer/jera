@@ -17,5 +17,17 @@
     "zhouyi.zojer.studio": 200,
     "armillary.zojer.studio": 200
   },
-  "stjerneborg_ssh": "connection timed out; no operator installed"
+  "stjerneborg_ssh": "connection timed out; no operator installed",
+  "atproto_auth": {
+    "date": "2026-10-31",
+    "password_signup": 401,
+    "guest_signup": "disabled",
+    "public_session_mint": 403,
+    "forged_identity_check": 401,
+    "invalid_exchange": 400,
+    "real_provider_par": "302 to bsky.social, identity-only scope",
+    "full_phone_authorization": "pending interactive account-holder acceptance",
+    "legacy_records": "preserved; legacy sessions revoked; no email-to-DID reassignment",
+    "backup_restore": "20261101T005330Z.tar.gz; auth and deployment directories; isolated trusted fixture DID capture passed"
+  }
 }

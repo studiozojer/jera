@@ -43,7 +43,7 @@
   "commands": {
     "server": [
       "bun",
-      "test-server.mjs"
+      "test-server-launch.mjs"
     ]
   },
   "server": {
@@ -55,5 +55,14 @@
       "sizes": "1024x1024",
       "type": "image/png"
     }
-  ]
+  ],
+  "verify": {
+    "accept": [
+      {
+        "finding": "broken-words",
+        "node": "account-did",
+        "why": "A DID is one opaque identifier, not prose. Allow visual line breaks without inserting characters or reducing Dynamic Type; the full value remains intact."
+      }
+    ]
+  }
 }

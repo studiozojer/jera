@@ -1,11 +1,13 @@
 fresh
 epoch now
 
+// OAuth is a fixture here; authorization acceptance requires a real PDS.
 test "capture survives reload and account boundaries"
-  type "email" "owner@example.com"
-  type "password" "correct horse battery staple"
-  tap "signup"
+  type "handle" "owner.test"
+  tap "login"
+  authorize
   clock data
+  expect text "account-did" == "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"
   type "arm-name" "Shared armillary"
   tap "create-arm"
   clock data
@@ -29,17 +31,18 @@ test "capture survives reload and account boundaries"
   tap "logout"
   clock data
   expect tree missing "idea-0"
-  type "email" "other@example.com"
-  type "password" "another correct horse password"
-  tap "signup"
+  type "handle" "other.test"
+  tap "login"
+  authorize
   clock data
+  expect text "account-did" == "did:plc:bbbbbbbbbbbbbbbbbbbbbbbb"
   expect tree missing "arm-0"
   expect tree missing "idea-0"
 
 test "queued capture is delivered once after a connection loss"
-  type "email" "offline@example.com"
-  type "password" "correct horse battery staple"
-  tap "signup"
+  type "handle" "offline.test"
+  tap "login"
+  authorize
   clock data
   type "arm-name" "Offline armillary"
   tap "create-arm"

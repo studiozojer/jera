@@ -39,8 +39,7 @@ shape Draft
   seq: number
 
 component App
-  state email = ""
-  state password = ""
+  state handle = ""
   state armillary = ""
   state module = ""
   state armName = ""
@@ -74,21 +73,16 @@ component App
     refresh board
     refresh draft
   action afterAuth
-    password = ""
     armillary = ""
     module = ""
-  action editEmail(v: string)
-    email = v
-  action editPassword(v: string)
-    password = v
+  action editHandle(v: string)
+    handle = v
   action editArmName(v: string)
     armName = v
   action editModuleName(v: string)
     moduleName = v
-  action signup
-    send signed = signup(email, password, time.epochAtZero + performanceNow())
   action login
-    send signed = login(email, password, time.epochAtZero + performanceNow())
+    send signed = login(handle, time.epochAtZero + performanceNow())
   action logout
     send signed = logout(time.epochAtZero + performanceNow())
   action chooseArm(id: string)
@@ -126,12 +120,12 @@ component App
             column gap=12 max-width="26.25rem"
               text "A place for ideas to become connected." font="-exact-title2" role="heading" aria-level=2
               text "Capture a thought. Give it a home. Let your operators carry it forward." color="-exact-secondary-label"
-              input value=email input=editEmail type="email" aria-label="Email" placeholder="Email" testId="email"
-              input value=password input=editPassword type="password" aria-label="Password" placeholder="Password" testId="password"
+              input value=handle input=editHandle aria-label="ATproto handle or DID" placeholder="you.bsky.social" testId="handle"
+              text "Sign in with your ATproto account. Your ideas stay private in Jera." color="-exact-secondary-label"
               row gap=12 flex-wrap="wrap"
-                button "Sign in" press=login disabled=pending(signed) testId="login" buttonStyle="filled"
-                button "Create account" press=signup disabled=pending(signed) testId="signup"
+                button "Continue with ATproto" press=login disabled=(pending(signed) or handle.trim() == "") testId="login" buttonStyle="filled"
           if account.principal != "" and not pending(account) and not failed(account)
+            text account.principal font="-exact-footnote" testId="account-did" overflow-wrap="anywhere"
             text "Your armillaries" font="-exact-title2" role="heading" aria-level=2
             text "Each armillary holds its own modules and working context." color="-exact-secondary-label"
             if failed(arms) or (arms.principal == account.principal and not arms.available)

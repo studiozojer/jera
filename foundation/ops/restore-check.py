@@ -28,7 +28,7 @@ try:
             break
         except OSError:
             time.sleep(1)
-    subprocess.run(['python3', '/opt/jera-snapback/smoke.py', 'http://127.0.0.1:4418', '/root/jera-snapback-probe.json'], check=True)
+    subprocess.run(['python3', '/opt/jera-snapback/restore-smoke.py', 'http://127.0.0.1:4418', directory], check=True)
     print('Backup restore passed; live deployment was not replaced.')
 finally:
     if server and server.poll() is None:

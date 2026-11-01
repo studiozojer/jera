@@ -6,8 +6,10 @@
   "scripts": {
     "check": "snapback4 check",
     "dev": "snapback4 dev --port 4417",
-    "test": "node --test tests/backend.test.mjs",
+    "test": "node --test tests/backend.test.mjs auth/test/*.test.mjs",
     "agent": "node scripts/agent.mjs"
   },
-  "dependencies": { "snapback4": "0.4.33" }
+  "dependencies": {
+    "snapback4": "0.4.33"
+  }
 }

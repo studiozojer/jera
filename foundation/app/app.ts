@@ -10,8 +10,26 @@ function storageKey(value: string): string {
   if (value === 'http://127.0.0.1:4417') return 'jera-http-127.0.0.1-4417';
   throw new Error('Unconfigured Jera backend: add an origin-specific storage key and grant before using it.');
 }
-const sessionKey = storageKey(origin);
-export const grants = `net.fetch ${origin}\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417\nsecret.keep jera-https-snapback-jera-ink\nfs.read app:/data\nfs.write app:/data`;
+const sessionKey = storageKey(origin) + '-atproto-v1';
+const pendingKey = sessionKey + '-login';
+export const grants = `net.fetch ${origin}\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
+
+function randomToken(): string {
+  return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function prepareLogin(store: Store, replace = false): Promise<void> {
+  if (!replace && store.get(pendingKey)) return;
+  const verifier = randomToken(), state = randomToken();
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  const challenge = btoa(String.fromCharCode(...hash)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  store.set(pendingKey, JSON.stringify({ verifier, state, challenge }));
+}
+async function authRequest(path: string, body: unknown, token?: string): Promise<any> {
+  const response = await fetch(`${origin}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
+  const result = await response.json();
+  if (!response.ok) throw refused(result.denied ?? { code: 'E_AUTH', message: 'Sign-in could not complete. Try again.' });
+  return result;
+}
 
 function reject(code: string, message: string): never { throw refused({ code, message }); }
 async function using<T>(store: Store, storage: Storage, native: NativeModule | null | undefined, now: number, fn: (db: Snapback) => Promise<T>): Promise<T> {
@@ -67,24 +85,52 @@ async function writeDraft(storage: Storage, path: string, draft: DraftFile): Pro
 }
 
 const sources: Sources = {
-  restore: ([now], store, storage, native) => using(store, storage, native, now, async db => ({ principal: db.session?.principal ?? '' })),
-  signup: ([email, password, now], store, storage, native) => using(store, storage, native, now, async db => {
-    const result = await db.signup(email.trim(), password);
-    if (!result.ok) throw refused(result.why);
-    return { state: 'sent', id: result.session.principal };
-  }),
-  login: ([email, password, now], store, storage, native) => using(store, storage, native, now, async db => {
-    const result = await db.login(email.trim(), password);
-    if (!result.ok) throw refused(result.why);
-    return { state: 'sent', id: result.session.principal };
-  }),
+  restore: async ([now], store, storage, native) => {
+    // Prepare before the press so web hosts can open their popup synchronously.
+    await prepareLogin(store);
+    return using(store, storage, native, now, async db => {
+      if (!db.session) return { principal: '' };
+      const raw = store.get(sessionKey);
+      try {
+        const { did } = await authRequest('/oauth/check', {}, db.session.token);
+        if (store.get(sessionKey) !== raw) reject('E_STALE', 'The account changed while checking authorization.');
+        if (did !== db.session.principal) reject('E_AUTH', 'The account changed. Sign in again.');
+      } catch (error) {
+        if (store.get(sessionKey) !== raw) throw error;
+        if ((error as { code?: string }).code === 'E_AUTH') { await db.logout(); return { principal: '' }; }
+        // Offline restoration preserves this account's partition and draft.
+        // Online operations still require a valid backend session.
+      }
+      return { principal: db.session?.principal ?? '' };
+    });
+  },
+  login: async ([handle, now], store, storage, native) => {
+    if (store.get(sessionKey)) reject('E_AUTH', 'Sign out before changing accounts.');
+    const pending = store.get(pendingKey);
+    if (!pending) reject('E_AUTH', 'Refresh before signing in.');
+    const flow = { ...JSON.parse(pending), callback: authCallback() };
+    const url = `${origin}/oauth/start?handle=${encodeURIComponent(handle.trim())}&state=${flow.state}&challenge=${flow.challenge}&callback=${encodeURIComponent(flow.callback)}`;
+    try {
+      const back = new URL(await openAuthSession(url, { callback: flow.callback, state: flow.state }));
+      if (back.searchParams.get('state') !== flow.state || !back.searchParams.get('code')) reject('E_AUTH', 'Sign-in could not be verified.');
+      const result = await authRequest('/oauth/exchange', { state: flow.state, code: back.searchParams.get('code'), verifier: flow.verifier });
+      if (store.get(pendingKey) !== pending || store.get(sessionKey)) reject('E_AUTH', 'The sign-in attempt changed. Try again.');
+      const session = result.session;
+      if (!session || !/^did:(plc|web):/.test(session.principal) || typeof session.token !== 'string' || !session.token || !Number.isFinite(session.expiresAt) || session.expiresAt <= now) reject('E_AUTH', 'The server returned an invalid account session.');
+      store.set(sessionKey, JSON.stringify(session));
+      return { state: 'sent', id: session.principal };
+    } finally {
+      if (store.get(pendingKey) === pending) await prepareLogin(store, true);
+    }
+  },
   logout: ([now], store, storage, native) => using(store, storage, native, now, async db => {
     await db.logout(); return { state: 'sent', id: '' };
   }),
   armillaries: async ([principal, now], store, storage, native) => {
     if (!principal) return { principal, parent: "", items: [], complete: true, available: true };
     return using(store, storage, native, now, async db => {
-      identity(db, principal); await db.sync();
+      if (db.session?.principal !== principal) return { principal: '', parent: '', available: true, items: [], complete: true };
+      await db.sync();
       const page = await db.read(api.armillariesList, {}, now);
       if (page.denied?.code === "E_OFFLINE" || (!hasData(page) && page.offline)) return { principal, parent: "", available: false, items: [], complete: false };
       return { principal, parent: "", available: true, items: rows(page).map(({ id, name }) => ({ id, name })), complete: page.complete === true && !page.next };
@@ -93,7 +139,8 @@ const sources: Sources = {
   modules: async ([principal, armillary, now], store, storage, native) => {
     if (!principal || !armillary) return { principal, parent: armillary, items: [], complete: true, available: true };
     return using(store, storage, native, now, async db => {
-      identity(db, principal); await db.sync();
+      if (db.session?.principal !== principal) return { principal: '', parent: armillary, available: true, items: [], complete: true };
+      await db.sync();
       const page = await db.read(api.modulesList, { armillary }, now);
       if (page.denied?.code === "E_OFFLINE" || (!hasData(page) && page.offline)) return { principal, parent: armillary, available: false, items: [], complete: false };
       return { principal, parent: armillary, available: true, items: rows(page).map(({ id, name }) => ({ id, name })), complete: page.complete === true && !page.next };
@@ -102,7 +149,8 @@ const sources: Sources = {
   board: async ([principal, module, now], store, storage, native) => {
     if (!principal || !module) return { principal, module, ideas: [], nodes: [], complete: true };
     return using(store, storage, native, now, async db => {
-      identity(db, principal); await db.sync();
+      if (db.session?.principal !== principal) return { principal: '', module, ideas: [], nodes: [], complete: true };
+      await db.sync();
       const membership = rows(await db.read(api.membersList, { module }, now));
       if (!membership.some(m => m.principal === principal)) reject('E_ACCESS', 'This module is unavailable to this account.');
       const artifacts = await db.read(api.artifactsList, { module }, now);

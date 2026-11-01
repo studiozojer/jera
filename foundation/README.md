@@ -1,6 +1,6 @@
 # Jera foundation
 
-**Product status:** this build is a working capture/backend prototype, but its separate password login remains misaligned. Existing-account ATproto OAuth and verified DID ownership are required corrective work. Snapback is the accepted authoritative store for private drafts, shared modules and most initial application data; user input will not be published to ATproto during this phase. Lexicons and PDS storage are deferred while the UX develops. Read [the current product contract](PRODUCT.md) before extending it.
+**Product status:** existing-account ATproto OAuth and DID-bound Snapback sessions are implemented; password and guest signup are disabled. Real-provider discovery/PAR works, while complete phone authorization still needs the account holder's interactive acceptance. Snapback is the accepted authoritative store for private drafts, shared modules and most initial application data; user input will not be published to ATproto during this phase. Lexicons and PDS storage are deferred while the UX develops. Read [the current product contract](PRODUCT.md) before extending it.
 
 Jera's first Exact + Snapback slice: capture an idea into a module, retain its original wording and provenance, queue organizing work, and let an authenticated operator return attributed context. Multiple armillaries coexist. An armillary's identity is its backend endpoint plus its record ID; there is no assumed universal singleton.
 
@@ -36,13 +36,13 @@ Run the backend from `foundation`:
 bun run dev
 ```
 
-In another terminal, from `foundation/app`:
+The raw development server above exercises storage only. Real sign-in uses the deployed auth service; local browser verification runs its own explicitly simulated provider and isolated backend (`bun exact.mjs verify`). A live web deployment requires explicitly registering its callback and origin with the auth service. For a local UI preview, from `foundation/app`:
 
 ```sh
 bun exact.mjs web
 ```
 
-The current prototype uses a separate password account to create an armillary/module and capture an idea. This describes the legacy test flow; it is not the accepted Jera onboarding experience. Drafts are saved on this device per account and module. A source link is optional. Unicode and whitespace are preserved as entered. A queued capture remains visible as queued until its receipt is confirmed; **Check delivery** retries the same durable intent. Reloading does not create a new capture intent. Other accounts cannot read the module without membership.
+Enter your existing ATproto handle or DID and choose **Continue with ATproto**. Approve access on your provider’s page, return to Jera, then create an armillary/module and capture an idea. No separate Jera account is created. The visible DID is the canonical owner. See [authorization architecture and verification](auth/README.md). Drafts are saved on this device per account and module. A source link is optional. Unicode and whitespace are preserved as entered. A queued capture remains visible as queued until its receipt is confirmed; **Check delivery** retries the same durable intent. Reloading does not create a new capture intent. Other accounts cannot read the module without membership.
 
 The development origin is `http://127.0.0.1:4417`. Phone builds bake `https://snapback.jera.ink`; sessions, device partitions and drafts have distinct storage names for each origin. Unknown origins are refused until explicitly configured. A phone cannot reach the laptop through its own loopback address.
 
@@ -100,7 +100,7 @@ Human and operator accounts use the same API and module rules. The module owner 
 
 Queries are authenticated `POST /q/<name>` with `{ "args": { ... } }`. Mutations are `POST /m/<name>` with `{ "id": "<stable 26-character intent ID>", "args": { ... } }`. Keep the same ID and arguments when retrying an ambiguous mutation. HTTP 200 can contain a refused mutation (`state: "failed"`); the included client checks the envelope, not just the status code.
 
-The CLI accepts JSON from a file or standard input and prints response JSON. Supply `JERA_ORIGIN` and `JERA_TOKEN` through your harness's environment/secret storage. The token is a Snapback password session issued by `/auth/login` or `/auth/signup`, not an ATproto session. Do not put tokens in committed files or shell arguments.
+The CLI accepts JSON from a file or standard input and prints response JSON. Supply `JERA_ORIGIN` and `JERA_TOKEN` through your harness's environment/secret storage. The token is a Snapback session issued after ATproto authorization and bound to the verified DID. It is not a PDS access token; password endpoints are disabled. Dedicated operator account onboarding and CLI sign-in remain separate work. Do not put tokens in committed files or shell arguments.
 
 ```sh
 node scripts/agent.mjs query armillariesList empty.json
@@ -151,8 +151,8 @@ Never enable development doors for a shared or production service. Native build/
 ## Current boundaries
 
 - No ATproto publication, Spaces integration, GitHub synchronization or automated AI processing is present. Publication and protocol storage are explicitly deferred; private data lives authoritatively in Snapback. Existing-account ATproto identity is required now. A running organizer remains future work.
-- Password identity is an implementation defect relative to Jera’s requirements. Replace it with existing-account authorization and verified DID binding, preserving any real data deliberately. Cross-backend membership federation remains separate design work.
+- Existing-account OAuth is implemented and the backend principal is the verified DID. Browser/provider fixtures and real-backend tests pass independently; complete phone authorization remains an explicit acceptance gate. Legacy records are retained without guessed ownership. Cross-backend membership federation remains separate design work.
 - The screen shows bounded pages (50 ideas/nodes/tasks). It labels incomplete results; the API exposes cursors. Device replication retains the latest 500 artifacts/nodes per module. It is not a complete offline archive.
 - Module revocation denies subsequent module reads and writes. Previously downloaded content cannot be made unknown to its reader. Armillary directory membership currently remains after a module grant is removed, so the recipient can still see that armillary's name; module contents remain denied.
 - Claims last five minutes with no heartbeat extension yet. A worker should release work it cannot finish and reclaim only after expiry. Future long-running code work should use a separate job contract; this task is idea organization.
-- Local drafts and Snapback partitions are device storage, not an encrypted vault. The deployed service has nightly snapshots and a tested isolated restore. The current separate password signup is being retired as a product direction; adding password recovery would deepen the wrong account model. Verified ATproto identity and its session boundary are required next.
+- Local drafts and Snapback partitions are device storage, not an encrypted vault. The deployed service has nightly snapshots and a tested isolated restore. Password signup is disabled. Auth state is backed up with application state. Remote OAuth revocation is observed during session restore/renewal; see auth/README.md for session custody and offline limitations.

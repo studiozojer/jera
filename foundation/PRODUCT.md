@@ -27,8 +27,8 @@ For the first private-capture journey, verify the original record in Snapback, d
 
 Keep protocol integration evidence separate from backend tests, compilation, installation and visual checks. A test that creates a Snapback password account does not satisfy ATproto login acceptance. A stubbed PDS response does not prove publication. An installed app that stays running does not prove its user journey.
 
-## Current implementation gap
+## Current implementation and acceptance status
 
-The installed build enables Snapback password identity, stores ownership using its principals, and has no verified DID binding. That identity boundary remains misaligned. Its lack of Jera lexicons and PDS writes matches the clarified initial scope. It is a private capture/work-queue prototype with working build and hosting paths. Its password tests demonstrate storage behavior, not the intended account model.
+The app now authorizes an existing ATproto account through the official OAuth SDK, and the server mints Snapback sessions with the verified DID as principal. Password/guest signup is disabled. Its lack of Jera lexicons and PDS writes matches the clarified initial scope. Real-backend and handoff tests pass; browser tests simulate the provider explicitly. Production discovery/PAR reaches the real authorization UI. Full phone authorization, callback completion and relaunch still require interactive account-holder acceptance; compilation and fixture tests do not establish that gate.
 
-Retain useful capture, membership, queue, build and deployment work where it fits the corrected boundaries. Before changing identity, inventory any real records and their ownership; define migration or explicit disposal of synthetic fixtures. Do not reset production or infer that a password account belongs to a DID from an email/handle match.
+Legacy backend records and local password-era files remain preserved, without email-to-DID reassignment. Old password sessions were revoked; new app credentials and drafts use a separate versioned namespace. Retain useful capture, membership, queue, build and deployment work. Do not reset production or infer ownership from an email/handle match.

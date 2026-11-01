@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, copyFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { once } from 'node:events';
 import { JeraClient, intentId } from '../scripts/client.mjs';
 
@@ -25,10 +25,13 @@ async function start(dir, extra = []) {
   });
   return { url, async stop() { const exited = once(child, 'exit'); child.kill('SIGTERM'); await exited; } };
 }
-async function account(origin, email) {
-  const anonymous = new JeraClient(origin);
-  const { session } = await anonymous.request('/auth/signup', { email, password: 'jera integration correct horse battery' });
-  assert.ok(session?.token, 'real server must issue a password session');
+async function account(origin, label, dir) {
+  // Test principals are fixtures, not evidence of real ATproto authorization.
+  const principal = 'did:plc:' + ({ alice: 'a', operator: 'b', reader: 'c', outsider: 'd' }[label.split('@')[0]]).repeat(24);
+  const token = execFileSync(cli, ['token', '--service', 'auth-tests'], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const { session } = await new JeraClient(origin, token).request('/auth/session', { principal, days: 1 });
+  assert.equal(session.principal, principal);
+  assert.ok(session?.token, 'real server must issue a trusted identity session');
   return { principal: session.principal, client: new JeraClient(origin, session.token) };
 }
 async function denied(promise, code) { await assert.rejects(promise.then(result => { throw Object.assign(new Error(JSON.stringify(result)), { code: 'UNEXPECTED_SUCCESS' }); }), error => { assert.equal(error.code, code, error.message); return true; }); }
@@ -41,10 +44,15 @@ test('real Snapback: capture, organize, query, isolate, replay and recover', { t
   let server;
   t.after(async () => { if (server) await server.stop(); await rm(dir, { recursive: true, force: true }); });
   server = await start(dir);
-  const alice = await account(server.url, 'alice@jera.test');
-  const operator = await account(server.url, 'operator@jera.test');
-  const reader = await account(server.url, 'reader@jera.test');
-  const outsider = await account(server.url, 'outsider@jera.test');
+  const alice = await account(server.url, 'alice@jera.test', dir);
+  const operator = await account(server.url, 'operator@jera.test', dir);
+  const reader = await account(server.url, 'reader@jera.test', dir);
+  const outsider = await account(server.url, 'outsider@jera.test', dir);
+  const config = await (await fetch(server.url + '/auth/config')).json();
+  assert.equal(config.password, false);
+  assert.equal(config.guests, false);
+  await denied(new JeraClient(server.url).request('/auth/signup', { email: 'wrong@example.test', password: 'not a Jera account' }), 'E_AUTH');
+  assert.equal((await alice.client.query('currentIdentity')).data.did, alice.principal);
   const a = alice.client, op = operator.client, r = reader.client, out = outsider.client;
   const first = (await a.mutate('createArmillary', { name: 'Studio' })).result;
   const second = (await a.mutate('createArmillary', { name: 'Independent armillary' })).result;

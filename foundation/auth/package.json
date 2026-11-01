@@ -1,0 +1,8 @@
+{
+  "name": "jera-atproto-auth",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": { "start": "node server.mjs", "test": "node --test test/*.test.mjs" },
+  "dependencies": { "@atproto/jwk-jose": "0.2.4", "@atproto/oauth-client-node": "0.5.13" }
+}
