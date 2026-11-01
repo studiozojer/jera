@@ -1,5 +1,7 @@
 # Jera foundation
 
+**Product status:** this build is a working capture/backend prototype, but it does not yet meet Jera's ATproto requirements. Its separate password login is a known misalignment. Read [the current product contract](PRODUCT.md) before extending it. Existing-account OAuth, verified DID ownership, and the agreed record/publication boundary are required corrective work; the checks below do not establish those capabilities.
+
 Jera's first Exact + Snapback slice: capture an idea into a module, retain its original wording and provenance, queue organizing work, and let an authenticated operator return attributed context. Multiple armillaries coexist. An armillary's identity is its backend endpoint plus its record ID; there is no assumed universal singleton.
 
 The existing Expo application at the repository root remains the historical implementation. New foundation work lives here. The foundation backend is deployed at `https://snapback.jera.ink`. Migration of the Expo screens and an autonomous organizer remain future work.
@@ -40,7 +42,7 @@ In another terminal, from `foundation/app`:
 bun exact.mjs web
 ```
 
-Create an account, create an armillary and module, then capture an idea. Drafts are saved on this device per account and module. A source link is optional. Unicode and whitespace are preserved as entered. A queued capture remains visible as queued until its receipt is confirmed; **Check delivery** retries the same durable intent. Reloading does not create a new capture intent. Other accounts cannot read the module without membership.
+The current prototype uses a separate password account to create an armillary/module and capture an idea. This describes the legacy test flow; it is not the accepted Jera onboarding experience. Drafts are saved on this device per account and module. A source link is optional. Unicode and whitespace are preserved as entered. A queued capture remains visible as queued until its receipt is confirmed; **Check delivery** retries the same durable intent. Reloading does not create a new capture intent. Other accounts cannot read the module without membership.
 
 The development origin is `http://127.0.0.1:4417`. Phone builds bake `https://snapback.jera.ink`; sessions, device partitions and drafts have distinct storage names for each origin. Unknown origins are refused until explicitly configured. A phone cannot reach the laptop through its own loopback address.
 
@@ -75,7 +77,7 @@ Before the first cloud build, create an EAS **preview**, **secret** variable nam
 
 No paid cloud build or physical-phone installation is implied by configuring this workflow. Validate launch, login, capture, relaunch and draft recovery on the actual phone after signing is ready.
 
-Verified on 2026-10-31: a locally signed iPhone archive was produced at `app/artifacts/jera.ipa`; code-signature validation passed, and its receipt contains the production origin and session scope. Exact web verification and backend integration also pass. The phone was unavailable to Xcode, so installation, launch and native typing remain unverified. EAS configuration, workflow schema and archive contents were checked; a cloud build still needs the source-access secret above and build approval.
+Verified on 2026-10-31: a locally signed iPhone archive was produced at `app/artifacts/jera.ipa`; code-signature validation passed, and its receipt contains the production origin and session scope. Exact web verification and backend integration also pass. The signed build was subsequently installed and launched on the physical iPhone, and its process stayed running. In-app authorization, capture and native typing remain unverified; the password screen exposed the identity misalignment described above. EAS configuration, workflow schema and archive contents were checked; a cloud build still needs the source-access secret above and build approval.
 
 ## Hosted backend
 
@@ -148,9 +150,9 @@ Never enable development doors for a shared or production service. Native build/
 
 ## Current boundaries
 
-- No ATproto publication, Spaces integration, GitHub synchronization or automated AI processing is present. These will be adapters to this data and work contract, not prerequisites for capturing ideas.
-- Password identity is the foundation's temporary identity mechanism. ATproto DIDs/account linking and membership federation across independent backends remain design work.
+- No ATproto publication, Spaces integration, GitHub synchronization or automated AI processing is present. The accepted first ATproto journey and record ownership must guide corrective implementation; these absences are not permission to redefine Jera as a standalone backend app.
+- Password identity is an implementation defect relative to Jera’s requirements. Replace it with existing-account authorization and verified DID binding, preserving any real data deliberately. Cross-backend membership federation remains separate design work.
 - The screen shows bounded pages (50 ideas/nodes/tasks). It labels incomplete results; the API exposes cursors. Device replication retains the latest 500 artifacts/nodes per module. It is not a complete offline archive.
 - Module revocation denies subsequent module reads and writes. Previously downloaded content cannot be made unknown to its reader. Armillary directory membership currently remains after a module grant is removed, so the recipient can still see that armillary's name; module contents remain denied.
 - Claims last five minutes with no heartbeat extension yet. A worker should release work it cannot finish and reclaim only after expiry. Future long-running code work should use a separate job contract; this task is idea organization.
-- Local drafts and Snapback partitions are device storage, not an encrypted vault. The deployed service has nightly snapshots and a tested isolated restore. Authentication federation and password recovery remain future work; signup currently creates a separate password account, with no automatic module access.
+- Local drafts and Snapback partitions are device storage, not an encrypted vault. The deployed service has nightly snapshots and a tested isolated restore. The current separate password signup is being retired as a product direction; adding password recovery would deepen the wrong account model. Verified ATproto identity and its session boundary are required next.
