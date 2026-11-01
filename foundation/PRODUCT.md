@@ -29,6 +29,10 @@ Keep protocol integration evidence separate from backend tests, compilation, ins
 
 ## Current implementation and acceptance status
 
-The app now authorizes an existing ATproto account through the official OAuth SDK, and the server mints Snapback sessions with the verified DID as principal. Password/guest signup is disabled. Its lack of Jera lexicons and PDS writes matches the clarified initial scope. Real-backend and handoff tests pass; browser tests simulate the provider explicitly. Production discovery/PAR reaches the real authorization UI. Full phone authorization, callback completion and relaunch still require interactive account-holder acceptance; compilation and fixture tests do not establish that gate.
+The app now authorizes an existing ATproto account through the official OAuth SDK, and the server mints Snapback sessions with the verified DID as principal. Password/guest signup is disabled. Its lack of Jera lexicons and PDS writes matches the clarified initial scope. Real-backend and handoff tests pass; browser tests simulate the provider explicitly. Production discovery/PAR reaches the real authorization UI. David reported successful real-account phone login and arrival at the signed-in screen on 2026-11-01. This is account-holder evidence of login and callback completion; relaunch, verified-DID review and the private-capture journey remain separate acceptance checks.
 
 Legacy backend records and local password-era files remain preserved, without email-to-DID reassignment. Old password sessions were revoked; new app credentials and drafts use a separate versioned namespace. Retain useful capture, membership, queue, build and deployment work. Do not reset production or infer ownership from an email/handle match.
+
+## Current signed-in surface — 2026-11-01
+
+After successful phone login, David requested a deliberately minimal signed-in screen: only the approved SVG wordmark at the top-left. Remove the workspace directory, DID, refresh/sign-out controls and loading feedback. Do not run directory polling behind this shell. Preserve existing records and local drafts; the backend model and future capture/organizing direction remain in place.

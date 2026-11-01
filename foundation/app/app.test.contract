@@ -2,7 +2,7 @@ fresh
 epoch now
 
 // OAuth is a fixture here; authorization acceptance requires a real PDS.
-test "capture survives reload and account boundaries"
+test "sign-in reaches a quiet wordmark screen and survives reload"
   expect disabled "login"
   type "handle" "owner..test"
   clock data
@@ -28,68 +28,42 @@ test "capture survives reload and account boundaries"
   tap "login"
   authorize
   clock data
-  expect text "account-did" == "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"
-  expect tree has "empty-armillaries"
-  type "arm-name" "Shared armillary"
-  tap "create-arm"
+  expect state account.principal == "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"
+  expect tree has "jera-wordmark"
+  expect tree missing "handle"
+  expect tree missing "account-did"
+  expect tree missing "refresh"
+  expect tree missing "logout"
+  expect tree missing "arm-name"
+  expect tree missing "account-loading"
+  clock +15000
   clock data
-  type "module-name" "Jera"
-  tap "create-module"
-  clock data
-  type "idea-input" "ᛃ A fragment about connected ideas ♊"
-  type "source-input" "https://example.com/original"
-  clock data
+  expect state account.principal == "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"
+  expect tree has "jera-wordmark"
+  expect tree missing "account-loading"
   reload
   clock data
-  tap "arm-0"
-  clock data
-  tap "module-0"
-  clock data
-  tap "capture"
-  clock data
-  expect text "idea-0" == "ᛃ A fragment about connected ideas ♊"
-  expect text "work-0" == "pending"
-  expect tree missing "idea-1"
-  tap "logout"
-  clock data
-  expect tree missing "idea-0"
-  type "handle" "other.test"
-  tap "login"
-  authorize
-  clock data
-  expect text "account-did" == "did:plc:bbbbbbbbbbbbbbbbbbbbbbbb"
-  expect tree missing "arm-0"
-  expect tree missing "idea-0"
+  expect state account.principal == "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"
+  expect tree has "jera-wordmark"
+  expect tree missing "handle"
+  expect tree missing "refresh"
 
-test "queued capture is delivered once after a connection loss"
+test "offline session restoration keeps the quiet signed-in screen"
   type "handle" "offline.test"
   tap "login"
   authorize
   clock data
-  type "arm-name" "Offline armillary"
-  tap "create-arm"
-  clock data
-  type "module-name" "Ideas"
-  tap "create-module"
-  clock data
-  type "idea-input" "Keep this idea exactly once"
-  clock data
+  expect tree missing "handle"
   fail fetch "backend"
-  tap "capture"
-  clock data
-  expect tree has "queued"
   reload
   clock data
-  expect tree has "directory-error"
-  pass fetch "backend"
-  tap "refresh"
+  expect tree has "jera-wordmark"
+  expect tree missing "handle"
+  expect tree missing "account-loading"
+  expect tree missing "retry-account"
+  expect tree missing "refresh"
+  expect tree missing "logout"
+  clock +15000
   clock data
-  tap "arm-0"
-  clock data
-  tap "module-0"
-  clock data
-  tap "capture"
-  clock data
-  expect text "idea-0" == "Keep this idea exactly once"
-  expect tree missing "idea-1"
-  expect tree missing "queued"
+  expect tree missing "handle"
+  expect tree missing "account-loading"
