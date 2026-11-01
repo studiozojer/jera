@@ -7,6 +7,11 @@ theme
   bg.card = light-dark(#F7F3EC, #2C2721)
   bg.hover = light-dark(#EFE9DF, #342F2A)
   bg.pressed = light-dark(#E7DFD3, #3C3832)
+  // David's sign-in accent, with opaque readable ink and derived interaction states.
+  bg.action = #F7B667 scheme=fixed
+  bg.action-hover = #F9C486 scheme=fixed
+  bg.action-pressed = #DDA35D scheme=fixed
+  tx.on-action = #1A1714 scheme=fixed
   tx.primary = light-dark(#191B18, #FEFFFFF2)
   tx.secondary = light-dark(#3D403BBF, #F3F6F8B3)
   tx.warning = light-dark(#F18736F2, #F18736F2)

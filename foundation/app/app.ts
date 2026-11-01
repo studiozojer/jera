@@ -1,6 +1,7 @@
 import type { Answer, Result, Sources, Store, Storage, NativeModule } from './app.contract.d.ts';
 import { Snapback, hasData, refused, type Read, type Sent } from './snapback4/snapback.ts';
 import { api } from './backend/api.ts';
+import { parseLoginInput } from './login-input.ts';
 
 const origin = 'http://127.0.0.1:4417';
 export const appId = 'studio.zojer.jera.exact';
@@ -85,6 +86,7 @@ async function writeDraft(storage: Storage, path: string, draft: DraftFile): Pro
 }
 
 const sources: Sources = {
+  loginInput: ([input]) => parseLoginInput(input),
   lookupAccounts: async ([query]) => {
     if (query.trim().replace(/^@/, '').length < 2 || query.trim().startsWith('did:')) return { query, items: [], available: true, complete: true };
     try {
@@ -114,11 +116,13 @@ const sources: Sources = {
     });
   },
   login: async ([handle, now], store, storage, native) => {
+    const input = parseLoginInput(handle);
+    if (!input.valid) reject('E_INPUT', 'Enter your full ATproto handle or DID.');
     if (store.get(sessionKey)) reject('E_AUTH', 'Sign out before changing accounts.');
     const pending = store.get(pendingKey);
     if (!pending) reject('E_AUTH', 'Refresh before signing in.');
     const flow = { ...JSON.parse(pending), callback: authCallback() };
-    const url = `${origin}/oauth/start?handle=${encodeURIComponent(handle.trim())}&state=${flow.state}&challenge=${flow.challenge}&callback=${encodeURIComponent(flow.callback)}`;
+    const url = `${origin}/oauth/start?handle=${encodeURIComponent(input.value)}&state=${flow.state}&challenge=${flow.challenge}&callback=${encodeURIComponent(flow.callback)}`;
     try {
       const back = new URL(await openAuthSession(url, { callback: flow.callback, state: flow.state }));
       if (back.searchParams.get('state') !== flow.state || !back.searchParams.get('code')) reject('E_AUTH', 'Sign-in could not be verified.');

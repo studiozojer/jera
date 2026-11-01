@@ -11,6 +11,10 @@ shape Clock
   epochAtZero: number
 shape Account
   principal: string
+shape LoginInput
+  input: string
+  value: string
+  valid: bool
 shape AccountSuggestion
   did: string
   handle: string
@@ -60,6 +64,8 @@ shape Draft
 component App
   resource viewport = exactViewport() as shape Viewport
   state handle = ""
+  resource loginInput = loginInput(handle) as shape LoginInput else empty()
+  derive canSubmit = loginInput.input == handle and loginInput.valid and not pending(loginInput) and not pending(signed)
   state accountQuery = ""
   state selectedHandle = ""
   state accountsOpen = false
@@ -151,7 +157,7 @@ component App
   action editModuleName(v: string)
     moduleName = v
   action login
-    if handle.trim() != "" and not pending(signed)
+    if canSubmit
       hidePopover("account-suggestions")
       send signed = login(handle, time.epochAtZero + performanceNow())
   action logout
@@ -198,7 +204,7 @@ component App
               text "Log in with your everything account, and bring your tokens into the network" testId="signin-invitation" color="tx.secondary" margin-top=16 max-width="24rem" line-height=1.5
               row id="account-entry" testId="account-entry" gap=8 margin-top=32 align-items="stretch" width="100%" max-width="23.5rem"
                 input id="account-handle" value=handle input=editHandle submit=login press=openSuggestions key=accountKey aria-label="ATproto handle or DID" aria-controls="account-suggestions" aria-expanded=accountsOpen placeholder="Name, handle or DID" testId="handle" font-family="Whyte" autocomplete="username" autocapitalize="none" spellcheck=false enterkeyhint="go" appearance="none" flex=1 min-width=0 padding="12px" border-width=1 border-style="solid" border-color="bd.primary" border-radius=8 background-color="bg.field" color="tx.primary" font-size="1rem"
-                button press=login disabled=(pending(signed) or handle.trim() == "") testId="login" aria-label="Continue with ATproto" title="Continue with ATproto" appearance="none" class=LoginButton width="3rem" min-height="3rem" box-sizing="border-box" flex-shrink=0 padding=12 border-radius=8 color="tx.primary" display="flex" align-items="center" justify-content="center"
+                button press=login disabled=(not canSubmit) testId="login" aria-label="Continue with ATproto" title="Continue with ATproto" appearance="none" class=LoginButton width="3rem" min-height="3rem" box-sizing="border-box" flex-shrink=0 padding=12 border-radius=8 display="flex" align-items="center" justify-content="center"
                   if pending(signed)
                     image "symbol:refresh" aria-hidden=true
                   else
