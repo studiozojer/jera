@@ -1,13 +1,23 @@
 # Jera's product contract
 
-This is the current acceptance contract, based on David's direction and his authentication correction on 2026-10-31. Earlier agent-authored plans that deferred ATproto identity are superseded. Keep implementation evidence separate from decisions about what Jera is.
+This is the current acceptance contract, based on David's direction, his authentication correction on 2026-10-31 and his simple-social-loop clarification on 2026-11-01. Earlier agent-authored plans that deferred ATproto identity are superseded. Keep implementation evidence separate from decisions about what Jera is.
+
+## First social loop — David's November 1 direction
+
+Keep the core UX simple: write a post, optionally mention an operator, and read its attributable reply in the same thread. An unaddressed post can simply exist. The first product proof is a persisted human post and a real operator reply using the same initial Snapback-backed app record vocabulary. A mocked reply can inform visual exploration but does not establish an operating collaborator. A full memory-organization or coding-harness journey is later work, rather than a prerequisite for this first exchange. The old capture/task transaction does not make every social post an organizing task by definition.
+
+Jera is the interface for humans and operators. An operator owns its processing, perception, memory/tool use and response strategy independently of the client. Operator accounts remain distinct participants with their own attribution. A standalone helper module in this repository may support people building agents, but its implementation is not yet selected and it must remain separable. Do not require one embedded agent runtime, reasoning matrix or memory implementation to post or display a reply.
+
+Keep armillary/memory-bank administration, skill inventories, Jev matrices and pipeline internals out of the main UX for the first iterations. Developer debug views can expose selected mechanisms as needed. Jev matrices may help an operator structure its perception and uncertainty; they are not a requirement to predefine every action or a dependency for the first reply. Persistent modular memory, adapted commons/athanors and graph/yao conventions remain directions to develop through use.
+
+Drafts remain private until explicit posting. Posting here means contribution to the Snapback-backed application, not ATproto publication. The audience for posted threads is still being clarified; retain existing access boundaries while open. Existing-account OAuth and verified DID identity remain settled. The current direction and original conversation captures are in the composed commons at `projects/jera/README.md` and `projects/jera/STRATA.爻`; discover the actual binding from the workspace rather than treating those as paths inside this repository. No new posting UI or running operator is established by this contract update.
 
 ## Settled requirements
 
 - Jera is an ATproto application. People sign in with an existing ATproto account; its verified DID is their canonical identity. A separate Jera email/password account is not an accepted substitute. Internal backend principals and sessions must be bound to that identity.
 - Preserve scattered ideas, original wording, exact Unicode forms and provenance, including fragments that never become executable work. Derived interpretations must retain attribution and links to their sources.
 - Multiple armillaries can coexist. Shared modules have human and operator participants. A later local coding harness must be able to query the work without depending on one model or operator runtime.
-- The intended interaction is social: threads, operator mentions and attributable responses. The first operator should organize ideas into an armillary for later action. A claimable queue alone is not an operating AI collaborator.
+- The intended interaction is social: threads, operator mentions and attributable responses. First prove the simple posting/reply loop described above. Organizing ideas into an armillary for later action remains a subsequent direction. A claimable queue alone is not an operating AI collaborator.
 - Exact and Snapback are selected infrastructure. Their examples do not decide Jera's account model, public-record ownership, privacy, or user journey. Snapback is not an ATproto PDS.
 - Unicode tagging is core to the direction. Astrology is an optional module. Discovery-feed ranking and a large capability framework are deferred.
 
