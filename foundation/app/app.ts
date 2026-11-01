@@ -85,6 +85,14 @@ async function writeDraft(storage: Storage, path: string, draft: DraftFile): Pro
 }
 
 const sources: Sources = {
+  lookupAccounts: async ([query]) => {
+    if (query.trim().replace(/^@/, '').length < 2 || query.trim().startsWith('did:')) return { query, items: [], available: true, complete: true };
+    try {
+      return await authRequest('/oauth/accounts', { query });
+    } catch {
+      return { query, items: [], available: false, complete: false };
+    }
+  },
   restore: async ([now], store, storage, native) => {
     // Prepare before the press so web hosts can open their popup synchronously.
     await prepareLogin(store);

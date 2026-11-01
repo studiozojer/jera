@@ -17,7 +17,7 @@ async function body(req) {
 }
 function json(res, status, value) { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(value)); }
 
-export function createHandler({ client, store, publicOrigin, callbacks, snapbackOrigin, serviceToken, fetcher = fetch }) {
+export function createHandler({ client, store, publicOrigin, callbacks, snapbackOrigin, serviceToken, searchAccounts, fetcher = fetch }) {
   const limits = new Map();
   async function upstream(path, token, payload) {
     const reply = await fetcher(`${snapbackOrigin}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000) });
@@ -57,6 +57,17 @@ export function createHandler({ client, store, publicOrigin, callbacks, snapback
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST'); res.writeHead(204); return res.end();
     }
     try {
+      if (req.method === 'POST' && url.pathname === '/oauth/accounts') {
+        const peer = req.headers['x-forwarded-for'] ?? req.socket.remoteAddress;
+        const now = Date.now(), key = `search:${peer}`;
+        for (const [id, entry] of limits) if (entry.until <= now) limits.delete(id);
+        const limit = limits.get(key) ?? { count: 0, until: now + 60000 };
+        if (++limit.count > 120 || limits.size > 4096) fail('Search is busy. Enter your full handle or try again shortly.', 429);
+        limits.set(key, limit);
+        const { query } = await body(req);
+        if (typeof query !== 'string' || query.length > 253) fail('Enter a name or handle.', 400);
+        return json(res, 200, searchAccounts ? await searchAccounts(query) : { query, items: [], available: false, complete: false });
+      }
       if (req.method === 'GET' && url.pathname === '/oauth/client-metadata.json') return json(res, 200, client.clientMetadata);
       if (req.method === 'GET' && url.pathname === '/oauth/jwks.json') return json(res, 200, client.jwks);
       if (req.method === 'GET' && url.pathname === '/oauth/health') return json(res, 200, { ok: true });

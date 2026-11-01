@@ -4,6 +4,14 @@ Jera uses existing ATproto accounts. The native app accepts a handle or DID and 
 
 The server issues a Snapback session whose principal is the verified DID. There is no email mapping, new user table, password signup or guest login. Snapback remains the authoritative private application store.
 
+## Account discovery
+
+The sign-in field offers suggestions after two characters and a 250 ms pause. `/oauth/accounts` combines Bluesky's public `app.bsky.actor.searchActorsTypeahead` index with a small cached directory of public accounts on `JERA_PDS_ORIGIN` (default `https://pds.jera.ink`). Search text is sent to Bluesky; this does not send drafts or authenticate an account. There is no separate network indexer or persistent account table.
+
+Local discovery uses public `listRepos`, `describeRepo`, and optional Bluesky profile records. It follows up to five pages of 100 repositories with bounded concurrency and a 12-second deadline. Successful local scans are cached for five minutes; partial scans and failures retry after 30 seconds. Bluesky results have a bounded 30-second cache. Local matches appear first, with duplicates removed by DID. Suggestions are rate limited and capped at eight; outages and incomplete results retain manual entry.
+
+These sources are not a complete ATproto directory. Full handles and DIDs from other PDSes remain valid sign-in inputs even when absent from search. Selecting a suggestion only fills the handle; the official OAuth client still resolves and verifies identity before any session is issued.
+
 ## Handoff and session custody
 
 The app prepares a random verifier and state in its secret store. The browser receives only the verifier's SHA-256 challenge. The server binds authorization to a short-lived flow and a browser cookie, then returns a one-time code through Exact's declared callback. Exchanging that code requires the original device verifier. The flow is consumed before minting; a lost exchange response requires starting sign-in again. Callback targets are explicitly allowlisted. Tokens never appear in callback URLs.

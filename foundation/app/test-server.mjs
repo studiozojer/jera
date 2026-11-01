@@ -32,7 +32,9 @@ const client = {
   callback: async () => { throw new Error('Browser fixture completes authorization in its start route.'); },
   restore: async did => ({ did }),
 };
-const handler = createHandler({ client, store, publicOrigin: `http://127.0.0.1:${port}`, callbacks, snapbackOrigin: upstream, serviceToken: 'fixture-only', fetcher: async (url, options) => {
+const handler = createHandler({ client, store, publicOrigin: `http://127.0.0.1:${port}`, callbacks, snapbackOrigin: upstream, serviceToken: 'fixture-only',
+searchAccounts: async query => ({ query, available: true, complete: true, items: 'owner.test'.includes(query.toLowerCase()) ? [{ did: 'did:plc:' + 'a'.repeat(24), handle: 'owner.test', displayName: 'Test Owner' }] : [] }),
+fetcher: async (url, options) => {
   if (options.headers.authorization === 'Bearer fixture-only') {
     const token = execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'test-auth'], { cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
     options.headers.authorization = `Bearer ${token}`;
@@ -41,6 +43,17 @@ const handler = createHandler({ client, store, publicOrigin: `http://127.0.0.1:$
 } });
 const server = createServer(async (req, res) => {
   if (req.url.startsWith('/oauth/') || req.url === '/auth/refresh') {
+    // Discovery runs before /oauth/start. Admit only the ephemeral loopback
+    // test carrier here; production keeps its explicit callback allowlist.
+    if (typeof req.headers.origin === 'string') {
+      try {
+        const origin = new URL(req.headers.origin);
+        if (origin.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(origin.hostname)) {
+          const testCallback = `${origin.origin}/.exact/auth/callback`;
+          if (!callbacks.includes(testCallback)) callbacks.push(testCallback);
+        }
+      } catch { /* The real handler rejects malformed or unlisted origins. */ }
+    }
     const callback = new URL(req.url, `http://127.0.0.1:${port}`).searchParams.get('callback');
     if (callback) {
       const parsed = new URL(callback);

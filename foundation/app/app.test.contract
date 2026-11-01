@@ -3,7 +3,14 @@ epoch now
 
 // OAuth is a fixture here; authorization acceptance requires a real PDS.
 test "capture survives reload and account boundaries"
-  type "handle" "owner.test"
+  type "handle" "own"
+  clock +300
+  clock data
+  expect tree has "suggestion-0"
+  tap "suggestion-0"
+  expect text "handle" == "owner.test"
+  expect tree missing "account-did"
+  expect tree missing "suggestion-0"
   tap "login"
   authorize
   clock data

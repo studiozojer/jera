@@ -13,7 +13,7 @@ const callback = 'studio.zojer.jera.exact:/oauth';
 
 // Stub only the already-verified OAuth boundary. These tests do not prove real
 // PDS authorization; they exercise Jera's handoff and session custody over HTTP.
-async function fixture(t) {
+async function fixture(t, searchAccounts) {
   const store = new AuthStore(':memory:');
   let minted = 0, revoked = 0, authority = true;
   const client = {
@@ -44,7 +44,7 @@ async function fixture(t) {
     }
     throw new Error('Unexpected backend operation');
   };
-  const server = createServer(createHandler({ client, store, publicOrigin: 'http://127.0.0.1', callbacks: [callback], snapbackOrigin: 'http://backend.test', serviceToken: 'server-only', fetcher: upstream }));
+  const server = createServer(createHandler({ client, store, publicOrigin: 'http://127.0.0.1', callbacks: [callback], snapbackOrigin: 'http://backend.test', serviceToken: 'server-only', searchAccounts, fetcher: upstream }));
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   t.after(() => { server.closeAllConnections(); server.close(); store.close(); });
   const origin = `http://127.0.0.1:${server.address().port}`;
@@ -60,6 +60,23 @@ async function fixture(t) {
   }
   return { store, origin, post, start, finish, minted: () => minted, revoked: () => revoked, revoke: () => { authority = false; } };
 }
+
+test('public account suggestions validate input and origin without minting a session', async t => {
+  const queries = [];
+  const f = await fixture(t, async query => {
+    queries.push(query);
+    return { query, items: [{ did, handle: 'alice.test', displayName: 'Alice' }], available: true, complete: true };
+  });
+  const response = await f.post('/oauth/accounts', { query: 'ali' });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).items[0].handle, 'alice.test');
+  assert.equal(response.headers.get('set-cookie'), null);
+  assert.equal((await f.post('/oauth/accounts', { query: 123 })).status, 400);
+  assert.equal((await f.post('/oauth/accounts', { query: 'a'.repeat(254) })).status, 400);
+  assert.equal((await f.post('/oauth/accounts', { query: 'ali' }, { origin: 'https://attacker.test' })).status, 403);
+  assert.deepEqual(queries, ['ali']);
+  assert.equal(f.minted(), 0);
+});
 
 test('only verified callback + original device verifier can mint the DID; handoff is single-use', async t => {
   const f = await fixture(t), flow = await f.start();

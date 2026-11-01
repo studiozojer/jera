@@ -5,6 +5,7 @@ import { NodeOAuthClient, requestLocalLock } from '@atproto/oauth-client-node';
 import { JoseKey } from '@atproto/jwk-jose';
 import { AuthStore } from './store.mjs';
 import { createHandler } from './service.mjs';
+import { createAccountSearch } from './accounts.mjs';
 
 process.umask(0o077);
 const directory = resolve(process.env.JERA_AUTH_DATA ?? '.local/auth');
@@ -33,6 +34,7 @@ const client = new NodeOAuthClient({
 const serviceToken = (await readFile(process.env.JERA_SERVICE_TOKEN_FILE ?? resolve(directory, 'service-token'), 'utf8')).trim();
 if (!serviceToken) throw new Error('Missing Snapback service token.');
 const server = createServer(createHandler({ client, store, publicOrigin, callbacks, serviceToken,
+  searchAccounts: createAccountSearch({ pdsOrigin: process.env.JERA_PDS_ORIGIN ?? 'https://pds.jera.ink', searchBluesky: true }),
   snapbackOrigin: process.env.JERA_SNAPBACK_ORIGIN ?? 'http://127.0.0.1:4417' }));
 server.requestTimeout = 30000; server.headersTimeout = 10000;
 server.listen(Number(process.env.PORT ?? 4420), '127.0.0.1', () => console.log('Jera ATproto authorization ready on loopback.'));

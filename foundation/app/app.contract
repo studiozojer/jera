@@ -8,6 +8,15 @@ shape Clock
   epochAtZero: number
 shape Account
   principal: string
+shape AccountSuggestion
+  did: string
+  handle: string
+  displayName: string
+shape AccountSuggestions
+  query: string
+  items: AccountSuggestion[]
+  available: bool
+  complete: bool
 shape Entry
   id: string
   name: string
@@ -46,6 +55,17 @@ shape Draft
 
 component App
   state handle = ""
+  state accountQuery = ""
+  state selectedHandle = ""
+  resource suggestions = lookupAccounts(accountQuery) as shape AccountSuggestions else empty()
+  task searchAccounts when account.principal == "" and handle.trim() != accountQuery and handle != selectedHandle key=handle
+    after(250, searchAccounts)
+  action searchAccounts
+    accountQuery = handle.trim()
+  action chooseAccount(value: string)
+    handle = value
+    selectedHandle = value
+    accountQuery = ""
   state armillary = ""
   state module = ""
   state armName = ""
@@ -81,8 +101,12 @@ component App
   action afterAuth
     armillary = ""
     module = ""
+    accountQuery = ""
+    selectedHandle = handle
   action editHandle(v: string)
     handle = v
+    selectedHandle = ""
+    accountQuery = ""
   action editArmName(v: string)
     armName = v
   action editModuleName(v: string)
@@ -128,9 +152,29 @@ component App
             text (match failure(signed) { case some(f) => f.message, case none => "" }) testId="auth-error" color="-exact-system-red"
           if account.principal == "" and not pending(account)
             column gap=12 max-width="26.25rem"
-              text "A place for ideas to become connected." font="-exact-title2" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
-              text "Capture a thought. Give it a home. Let your operators carry it forward." color="-exact-secondary-label"
-              input value=handle input=editHandle aria-label="ATproto handle or DID" placeholder="you.bsky.social" testId="handle" font-family="Fraktion Mono"
+              text "Join the cycle." font="-exact-title2" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
+              text "Log in with your everything account, and bring your tokens into the network" color="-exact-secondary-label"
+              input value=handle input=editHandle aria-label="ATproto handle or DID" placeholder="Name, handle or DID" testId="handle" font-family="Fraktion Mono" autocomplete="username" autocapitalize="none" spellcheck=false
+              if handle != selectedHandle and handle.trim().length >= 2 and not handle.trim().startsWith("did:")
+                if pending(suggestions) or accountQuery != handle.trim()
+                  text "Looking for accounts…" font="-exact-footnote" color="-exact-secondary-label" aria-live="polite"
+                if accountQuery == handle.trim() and suggestions.query == accountQuery and not pending(suggestions)
+                  if failed(suggestions) or not suggestions.available
+                    text "Suggestions unavailable. You can still enter your full handle or DID." font="-exact-footnote" color="-exact-secondary-label" testId="suggestions-error"
+                  else
+                    if suggestions.items.length > 0
+                      column gap=8 role="group" aria-label="Account suggestions"
+                        text "Suggested accounts" font="-exact-footnote" color="-exact-secondary-label"
+                        for person, i in suggestions.items key=person.did
+                          button press=chooseAccount(person.handle) appearance="none" testId=`suggestion-${i}` aria-label=`Use @${person.handle}` padding=12 border-width=1 border-color="-exact-separator" border-radius=8 background-color="-exact-secondary-background" color="-exact-label"
+                            column gap=4 align-items="flex-start"
+                              if person.displayName != ""
+                                text person.displayName font-family="Whyte"
+                              text `@${person.handle}` font-family="Fraktion Mono" font="-exact-footnote"
+                    else
+                      text "No matching account found. You can still enter your full handle or DID." font="-exact-footnote" color="-exact-secondary-label" testId="suggestions-empty"
+                    if not suggestions.complete
+                      text "More accounts may be available. Enter a full handle or DID if yours is missing." font="-exact-footnote" color="-exact-secondary-label"
               text "Sign in with your ATproto account. Your ideas stay private in Jera." color="-exact-secondary-label"
               row gap=12 flex-wrap="wrap"
                 button "Continue with ATproto" press=login disabled=(pending(signed) or handle.trim() == "") testId="login" buttonStyle="filled"
