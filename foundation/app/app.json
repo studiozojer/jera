@@ -11,7 +11,7 @@
   },
   "host": {
     "ios": {
-      "icon": "assets/brand/jera-appicon2.icon",
+      "icon": "assets/brand/jeraappicon.icon",
       "minimumOS": "17.0",
       "deviceFamily": [
         "iphone",
@@ -19,7 +19,7 @@
       ]
     },
     "macos": {
-      "icon": "assets/brand/jera-appicon2.icon",
+      "icon": "assets/brand/jeraappicon.icon",
       "minimumOS": "14.0",
       "window": {
         "width": 900,
@@ -53,12 +53,12 @@
   },
   "icons": [
     {
-      "src": "assets/brand/jera-favicon-v2.png",
+      "src": "assets/brand/jera-favicon-v3.png",
       "sizes": "64x64",
       "type": "image/png"
     },
     {
-      "src": "assets/brand/jera-appicon2.png",
+      "src": "assets/brand/jeraappicon.png",
       "sizes": "1024x1024",
       "type": "image/png"
     }
@@ -76,5 +76,7 @@
     "dao-panel": [
       "web"
     ]
-  }
+  },
+  "background_color": "#1A1714",
+  "theme_color": "#1A1714"
 }
