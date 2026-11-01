@@ -7,7 +7,14 @@ test "capture survives reload and account boundaries"
   clock +300
   clock data
   expect tree has "suggestion-0"
-  tap "suggestion-0"
+  type "handle" key "Escape"
+  clock settle
+  expect state accountsOpen == false
+  type "handle" "owne"
+  clock +300
+  clock data
+  type "handle" key "ArrowDown"
+  type "suggestion-0" key "Enter"
   expect text "handle" == "owner.test"
   expect tree missing "account-did"
   expect tree missing "suggestion-0"

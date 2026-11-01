@@ -1,9 +1,12 @@
 use JeraWordmark from "./brand.contract"
+use AccountAvatar, AccountRow, LoginButton, SignInFAQ from "./signin.contract"
 
 font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
 font "Whyte Inktrap" = "assets/fonts/ABCWhyteInktrap-Regular.otf"
 font "Fraktion Mono" = "assets/fonts/PPFraktionMono-Regular.otf"
 
+shape Viewport
+  pointer: string
 shape Clock
   epochAtZero: number
 shape Account
@@ -12,6 +15,7 @@ shape AccountSuggestion
   did: string
   handle: string
   displayName: string
+  avatar: string
 shape AccountSuggestions
   query: string
   items: AccountSuggestion[]
@@ -54,18 +58,49 @@ shape Draft
   seq: number
 
 component App
+  resource viewport = exactViewport() as shape Viewport
   state handle = ""
   state accountQuery = ""
   state selectedHandle = ""
+  state accountsOpen = false
   resource suggestions = lookupAccounts(accountQuery) as shape AccountSuggestions else empty()
   task searchAccounts when account.principal == "" and handle.trim() != accountQuery and handle != selectedHandle key=handle
     after(250, searchAccounts)
   action searchAccounts
     accountQuery = handle.trim()
+  action suggestionsToggled(e: ToggleEvent)
+    accountsOpen = e.newState == "open"
+  action openSuggestions
+    if handle.trim().length >= 2 and not handle.trim().startsWith("did:") and handle != selectedHandle
+      showPopover("account-suggestions", source="account-entry")
+  action accountKey(k: string)
+    if k == "Escape"
+      preventDefault()
+      hidePopover("account-suggestions")
+    if k == "ArrowDown" and suggestions.items.length > 0 and suggestions.query == handle.trim()
+      preventDefault()
+      showPopover("account-suggestions", source="account-entry")
+      focus("suggestion-0")
   action chooseAccount(value: string)
+    hidePopover("account-suggestions")
     handle = value
     selectedHandle = value
     accountQuery = ""
+    focus("account-handle")
+  action suggestionKey(i: number, k: string)
+    if k == "Escape"
+      preventDefault()
+      hidePopover("account-suggestions")
+      focus("account-handle")
+    if k == "ArrowDown" and i + 1 < suggestions.items.length
+      preventDefault()
+      focus(`suggestion-${i + 1}`)
+    if k == "ArrowUp"
+      preventDefault()
+      if i == 0
+        focus("account-handle")
+      else
+        focus(`suggestion-${i - 1}`)
   state armillary = ""
   state module = ""
   state armName = ""
@@ -107,12 +142,18 @@ component App
     handle = v
     selectedHandle = ""
     accountQuery = ""
+    if v.trim().length >= 2 and not v.trim().startsWith("did:")
+      showPopover("account-suggestions", source="account-entry")
+    else
+      hidePopover("account-suggestions")
   action editArmName(v: string)
     armName = v
   action editModuleName(v: string)
     moduleName = v
   action login
-    send signed = login(handle, time.epochAtZero + performanceNow())
+    if handle.trim() != "" and not pending(signed)
+      hidePopover("account-suggestions")
+      send signed = login(handle, time.epochAtZero + performanceNow())
   action logout
     send signed = logout(time.epochAtZero + performanceNow())
   action chooseArm(id: string)
@@ -134,50 +175,52 @@ component App
       module = match createdModule { case some(r) => r.id, case none => "" }
       moduleName = ""
   view
-    column width="100%" height="100%" font-family="Whyte"
-      header appearance="none" padding=16 display="flex" align-items="center" gap=8 flex-wrap="wrap"
+    column width="100%" height="100%" font-family="Whyte" background-color="bg.base" color="tx.primary"
+      header appearance="none" padding=(account.principal == "" ? "32px" : "16px") display="flex" align-items="center" gap=8 flex-wrap="wrap"
         if account.principal == ""
           box role="heading" aria-level=1 flex="1 1 8rem"
             JeraWordmark()
         else
           text "Jera" role="heading" aria-level=1 flex="1 1 8rem" font-family="Whyte Inktrap" font-weight=400
-        button "Refresh" press=refreshAll testId="refresh"
+        if account.principal != "" or failed(account)
+          button "Refresh" press=refreshAll testId="refresh"
         if account.principal != "" and not pending(account) and not failed(account)
           button "Sign out" press=logout disabled=pending(signed) testId="logout"
       scroll flex=1 min-height=0
-        column padding=12 gap=16 max-width="56.25rem" margin="0 auto" width="100%" box-sizing="border-box"
+        column padding=(account.principal == "" ? "48px 24px 24px" : "12px") gap=16 max-width=(account.principal == "" ? "44rem" : "56.25rem") margin="0 auto" width="100%" box-sizing="border-box"
           if failed(account)
             text "Could not restore your session. Try refreshing." color="-exact-system-red"
           if failed(signed)
             text (match failure(signed) { case some(f) => f.message, case none => "" }) testId="auth-error" color="-exact-system-red"
           if account.principal == "" and not pending(account)
-            column gap=12 max-width="26.25rem"
-              text "Join the cycle." font="-exact-title2" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
-              text "Log in with your everything account, and bring your tokens into the network" color="-exact-secondary-label"
-              input value=handle input=editHandle aria-label="ATproto handle or DID" placeholder="Name, handle or DID" testId="handle" font-family="Fraktion Mono" autocomplete="username" autocapitalize="none" spellcheck=false
-              if handle != selectedHandle and handle.trim().length >= 2 and not handle.trim().startsWith("did:")
+            column gap=0
+              text "Join the cycle." font="-exact-title1" font-size="2rem" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
+              text "Log in with your everything account, and bring your tokens into the network" testId="signin-invitation" color="tx.secondary" margin-top=16 max-width="24rem" line-height=1.5
+              row id="account-entry" testId="account-entry" gap=8 margin-top=32 align-items="stretch" width="100%" max-width="23.5rem"
+                input id="account-handle" value=handle input=editHandle submit=login press=openSuggestions key=accountKey aria-label="ATproto handle or DID" aria-controls="account-suggestions" aria-expanded=accountsOpen placeholder="Name, handle or DID" testId="handle" font-family="Whyte" autocomplete="username" autocapitalize="none" spellcheck=false enterkeyhint="go" appearance="none" flex=1 min-width=0 padding="12px" border-width=1 border-style="solid" border-color="bd.primary" border-radius=8 background-color="bg.field" color="tx.primary" font-size="1rem"
+                button press=login disabled=(pending(signed) or handle.trim() == "") testId="login" aria-label="Continue with ATproto" title="Continue with ATproto" appearance="none" class=LoginButton width="3rem" min-height="3rem" box-sizing="border-box" flex-shrink=0 padding=12 border-radius=8 color="tx.primary" display="flex" align-items="center" justify-content="center"
+                  if pending(signed)
+                    image "symbol:refresh" aria-hidden=true
+                  else
+                    image (viewport.pointer == "coarse" ? "symbol:icon.login-touch" : "symbol:icon.login-desktop") aria-hidden=true font-size="1.5rem"
+              column id="account-suggestions" testId="account-suggestions" popover="auto" toggle=suggestionsToggled role="group" aria-label="Account suggestions" position="absolute" position-area="bottom span-right" position-try-fallbacks="flip-block, flip-inline" margin="8px 0" width="min(376px, calc(100vw - 48px))" max-height="min(352px, 50vh)" overflow-y="auto" box-sizing="border-box" padding=6 gap=2 background-color="bg.card" color="tx.primary" border-width=0 border-radius=10 box-shadow="0 8px 24px #00000033"
                 if pending(suggestions) or accountQuery != handle.trim()
-                  text "Looking for accounts…" font="-exact-footnote" color="-exact-secondary-label" aria-live="polite"
+                  text "Looking for accounts…" padding=12 font="-exact-footnote" color="tx.secondary" aria-live="polite"
                 if accountQuery == handle.trim() and suggestions.query == accountQuery and not pending(suggestions)
                   if failed(suggestions) or not suggestions.available
-                    text "Suggestions unavailable. You can still enter your full handle or DID." font="-exact-footnote" color="-exact-secondary-label" testId="suggestions-error"
+                    text "Suggestions unavailable. You can still enter your full handle or DID." padding=12 font="-exact-footnote" color="tx.secondary" testId="suggestions-error"
                   else
                     if suggestions.items.length > 0
-                      column gap=8 role="group" aria-label="Account suggestions"
-                        text "Suggested accounts" font="-exact-footnote" color="-exact-secondary-label"
-                        for person, i in suggestions.items key=person.did
-                          button press=chooseAccount(person.handle) appearance="none" testId=`suggestion-${i}` aria-label=`Use @${person.handle}` padding=12 border-width=1 border-color="-exact-separator" border-radius=8 background-color="-exact-secondary-background" color="-exact-label"
-                            column gap=4 align-items="flex-start"
-                              if person.displayName != ""
-                                text person.displayName font-family="Whyte"
-                              text `@${person.handle}` font-family="Fraktion Mono" font="-exact-footnote"
+                      for person, i in suggestions.items key=person.did
+                        button id=`suggestion-${i}` press=chooseAccount(person.handle) key=suggestionKey(i) appearance="none" class=AccountRow testId=`suggestion-${i}` aria-label=`Use @${person.handle}` padding=8 border-width=0 border-radius=6 color="tx.primary" text-align="left"
+                          row gap=12 align-items="center" min-width=0 flex-wrap="wrap"
+                            AccountAvatar(src=person.avatar, label=(person.displayName != "" ? person.displayName : person.handle))
+                            column gap=2 min-width=0 flex="1 1 12rem" align-items="flex-start"
+                              text (person.displayName != "" ? person.displayName : person.handle) font-family="Whyte" text-align="left"
+                              text `@${person.handle}` font-family="Whyte" font="-exact-footnote" color="tx.secondary" white-space="nowrap" overflow="hidden" text-overflow="ellipsis" max-width="100%" text-align="left"
                     else
-                      text "No matching account found. You can still enter your full handle or DID." font="-exact-footnote" color="-exact-secondary-label" testId="suggestions-empty"
-                    if not suggestions.complete
-                      text "More accounts may be available. Enter a full handle or DID if yours is missing." font="-exact-footnote" color="-exact-secondary-label"
-              text "Sign in with your ATproto account. Your ideas stay private in Jera." color="-exact-secondary-label"
-              row gap=12 flex-wrap="wrap"
-                button "Continue with ATproto" press=login disabled=(pending(signed) or handle.trim() == "") testId="login" buttonStyle="filled"
+                      text "No matching account found. You can still enter your full handle or DID." padding=12 font="-exact-footnote" color="tx.secondary" testId="suggestions-empty"
+              SignInFAQ()
           if account.principal != "" and not pending(account) and not failed(account)
             text account.principal font="-exact-footnote" testId="account-did" overflow-wrap="anywhere" font-family="Fraktion Mono"
             text "Your armillaries" font="-exact-title2" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400

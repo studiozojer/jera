@@ -88,7 +88,8 @@ const sources: Sources = {
   lookupAccounts: async ([query]) => {
     if (query.trim().replace(/^@/, '').length < 2 || query.trim().startsWith('did:')) return { query, items: [], available: true, complete: true };
     try {
-      return await authRequest('/oauth/accounts', { query });
+      const result = await authRequest('/oauth/accounts', { query });
+      return { ...result, items: result.items.map((actor: { avatar?: string }) => ({ ...actor, avatar: actor.avatar ?? '' })) };
     } catch {
       return { query, items: [], available: false, complete: false };
     }

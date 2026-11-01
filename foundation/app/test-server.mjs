@@ -33,7 +33,7 @@ const client = {
   restore: async did => ({ did }),
 };
 const handler = createHandler({ client, store, publicOrigin: `http://127.0.0.1:${port}`, callbacks, snapbackOrigin: upstream, serviceToken: 'fixture-only',
-searchAccounts: async query => ({ query, available: true, complete: true, items: 'owner.test'.includes(query.toLowerCase()) ? [{ did: 'did:plc:' + 'a'.repeat(24), handle: 'owner.test', displayName: 'Test Owner' }] : [] }),
+searchAccounts: async query => ({ query, available: true, complete: true, items: 'owner.test'.includes(query.toLowerCase()) ? [{ did: 'did:plc:' + 'a'.repeat(24), handle: 'owner.test', displayName: 'Test Owner', avatar: '' }] : [] }),
 fetcher: async (url, options) => {
   if (options.headers.authorization === 'Bearer fixture-only') {
     const token = execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'test-auth'], { cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();

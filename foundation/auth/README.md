@@ -12,6 +12,8 @@ Local discovery uses public `listRepos`, `describeRepo`, and optional Bluesky pr
 
 These sources are not a complete ATproto directory. Full handles and DIDs from other PDSes remain valid sign-in inputs even when absent from search. Selecting a suggestion only fills the handle; the official OAuth client still resolves and verifies identity before any session is issued.
 
+Suggestions also return public avatar URLs: local profile blobs use the configured PDS's `getBlob` endpoint, while Bluesky images are restricted to its HTTPS avatar CDN. A duplicate Bluesky result can supply a missing local avatar without replacing the local handle. The client shows an initial if no image is available or loading fails. This adds no account permissions or PDS writes.
+
 ## Handoff and session custody
 
 The app prepares a random verifier and state in its secret store. The browser receives only the verifier's SHA-256 challenge. The server binds authorization to a short-lived flow and a browser cookie, then returns a one-time code through Exact's declared callback. Exchanging that code requires the original device verifier. The flow is consumed before minting; a lost exchange response requires starting sign-in again. Callback targets are explicitly allowlisted. Tokens never appear in callback URLs.

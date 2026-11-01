@@ -62,6 +62,11 @@
         "finding": "broken-words",
         "node": "account-did",
         "why": "A DID is one opaque identifier, not prose. Allow visual line breaks without inserting characters or reducing Dynamic Type; the full value remains intact."
+      },
+      {
+        "finding": "overlap",
+        "node": "signin-invitation",
+        "why": "The account suggestions intentionally float in an opaque top-layer popover. At large text sizes it can flip above the input and cover the invitation; the text does not paint through. Verified with real browser screenshots, outside-click dismissal and Escape."
       }
     ]
   }

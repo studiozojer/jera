@@ -54,6 +54,14 @@ From `foundation/app`, run `bun run web:live` using Bun 1.4.2, then open `http:/
 
 The Exact view uses the existing Jera pairing: Whyte Book for body text and editing, Whyte Inktrap Regular for headings, and Fraktion Mono for account identifiers, links and status metadata. `app/assets/fonts` contains byte-identical copies of the three source faces in the repository’s root `assets/fonts`; Exact bundles these app-local files for web and native builds. Font sizes retain the platform text styles and accessibility scaling. Native styled buttons retain their platform typography.
 
+## Sign-in design
+
+The sign-in hierarchy follows David's desktop/mobile screenshots: top-left identity, invitation, account entry, then a separated FAQ. `app/app.tamber` vendors the consumed daoUI semantic colors from `daoUI/tokens.json` at `85fb2ac`; `bg.base` aliases `bg/solid/base`, with `tx.secondary` and `tx.warning` retaining their catalog alpha values and light/dark variants. The sign-in field and suggestion handles use Whyte; Fraktion labels the FAQ.
+
+Suggestions use an anchored, scrollable auto-dismiss popover, so they do not move the FAQ. Escape and outside clicks dismiss it; Down enters the results, arrow keys navigate them, and Enter chooses the focused account without authorizing. The two supplied click glyphs switch with the primary pointer's touch/mouse capability. Public avatars have an initial fallback for missing or failed images. See `app/assets/icons/README.md` for the glyph provenance.
+
+At large text sizes, result rows wrap and the popover can flip above its input to fit the viewport. Verification records the intentional opaque popup overlap on the invitation as a scoped exception. Long suggestion handles use an ellipsis; the accessible row label and selected input retain the full handle. The FAQ describes private Jera storage and future operator workflows without claiming protocol publication or a running operator.
+
 ## iPhone builds: local and EAS
 
 Run these commands from `foundation/app`, using Bun 1.4.2. Both paths build **Exact**, use bundle ID `studio.zojer.jera.exact`, and connect to the deployed backend. The repository-root `expo run:ios` and EAS files build the historical Expo app.

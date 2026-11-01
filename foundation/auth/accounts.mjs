@@ -28,14 +28,18 @@ export function createAccountSearch({ pdsOrigin = 'https://pds.jera.ink', search
         try {
           const repo = await rpc('com.atproto.repo.describeRepo', { repo: did }, signal);
           if (repo.did !== did || repo.handleIsCorrect !== true || typeof repo.handle !== 'string' || repo.handle === 'handle.invalid') continue;
-          let displayName = '';
+          let displayName = '', avatar = '';
           if (repo.collections?.includes('app.bsky.actor.profile')) {
             try {
               const profile = await rpc('com.atproto.repo.getRecord', { repo: did, collection: 'app.bsky.actor.profile', rkey: 'self' }, signal);
               if (typeof profile.value?.displayName === 'string') displayName = profile.value.displayName.slice(0, 160);
+              const blob = profile.value?.avatar;
+              if (blob?.mimeType?.startsWith('image/') && typeof blob.ref?.$link === 'string') {
+                avatar = `${pdsOrigin}/xrpc/com.atproto.sync.getBlob?${new URLSearchParams({ did, cid: blob.ref.$link })}`;
+              }
             } catch { /* A missing profile must not hide a valid handle. */ }
           }
-          items.push({ did, handle: repo.handle, displayName });
+          items.push({ did, handle: repo.handle, displayName, avatar });
         } catch { complete = false; }
       }
     }));
@@ -61,7 +65,7 @@ export function createAccountSearch({ pdsOrigin = 'https://pds.jera.ink', search
           if (!response.ok) throw new Error('Public search unavailable');
           const data = await response.json();
           if (!Array.isArray(data.actors)) throw new Error('Invalid search response');
-          const items = data.actors.filter(a => typeof a.did === 'string' && /^did:(plc|web):/.test(a.did) && typeof a.handle === 'string' && a.handle !== 'handle.invalid').map(a => ({ did: a.did, handle: a.handle, displayName: typeof a.displayName === 'string' ? a.displayName.slice(0, 160) : '' }));
+          const items = data.actors.filter(a => typeof a.did === 'string' && /^did:(plc|web):/.test(a.did) && typeof a.handle === 'string' && a.handle !== 'handle.invalid').map(a => ({ did: a.did, handle: a.handle, displayName: typeof a.displayName === 'string' ? a.displayName.slice(0, 160) : '', avatar: typeof a.avatar === 'string' && a.avatar.startsWith('https://cdn.bsky.app/img/avatar') ? a.avatar : '' }));
           return { items, complete: items.length < 8, available: true };
         } catch { return { items: [], complete: false, available: false }; }
       })();
@@ -76,7 +80,11 @@ export function createAccountSearch({ pdsOrigin = 'https://pds.jera.ink', search
     const matches = data.items.filter(a => `${a.handle}\n${a.displayName}`.normalize('NFKC').toLowerCase().includes(q));
     matches.sort((a, b) => Number(b.handle.toLowerCase().startsWith(q)) - Number(a.handle.toLowerCase().startsWith(q)) || a.handle.localeCompare(b.handle));
     const combined = new Map(matches.map(a => [a.did, a]));
-    for (const actor of remote.items) if (!combined.has(actor.did)) combined.set(actor.did, actor);
+    for (const actor of remote.items) {
+      const local = combined.get(actor.did);
+      if (!local) combined.set(actor.did, actor);
+      else if (!local.avatar && actor.avatar) combined.set(actor.did, { ...local, avatar: actor.avatar });
+    }
     return { query, items: [...combined.values()].slice(0, 8), available: data.available || remote.available, complete: data.complete && remote.complete && combined.size <= 8 };
   };
 }

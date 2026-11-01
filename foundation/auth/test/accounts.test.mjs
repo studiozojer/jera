@@ -13,7 +13,7 @@ test('PDS discovery paginates, matches names, skips inactive/invalid handles, co
     }
     assert.notEqual(repo, did('b'));
     if (url.pathname.endsWith('describeRepo')) return Response.json({ did: repo, handle: renamed ? 'renamed.test' : 'alice.test', handleIsCorrect: repo !== did('c'), collections: ['app.bsky.actor.profile'] });
-    return Response.json({ value: { displayName: 'Alice Example' } });
+    return Response.json({ value: { displayName: 'Alice Example', avatar: { mimeType: 'image/jpeg', ref: { $link: 'bafk-fixture-avatar' } } } });
   };
   const search = createAccountSearch({ fetcher, now: () => time });
   assert.deepEqual((await search('a')).items, []);
@@ -22,6 +22,7 @@ test('PDS discovery paginates, matches names, skips inactive/invalid handles, co
   const [a, b] = await Promise.all([search('EXAMPLE'), search('@alice')]);
   assert.equal(scans, 2);
   assert.equal(a.items[0].handle, 'alice.test');
+  assert.equal(a.items[0].avatar, `https://pds.jera.ink/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did('a'))}&cid=bafk-fixture-avatar`);
   assert.deepEqual(a.items, b.items);
   renamed = true; time = 300001;
   assert.equal((await search('renamed')).items[0].handle, 'renamed.test');
@@ -35,13 +36,15 @@ test('Bluesky results are cached, deduplicated by DID and follow the local PDS m
     const url = new URL(input);
     if (url.hostname === 'public.api.bsky.app') {
       searches++; assert.equal(url.searchParams.get('q'), 'alice');
-      return Response.json({ actors: [{ did: did('a'), handle: 'stale.test' }, { did: did('d'), handle: 'alice.bsky.social', displayName: 'Alice' }] });
+      return Response.json({ actors: [{ did: did('a'), handle: 'stale.test', avatar: 'https://cdn.bsky.app/img/avatar/plain/local.jpg' }, { did: did('d'), handle: 'alice.bsky.social', displayName: 'Alice', avatar: 'javascript:alert(1)' }] });
     }
     if (url.pathname.endsWith('listRepos')) return Response.json({ repos: [{ did: did('a') }] });
     return Response.json({ did: did('a'), handle: 'alice.test', handleIsCorrect: true, collections: [] });
   };
   const search = createAccountSearch({ searchBluesky: true, fetcher });
-  assert.deepEqual((await search('alice')).items.map(a => a.handle), ['alice.test', 'alice.bsky.social']);
+  const result = await search('alice');
+  assert.deepEqual(result.items.map(a => a.handle), ['alice.test', 'alice.bsky.social']);
+  assert.deepEqual(result.items.map(a => a.avatar), ['https://cdn.bsky.app/img/avatar/plain/local.jpg', '']);
   await search('@Alice'); assert.equal(searches, 1);
 });
 
