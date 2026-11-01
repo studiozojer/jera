@@ -1,70 +1,104 @@
 fresh
 epoch now
 
-test "capture survives reload and account boundaries"
-  type "email" "owner@example.com"
-  type "password" "correct horse battery staple"
-  tap "signup"
+// OAuth is a fixture here; authorization acceptance requires a real PDS.
+test "account sheet opens, dismisses and logs out without losing the quiet home"
+  fail fetch "https://public.api.bsky.app/"
+  expect disabled "login"
+  type "handle" "owner..test"
   clock data
-  type "arm-name" "Shared armillary"
-  tap "create-arm"
+  expect disabled "login"
+  type "handle" "own"
+  clock +300
   clock data
-  type "module-name" "Jera"
-  tap "create-module"
+  expect disabled "login"
+  expect tree has "suggestion-0"
+  type "handle" key "Escape"
+  clock settle
+  expect state accountsOpen == false
+  type "handle" "owne"
+  clock +300
   clock data
-  type "idea-input" "ᛃ A fragment about connected ideas ♊"
-  type "source-input" "https://example.com/original"
+  type "handle" key "ArrowDown"
+  type "suggestion-0" key "Enter"
+  expect text "handle" == "owner.test"
   clock data
+  expect enabled "login"
+  expect tree missing "account-did"
+  expect tree missing "suggestion-0"
+  tap "login"
+  authorize
+  clock data
+  expect state account.principal == "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"
+  expect tree has "jera-wordmark"
+  expect tree missing "handle"
+  expect tree missing "account-did"
+  expect tree missing "refresh"
+  expect tree missing "arm-name"
+  expect tree missing "account-loading"
+  clock +15000
+  clock data
+  expect state account.principal == "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"
+  expect tree has "jera-wordmark"
+  expect tree missing "account-loading"
   reload
   clock data
-  tap "arm-0"
-  clock data
-  tap "module-0"
-  clock data
-  tap "capture"
-  clock data
-  expect text "idea-0" == "ᛃ A fragment about connected ideas ♊"
-  expect text "work-0" == "pending"
-  expect tree missing "idea-1"
+  expect state account.principal == "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"
+  expect tree has "jera-wordmark"
+  expect tree missing "handle"
+  expect tree missing "refresh"
+  expect tree has "account-avatar"
+  tap "account-avatar"
+  clock settle
+  expect text "profile-name" == "Your account"
+  back
+  clock settle
+  tap "account-avatar"
+  clock settle
   tap "logout"
   clock data
-  expect tree missing "idea-0"
-  type "email" "other@example.com"
-  type "password" "another correct horse password"
-  tap "signup"
-  clock data
-  expect tree missing "arm-0"
-  expect tree missing "idea-0"
+  expect state account.principal == ""
+  expect tree has "handle"
+  expect tree missing "account-avatar"
 
-test "queued capture is delivered once after a connection loss"
-  type "email" "offline@example.com"
-  type "password" "correct horse battery staple"
-  tap "signup"
+test "offline session restoration and logout keep account controls usable"
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "offline.test"
+  tap "login"
+  authorize
   clock data
-  type "arm-name" "Offline armillary"
-  tap "create-arm"
-  clock data
-  type "module-name" "Ideas"
-  tap "create-module"
-  clock data
-  type "idea-input" "Keep this idea exactly once"
-  clock data
+  expect tree missing "handle"
   fail fetch "backend"
-  tap "capture"
-  clock data
-  expect tree has "queued"
   reload
   clock data
-  expect tree has "directory-error"
-  pass fetch "backend"
-  tap "refresh"
+  expect tree has "jera-wordmark"
+  expect tree missing "handle"
+  expect tree missing "account-loading"
+  expect tree missing "retry-account"
+  expect tree missing "refresh"
+  clock +15000
   clock data
-  tap "arm-0"
+  expect tree missing "handle"
+  expect tree missing "account-loading"
+  tap "account-avatar"
+  clock settle
+  tap "logout"
   clock data
-  tap "module-0"
+  expect state account.principal == ""
+  expect tree has "handle"
+  expect tree missing "account-avatar"
+
+// A separate fixture launch: Exact's web route changes discard authFixture,
+// so its held-auth driver cannot authorize again after navigating. Real popup
+// account switching is checked separately; do not add fixture logic to the app.
+test "account panel on a wider viewport"
+  size 1024x768
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "other.test"
+  tap "login"
+  authorize
   clock data
-  tap "capture"
-  clock data
-  expect text "idea-0" == "Keep this idea exactly once"
-  expect tree missing "idea-1"
-  expect tree missing "queued"
+  tap "account-avatar"
+  clock settle
+  expect text "profile-name" == "Your account"
+  expect tree has "logout"

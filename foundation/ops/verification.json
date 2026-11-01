@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-10-31",
+  "origin": "https://snapback.jera.ink",
+  "engine": "snapback4 0.4.33",
+  "service": "jera-snapback.service",
+  "public_auth_capture_restart": "passed",
+  "unauthenticated_query": 401,
+  "dev_reset": 403,
+  "backup": "20261031T234340Z.tar.gz",
+  "backup_sha256": "363f0a95881b4a73671145f1f26d51e1c18cfdaf11b479040deb344dab88d43b",
+  "isolated_restore": "passed: authenticated original Unicode artifact and queued task",
+  "nightly_backup_timer": "active",
+  "off_host_backup": "pending explicit destination authorization",
+  "pds_health": 200,
+  "other_routes": {
+    "admin.zojer.studio": 307,
+    "zhouyi.zojer.studio": 200,
+    "armillary.zojer.studio": 200
+  },
+  "stjerneborg_ssh": "connection timed out; no operator installed",
+  "atproto_auth": {
+    "date": "2026-10-31",
+    "password_signup": 401,
+    "guest_signup": "disabled",
+    "public_session_mint": 403,
+    "forged_identity_check": 401,
+    "invalid_exchange": 400,
+    "real_provider_par": "302 to bsky.social, identity-only scope",
+    "full_phone_authorization": "pending interactive account-holder acceptance",
+    "legacy_records": "preserved; legacy sessions revoked; no email-to-DID reassignment",
+    "backup_restore": "20261101T005330Z.tar.gz; auth and deployment directories; isolated trusted fixture DID capture passed"
+  }
+}

@@ -1,5 +1,13 @@
 {
   "name": "app",
   "private": true,
+  "scripts": {
+    "ios:check": "node ../scripts/ios.mjs check",
+    "ios:local": "node ../scripts/ios.mjs local",
+    "ios:archive": "node ../scripts/ios.mjs archive",
+    "ios:cloud": "npx eas-cli@27.2.0 build --platform ios --profile preview",
+    "ios:credentials": "npx eas-cli@27.2.0 credentials:configure-build --platform ios --profile preview",
+    "web:live": "EXACT_BACKEND_ORIGIN=https://snapback.jera.ink bun exact.mjs web --port 3033"
+  },
   "dependencies": {}
 }

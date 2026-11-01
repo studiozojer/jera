@@ -1,0 +1,26 @@
+[Unit]
+Description=Jera ATproto account authorization
+After=network-online.target jera-snapback.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jera-snapback
+Group=jera-snapback
+WorkingDirectory=/opt/jera-snapback/auth
+Environment=JERA_AUTH_DATA=/var/lib/jera-snapback/auth
+Environment=JERA_PUBLIC_ORIGIN=https://snapback.jera.ink
+Environment="JERA_AUTH_CALLBACKS=studio.zojer.jera.exact:/oauth,http://127.0.0.1:3033/.exact/auth/callback"
+ExecStart=/opt/jera-snapback/runtime/bin/node /opt/jera-snapback/auth/server.mjs
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/jera-snapback/auth
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

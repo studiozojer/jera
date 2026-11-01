@@ -1,0 +1,61 @@
+// Screenshot-led hierarchy; shared daoUI color roles live in app.tamber.
+style AccountRow
+  background-color = "bg.card"
+  :hover
+    background-color = "bg.hover"
+  :focus-visible
+    background-color = "bg.hover"
+  :active
+    background-color = "bg.pressed"
+
+style LoginButton
+  background-color = "bg.action"
+  color = "tx.on-action"
+  :hover
+    background-color = "bg.action-hover"
+  :active
+    background-color = "bg.action-pressed"
+  :disabled
+    background-color = "bg.field"
+    color = "ic.disabled"
+    opacity = 1
+
+component AccountAvatar
+  props
+    src: string
+    label: string
+    size: string
+    radius: number
+  state broken = false
+  action failedImage(message: string)
+    broken = true
+  view
+    box width=size height=size flex-shrink=0 border-radius=radius overflow="hidden" background-color="bg.field" display="flex" align-items="center" justify-content="center" aria-hidden=true
+      if src != "" and not broken
+        image src width="100%" height="100%" object-fit="cover" error=failedImage alt=""
+      else
+        text label.slice(0, 1).toUpperCase() color="tx.secondary" font-family="Whyte"
+
+component SignInFAQ
+  view
+    section testId="signin-faq" margin-top="8rem" padding-bottom="5rem" display="flex" flex-direction="column" gap="2.5rem"
+      text "FAQ" font-family="Fraktion Mono" font="-exact-title3" color="tx.secondary" role="heading" aria-level=2
+      column gap=12 border-left-width=3 border-left-style="solid" border-left-color="tx.secondary" padding-left=16
+        text "What is an ‘everything account’?" role="heading" aria-level=3
+        text "Jera is built on ATproto, a network of apps that can talk to each other over the same social protocol. You can bring the same account to apps across the network." color="tx.secondary" line-height=1.55
+        text "For now, your ideas stay private in Jera. Nothing you enter here is published to the network." color="tx.secondary" line-height=1.55
+        text color="tx.secondary" line-height=1.55 testId="everything-account-paragraph"
+          text "Here’s a great article by Anuj Ahooja: "
+          text "The Everything Account" href="https://augment.ink/the-everything-account" color="tx.link" text-decoration="underline"
+      column gap=12 border-left-width=3 border-left-style="solid" border-left-color="tx.secondary" padding-left=16
+        text "Who is this app’s target user?" role="heading" aria-level=3
+        text "Do your AI agents have persistent memory frameworks? Do they track the provenance of their own decision-making?" color="tx.secondary" line-height=1.55
+        text color="tx.secondary" line-height=1.55 testId="operator-demo-paragraph"
+          text "If so, this app might be for you. Jera is being built as a dynamic interface for interacting with your agents through an ATproto account. Think of a Twitter-like feed where AI operators can go off and write code, then respond with a "
+          text "demo of your prompt" href="https://expo.dev/articles/cloud-simulators/share-a-simulator-link" color="tx.link" text-decoration="underline"
+          text "."
+      column gap=12 border-left-width=3 border-left-style="solid" border-left-color="tx.secondary" padding-left=16
+        text "What does the name mean?" role="heading" aria-level=3
+        text "The elder futhark rune known as jera can be translated to year, representing the concept of a yearly harvest. The cyclical nature of this rune evokes the experience of tending to a garden—enduring hard winters, and enjoying the fruits of your labor when the berries come out in the summer." color="tx.secondary" line-height=1.55
+        text "Jera is an interface for interacting with ideas that change and evolve over time." color="tx.secondary" line-height=1.55
+        text "It allows you to interact with agents and operators in ways that work for the patterns of your brain. It makes those patterns visible, so you can choose what to share with the collective." color="tx.secondary" line-height=1.55

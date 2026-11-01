@@ -1,0 +1,23 @@
+# Explicit hostname takes precedence over the PDS handle wildcard.
+snapback.jera.ink {
+    tls force_automate
+    encode zstd gzip
+    header {
+        X-Content-Type-Options nosniff
+        -Server
+    }
+    @oauth path /oauth/* /auth/refresh
+    handle @oauth {
+        reverse_proxy 127.0.0.1:4420
+    }
+    # Minting authority remains loopback-only even with a stolen service token.
+    @administration path /auth/session /auth/revoke /auth/delete-account
+    handle @administration {
+        respond "Not available" 403
+    }
+    handle {
+        reverse_proxy 127.0.0.1:4417 {
+            flush_interval -1
+        }
+    }
+}

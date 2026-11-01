@@ -1,0 +1,10 @@
+{
+  "name": "jera-snapback-host",
+  "private": true,
+  "dependencies": {
+    "snapback4": "0.4.33"
+  },
+  "overrides": {
+    "undici": "8.12.2"
+  }
+}

@@ -1,0 +1,56 @@
+--- a/host/apple/Sources/ExactKit/IOS/TintDimmingIOS.swift
++++ b/host/apple/Sources/ExactKit/IOS/TintDimmingIOS.swift
+@@ -35,7 +35,7 @@
+             // In its extended space, as `TextEngine.color` paints it, untagged: UIKit's grey ignores a colour's headroom tag
+             let colour = own.flatMap { CGColor(colorSpace: $0, components: c[5...8].map { CGFloat($0) }) }
+                 ?? CGColor(colorSpace: srgb, components: c[0...3].map { CGFloat($0 / 255) })
+-            return colour.flatMap { level($0, key) }
++            return colour.flatMap { Self.level($0, key) }
+         }()
+         guard let level else { return c }
+         return level <= 255 ? [level, level, level, c[3]] : [255, 255, 255, c[3], 0, level / 255, level / 255, level / 255, c[3] / 255]
+--- a/host/apple/Sources/ExactKit/AudioSession.swift
++++ b/host/apple/Sources/ExactKit/AudioSession.swift
+@@ -402,34 +402,20 @@
+         tell(2)
+     }
+ 
+-    /// The process's observers, on the main queue. From iOS 27 an
+-    /// interruption is the session's life cycle: `didBecomeInactive` from
+-    /// the system and the `resumptionRecommendation` that follows, which
+-    /// replace the interruption notification
+-    /// ([AVAudioSession](https://developer.apple.com/documentation/avfaudio/avaudiosession)).
++    /// The process's observers, on the main queue. Use the established interruption
++    /// notification while building with the Xcode 26 SDK: a runtime availability
++    /// check cannot make iOS 27 symbols available to an older SDK's compiler.
+     /// A media-services reset restores a capture's configuration without
+     /// activating it (D7).
+     private static func observe() {
+         guard !observing else { return }
+         observing = true
+         let center = NotificationCenter.default
+-        if #available(iOS 27, tvOS 27, *) {
+-            center.addObserver(forName: AVAudioSession.didBecomeInactiveNotification, object: nil, queue: .main) { note in
+-                // The app's own deactivation is not an interruption.
+-                let context = note.userInfo?[AVAudioSession.deactivationContextKey] as? AVAudioSession.DeactivationContext
+-                if context?.source == .system { interrupted() }
+-            }
+-            center.addObserver(forName: AVAudioSession.resumptionRecommendationNotification, object: nil, queue: .main) { note in
+-                let context = note.userInfo?[AVAudioSession.resumptionContextKey] as? AVAudioSession.ResumptionContext
+-                resumable(context?.recommendation == .shouldResume)
+-            }
+-        } else {
+-            center.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { note in
+-                guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+-                      let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+-                if type == .began { return interrupted() }
+-                resumable(AVAudioSession.InterruptionOptions(rawValue: note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0).contains(.shouldResume))
+-            }
++        center.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { note in
++            guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
++                  let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
++            if type == .began { return interrupted() }
++            resumable(AVAudioSession.InterruptionOptions(rawValue: note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0).contains(.shouldResume))
+         }
+         center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+             heard(.appActive(othersPlaying: AVAudioSession.sharedInstance().secondaryAudioShouldBeSilencedHint))

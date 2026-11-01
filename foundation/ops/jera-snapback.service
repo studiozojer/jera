@@ -1,0 +1,27 @@
+[Unit]
+Description=Jera Snapback API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jera-snapback
+Group=jera-snapback
+WorkingDirectory=/opt/jera-snapback
+Environment=PATH=/opt/jera-snapback/runtime/bin:/usr/bin:/bin
+ExecStart=/opt/jera-snapback/node_modules/.bin/snapback4 serve /var/lib/jera-snapback/deployment --bind 127.0.0.1 --port 4417
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=45
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/jera-snapback
+LimitNOFILE=8192
+MemoryMax=1G
+CPUQuota=150%
+
+[Install]
+WantedBy=multi-user.target

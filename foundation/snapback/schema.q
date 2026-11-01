@@ -1,4 +1,5 @@
-use identity password
+-- Identity is supplied by verified ATproto OAuth through trusted session minting.
+-- No password or guest account creation.
 
 table armillaries:
   owner: principal
@@ -158,3 +159,6 @@ mutation connect(source: nodes, target: nodes, relation: enum('relates', 'suppor
   require a.module = b.module else DIFFERENT_MODULE
   require source != target else SAME_NODE
   return insert edges { module: a.module, source, target, author: viewer, relation, reason }
+
+query currentIdentity():
+  return { did: viewer }

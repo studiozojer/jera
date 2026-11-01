@@ -1,230 +1,206 @@
+use JeraWordmark from "./brand.contract"
+use AccountAvatar, AccountRow, LoginButton, SignInFAQ from "./signin.contract"
+
+font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
+font "Whyte Inktrap" = "assets/fonts/ABCWhyteInktrap-Regular.otf"
+font "Fraktion Mono" = "assets/fonts/PPFraktionMono-Regular.otf"
+
+routes nav
+  home "/"
+    account "/account"
+
+shape Viewport
+  pointer: string
+  width: number
+shape Page
+  navigationType: string
+shape Profile
+  principal: string
+  name: string
+  handle: string
+  avatar: string
 shape Clock
   epochAtZero: number
 shape Account
   principal: string
-shape Entry
-  id: string
-  name: string
-shape Directory
-  principal: string
-  parent: string
+shape LoginInput
+  input: string
+  value: string
+  valid: bool
+shape AccountSuggestion
+  did: string
+  handle: string
+  displayName: string
+  avatar: string
+shape AccountSuggestions
+  query: string
+  items: AccountSuggestion[]
   available: bool
-  items: Entry[]
-  complete: bool
-shape Idea
-  id: string
-  body: string
-  source: string
-  status: string
-shape Node
-  id: string
-  title: string
-  body: string
-  artifact: string
-shape Board
-  principal: string
-  module: string
-  ideas: Idea[]
-  nodes: Node[]
   complete: bool
 shape Ack
   state: string
   id: string
-shape Draft
-  principal: string
-  module: string
-  body: string
-  source: string
-  submitted: bool
-  seq: number
+
+style ManagementButton
+  background-color = "bg.card"
+  :hover
+    background-color = "bg.hover"
+  :active
+    background-color = "bg.pressed"
+  :disabled
+    color = "tx.secondary"
 
 component App
-  state email = ""
-  state password = ""
-  state armillary = ""
-  state module = ""
-  state armName = ""
-  state moduleName = ""
-  state sampledAt = 0
+  task defaultTheme mount
+    after(1, applyDefaultTheme)
+  action applyDefaultTheme
+    setScheme("dark")
+  resource viewport = exactViewport() as shape Viewport
+  resource page = exactPage() as shape Page
+  state handle = ""
+  resource loginInput = loginInput(handle) as shape LoginInput else empty()
+  derive canSubmit = loginInput.input == handle and loginInput.valid and not pending(loginInput) and not pending(signed)
+  state accountQuery = ""
+  state selectedHandle = ""
+  state accountsOpen = false
+  resource suggestions = lookupAccounts(accountQuery) as shape AccountSuggestions else empty()
+  task searchAccounts when account.principal == "" and handle.trim() != accountQuery and handle != selectedHandle key=handle
+    after(250, searchAccounts)
+  action searchAccounts
+    accountQuery = handle.trim()
+  action suggestionsToggled(e: ToggleEvent)
+    accountsOpen = e.newState == "open"
+  action openSuggestions
+    if handle.trim().length >= 2 and not handle.trim().startsWith("did:") and handle != selectedHandle
+      showPopover("account-suggestions", source="account-entry")
+  action accountKey(k: string)
+    if k == "Escape"
+      preventDefault()
+      hidePopover("account-suggestions")
+    if k == "ArrowDown" and suggestions.items.length > 0 and suggestions.query == handle.trim()
+      preventDefault()
+      showPopover("account-suggestions", source="account-entry")
+      focus("suggestion-0")
+  action chooseAccount(value: string)
+    hidePopover("account-suggestions")
+    handle = value
+    selectedHandle = value
+    accountQuery = ""
+    focus("account-handle")
+  action suggestionKey(i: number, k: string)
+    if k == "Escape"
+      preventDefault()
+      hidePopover("account-suggestions")
+      focus("account-handle")
+    if k == "ArrowDown" and i + 1 < suggestions.items.length
+      preventDefault()
+      focus(`suggestion-${i + 1}`)
+    if k == "ArrowUp"
+      preventDefault()
+      if i == 0
+        focus("account-handle")
+      else
+        focus(`suggestion-${i - 1}`)
   resource time = exactTime() as shape Clock
-  resource account = restore() with time.epochAtZero as shape Account else empty()
-  resource arms = armillaries(account.principal) with time.epochAtZero + sampledAt as shape Directory else empty()
-  resource modules = modules(account.principal, armillary) with time.epochAtZero + sampledAt as shape Directory else empty()
-  resource board = board(account.principal, module) with time.epochAtZero + sampledAt as shape Board else empty()
-  resource draft = loadDraft(account.principal, module) as shape Draft else empty()
-  mutation saved as shape Ack queue refreshes draft
-  mutation captured as shape Ack refreshes draft, board
-  action save(p: string, m: string, body: string, source: string)
-    send saved = saveDraft(p, m, body, source)
-  action captureIdea(p: string, m: string, body: string, source: string)
-    send captured = capture(p, m, body, source, time.epochAtZero + performanceNow())
-  mutation signed as shape Ack refreshes account, arms, modules, board, draft then afterAuth
-  mutation createdArm as shape Ack refreshes arms then afterArm
-  mutation createdModule as shape Ack refreshes modules then afterModule
-  task live mount
-    every(5000, tick)
-  action tick
-    sampledAt = performanceNow()
-    refresh draft
-  action refreshAll
-    sampledAt = performanceNow()
-    refresh account
-    refresh arms
-    refresh modules
-    refresh board
-    refresh draft
-  action afterAuth
-    password = ""
-    armillary = ""
-    module = ""
-  action editEmail(v: string)
-    email = v
-  action editPassword(v: string)
-    password = v
-  action editArmName(v: string)
-    armName = v
-  action editModuleName(v: string)
-    moduleName = v
-  action signup
-    send signed = signup(email, password, time.epochAtZero + performanceNow())
-  action login
-    send signed = login(email, password, time.epochAtZero + performanceNow())
+  resource account = restore(page.navigationType != "") with time.epochAtZero as shape Account else empty()
+  resource profile = accountProfile(account.principal) as shape Profile else empty()
+  derive profileReady = profile.principal == account.principal
+  derive profileName = profileReady and profile.name != "" ? profile.name : "Your account"
+  derive profileAvatar = profileReady ? profile.avatar : ""
+  derive profileHandle = profileReady ? profile.handle : ""
+  mutation signed as shape Ack refreshes account then afterAuth
+  mutation signedOut as shape Ack refreshes account then afterLogout
+  action follow(url: string)
+    nav = go(nav, url)
+  action openAccount
+    nav = push(nav, "/account")
+  action closeAccount
+    nav = back(nav)
   action logout
-    send signed = logout(time.epochAtZero + performanceNow())
-  action chooseArm(id: string)
-    armillary = id
-    module = ""
-  action chooseModule(id: string)
-    module = id
-  action makeArm
-    send createdArm = createArmillary(armName.trim(), time.epochAtZero + performanceNow())
-  action afterArm
-    if match createdArm { case some(r) => r.state == "sent", case none => false }
-      armillary = match createdArm { case some(r) => r.id, case none => "" }
-      armName = ""
-      module = ""
-  action makeModule
-    send createdModule = createModule(armillary, moduleName.trim(), time.epochAtZero + performanceNow())
-  action afterModule
-    if match createdModule { case some(r) => r.state == "sent", case none => false }
-      module = match createdModule { case some(r) => r.id, case none => "" }
-      moduleName = ""
+    send signedOut = logout(time.epochAtZero + performanceNow(), page.navigationType != "")
+  action afterLogout
+    nav = go(nav, "/")
+    handle = ""
+    selectedHandle = ""
+    accountQuery = ""
+  action retryAccount
+    refresh account
+  action afterAuth
+    accountQuery = ""
+    selectedHandle = handle
+  action editHandle(v: string)
+    handle = v
+    selectedHandle = ""
+    accountQuery = ""
+    if v.trim().length >= 2 and not v.trim().startsWith("did:")
+      showPopover("account-suggestions", source="account-entry")
+    else
+      hidePopover("account-suggestions")
+  action login
+    if canSubmit
+      hidePopover("account-suggestions")
+      send signed = login(handle, time.epochAtZero + performanceNow())
   view
-    column width="100%" height="100%"
-      header appearance="none" padding=16 display="flex" align-items="center" gap=8 flex-wrap="wrap"
-        text "Jera" role="heading" aria-level=1 flex="1 1 8rem"
-        button "Refresh" press=refreshAll testId="refresh"
-        if account.principal != "" and not pending(account) and not failed(account)
-          button "Sign out" press=logout disabled=pending(signed) testId="logout"
-      scroll flex=1 min-height=0
-        column padding=12 gap=16 max-width="56.25rem" margin="0 auto" width="100%" box-sizing="border-box"
-          if failed(account)
-            text "Could not restore your session. Try refreshing." color="-exact-system-red"
-          if failed(signed)
-            text (match failure(signed) { case some(f) => f.message, case none => "" }) testId="auth-error" color="-exact-system-red"
-          if account.principal == "" and not pending(account)
-            column gap=12 max-width="26.25rem"
-              text "A place for ideas to become connected." font="-exact-title2" role="heading" aria-level=2
-              text "Capture a thought. Give it a home. Let your operators carry it forward." color="-exact-secondary-label"
-              input value=email input=editEmail type="email" aria-label="Email" placeholder="Email" testId="email"
-              input value=password input=editPassword type="password" aria-label="Password" placeholder="Password" testId="password"
-              row gap=12 flex-wrap="wrap"
-                button "Sign in" press=login disabled=pending(signed) testId="login" buttonStyle="filled"
-                button "Create account" press=signup disabled=pending(signed) testId="signup"
-          if account.principal != "" and not pending(account) and not failed(account)
-            text "Your armillaries" font="-exact-title2" role="heading" aria-level=2
-            text "Each armillary holds its own modules and working context." color="-exact-secondary-label"
-            if failed(arms) or (arms.principal == account.principal and not arms.available)
-              text "Armillaries unavailable. Your saved ideas have not been cleared." testId="directory-error"
-            if arms.principal == account.principal and arms.available and not failed(arms)
-              for item, i in arms.items key=item.id
-                button item.name press=chooseArm(item.id) testId=`arm-${i}` buttonStyle=(armillary == item.id ? "filled" : "bordered")
-              if not arms.complete
-                text "Partial directory. More records are available through the agent API." font="-exact-footnote"
-            row gap=8 flex-wrap="wrap"
-              input value=armName input=editArmName aria-label="Armillary name" placeholder="New armillary" testId="arm-name" flex="1 1 200px" min-width=0
-              button "Create armillary" press=makeArm disabled=(armName.trim() == "" or pending(createdArm)) testId="create-arm"
-            if failed(createdArm)
-              text (match failure(createdArm) { case some(f) => f.message, case none => "" }) color="-exact-system-red"
-            if match createdArm { case some(r) => r.state == "pending", case none => false }
-              text "Armillary creation is queued. Refresh and select it when it appears."
-            if armillary != ""
-              text "Modules" role="heading" aria-level=2
-              if modules.principal == account.principal and modules.parent == armillary and modules.available and not failed(modules)
-                for item, i in modules.items key=item.id
-                  button item.name press=chooseModule(item.id) testId=`module-${i}` buttonStyle=(module == item.id ? "filled" : "bordered")
-              if failed(modules) or (modules.parent == armillary and not modules.available)
-                text "Modules unavailable. Refresh to reconnect."
-              if modules.parent == armillary and modules.available and not modules.complete
-                text "Partial module directory. More records are available through the agent API." font="-exact-footnote"
-              row gap=8 flex-wrap="wrap"
-                input value=moduleName input=editModuleName aria-label="Module name" placeholder="New module" testId="module-name" flex="1 1 200px" min-width=0
-                button "Create module" press=makeModule disabled=(moduleName.trim() == "" or pending(createdModule)) testId="create-module"
-              if failed(createdModule)
-                text (match failure(createdModule) { case some(f) => f.message, case none => "" }) color="-exact-system-red"
-              if match createdModule { case some(r) => r.state == "pending", case none => false }
-                text "Module creation is queued. Refresh and select it when it appears."
-            if module != ""
-              if draft.principal == account.principal and draft.module == module and not failed(draft)
-                for d in [draft] key=`${d.principal}-${d.module}-${d.seq}-${d.submitted}`
-                  Composer(draft=d, save=save, submit=captureIdea, saving=pending(saved), sending=pending(captured), saveError=(match failure(saved) { case some(f) => f.message, case none => "" }), captureError=(match failure(captured) { case some(f) => f.message, case none => "" }))
-              if failed(draft)
-                text "Your draft could not be read. It has not been replaced." color="-exact-system-red"
-              if failed(board)
-                text "This module is unavailable. Refresh to reconnect or check your access." testId="board-error" color="-exact-system-red"
-              if board.principal == account.principal and board.module == module and not failed(board)
-                if not board.complete
-                  text "Partial view. More records are available through the agent API." font="-exact-footnote"
-                text "Ideas" role="heading" aria-level=2
-                if board.ideas.length == 0
-                  text "Leave a fragment, a question, or an unfinished thought." color="-exact-secondary-label" testId="empty-ideas"
-                for idea, i in board.ideas key=idea.id
-                  column gap=8 padding=16 background-color="-exact-secondary-background" border-radius=12
-                    text idea.body testId=`idea-${i}` white-space="pre-wrap"
-                    if idea.source != ""
-                      scroll overflow-x="scroll" overflow-y="hidden" height="2rem" width="100%" min-width=0
-                        text idea.source testId=`source-${i}` font="-exact-footnote" white-space="nowrap"
-                    text idea.status font="-exact-footnote" color="-exact-secondary-label" testId=`work-${i}`
-                text "Organized context" role="heading" aria-level=2
-                if board.nodes.length == 0
-                  text "An operator’s synthesis will appear here, linked to its original idea." color="-exact-secondary-label"
-                for node, i in board.nodes key=node.id
-                  column gap=8 padding=16 background-color="-exact-secondary-background" border-radius=12
-                    text node.title role="heading" aria-level=3 testId=`node-title-${i}`
-                    text node.body testId=`node-body-${i}` white-space="pre-wrap"
-                    scroll overflow-x="scroll" overflow-y="hidden" height="2rem" width="100%" min-width=0
-                      text `Source: ${node.artifact}` testId=`node-origin-${i}` font="-exact-caption1" white-space="nowrap"
-
-component Composer
-  props
-    draft: Draft
-    save: action
-    submit: action
-    saving: bool
-    sending: bool
-    saveError: string
-    captureError: string
-  state body = draft.body
-  state source = draft.source
-  action edit(v: string)
-    body = v
-    save(draft.principal, draft.module, v, source)
-  action editSource(v: string)
-    source = v
-    save(draft.principal, draft.module, body, v)
-  action capture
-    submit(draft.principal, draft.module, body, source)
-  view
-    column gap=12
-      text "Capture an idea" role="heading" aria-level=2
-      textarea value=body input=edit disabled=(draft.submitted or sending) maxlength=12000 min-height=140 aria-label="Idea" placeholder="What’s on your mind?" testId="idea-input"
-      input value=source input=editSource disabled=(draft.submitted or sending) maxlength=2000 aria-label="Source link" placeholder="Source link (optional)" testId="source-input"
-      button (draft.submitted ? "Check delivery" : "Capture idea") press=capture disabled=(body.trim() == "" or saving or sending) buttonStyle="filled" testId="capture"
-      if saving
-        text "Saving draft…" font="-exact-footnote"
-      if saveError != ""
-        text "Draft could not be saved. Keep this window open and try editing again." color="-exact-system-red" testId="draft-error"
-      if draft.submitted
-        text "Queued on this device. Check delivery before editing this idea." testId="queued" font="-exact-footnote"
-      if captureError != ""
-        text captureError testId="capture-error" color="-exact-system-red"
+    main color-scheme="dark" status-bar-style="light-content" navigationKey=`${top(nav).id}` navigate=follow width="100%" height="100%" font-family="Whyte" background-color="bg.base" color="tx.primary"
+      for entry in stack(nav) key=entry.id
+        if entry.name == "home"
+          column navigationKey=`${entry.id}` navigationBar="none" navigationSplit="none" position="absolute" inset=0
+            header appearance="none" border-width=0 padding="32px" display="flex" align-items="center" justify-content="space-between" gap=16
+              box role="heading" aria-level=1
+                JeraWordmark()
+              if account.principal != ""
+                button id="account-menu" press=openAccount aria-label="Your account" aria-haspopup="dialog" testId="account-avatar" appearance="none" cursor="pointer" padding=0 min-width=44 min-height=44 border-width=0 background-color="transparent" border-radius=8 display="flex" align-items="center" justify-content="center"
+                  for owner in [account.principal] key=owner
+                    AccountAvatar(src=profileAvatar, label=profileName, size="2.5rem", radius=8)
+            if account.principal == "" and not pending(account)
+              scroll flex=1 min-height=0
+                column padding="48px 24px 24px" gap=16 max-width="44rem" margin="0 auto" width="100%" box-sizing="border-box"
+                  if failed(account)
+                    text "Could not restore your session." color="-exact-system-red"
+                    button "Try again" press=retryAccount testId="retry-account"
+                  if failed(signed)
+                    text (match failure(signed) { case some(f) => f.message, case none => "" }) testId="auth-error" color="-exact-system-red"
+                  column gap=0
+                    text "Join the cycle." font="-exact-title1" font-size="2rem" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
+                    text "Log in with your everything account, and bring your tokens into the network" testId="signin-invitation" color="tx.secondary" margin-top=16 max-width="24rem" line-height=1.5
+                    row id="account-entry" testId="account-entry" gap=8 margin-top=32 align-items="stretch" width="100%" max-width="23.5rem"
+                      input id="account-handle" value=handle input=editHandle submit=login press=openSuggestions key=accountKey aria-label="ATproto handle or DID" aria-controls="account-suggestions" aria-expanded=accountsOpen placeholder="Name, handle or DID" testId="handle" font-family="Whyte" autocomplete="username" autocapitalize="none" spellcheck=false enterkeyhint="go" appearance="none" flex=1 min-width=0 padding="12px" border-width=1 border-style="solid" border-color="bd.primary" border-radius=8 background-color="bg.field" color="tx.primary" font-size="1rem"
+                      button press=login disabled=(not canSubmit) testId="login" aria-label="Continue with ATproto" title="Continue with ATproto" appearance="none" class=LoginButton width="3rem" min-height="3rem" box-sizing="border-box" flex-shrink=0 padding=12 border-radius=8 display="flex" align-items="center" justify-content="center"
+                        if pending(signed)
+                          image "symbol:refresh" aria-hidden=true
+                        else
+                          image (not canSubmit ? "symbol:icon.login-disabled" : viewport.pointer == "coarse" ? "symbol:icon.login-touch" : "symbol:icon.login-desktop") aria-hidden=true font-size="1.5rem"
+                    column id="account-suggestions" testId="account-suggestions" popover="auto" toggle=suggestionsToggled role="group" aria-label="Account suggestions" position="absolute" position-area="bottom span-right" position-try-fallbacks="flip-block, flip-inline" margin="8px 0" width="min(376px, calc(100vw - 48px))" max-height="min(352px, 50vh)" overflow-y="auto" box-sizing="border-box" padding=6 gap=2 background-color="bg.card" color="tx.primary" border-width=0 border-radius=10 box-shadow="0 8px 24px #00000033"
+                      if pending(suggestions) or accountQuery != handle.trim()
+                        text "Looking for accounts…" padding=12 font="-exact-footnote" color="tx.secondary" aria-live="polite"
+                      if accountQuery == handle.trim() and suggestions.query == accountQuery and not pending(suggestions)
+                        if failed(suggestions) or not suggestions.available
+                          text "Suggestions unavailable. You can still enter your full handle or DID." padding=12 font="-exact-footnote" color="tx.secondary" testId="suggestions-error"
+                        else
+                          if suggestions.items.length > 0
+                            for person, i in suggestions.items key=person.did
+                              button id=`suggestion-${i}` press=chooseAccount(person.handle) key=suggestionKey(i) appearance="none" class=AccountRow testId=`suggestion-${i}` aria-label=`Use @${person.handle}` padding=8 border-width=0 border-radius=6 color="tx.primary" text-align="left"
+                                row gap=12 align-items="center" min-width=0 flex-wrap="wrap"
+                                  AccountAvatar(src=person.avatar, label=(person.displayName != "" ? person.displayName : person.handle), size="2.5rem", radius=6)
+                                  column gap=2 min-width=0 flex="1 1 12rem" align-items="flex-start"
+                                    text (person.displayName != "" ? person.displayName : person.handle) font-family="Whyte" text-align="left"
+                                    text `@${person.handle}` font-family="Whyte" font="-exact-footnote" color="tx.secondary" white-space="nowrap" overflow="hidden" text-overflow="ellipsis" max-width="100%" text-align="left"
+                          else
+                            text "No matching account found. You can still enter your full handle or DID." padding=12 font="-exact-footnote" color="tx.secondary" testId="suggestions-empty"
+                    SignInFAQ()
+        if entry.name == "account"
+          // UIKit owns the sheet, including its safe area and interactive dismissal.
+          // Web uses the dao-panel adapter for the same compact/regular presentation.
+          column id="account-sheet" navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber=(viewport.width < 768 ? "visible" : "hidden") closedby="any" hatch="dao-panel" aria-label="Your account" testId="account-sheet" position="absolute" inset=0 overflow-y="auto" border-radius=24 background-color="bg.base" color="tx.primary" font-family="Whyte"
+            button id="account-dismiss" press=closeAccount aria-label="Dismiss account menu" testId="account-dismiss" display="none" width=44 height=28
+            column gap=24 min-height="14rem" padding="32px 24px 24px" box-sizing="border-box"
+              row gap=16 align-items="center" flex-wrap="wrap"
+                for owner in [account.principal] key=owner
+                  AccountAvatar(src=profileAvatar, label=profileName, size="3.5rem", radius=8)
+                column gap=2 min-width=0 flex="1 1 10rem"
+                  text profileName role="heading" aria-level=2 font-size="1.25rem" font-weight=400 max-width="100%" overflow="hidden" text-overflow="ellipsis" testId="profile-name"
+                  if profileHandle != ""
+                    text `@${profileHandle}` color="tx.secondary" max-width="100%" white-space="nowrap" overflow="hidden" text-overflow="ellipsis" testId="profile-handle"
+              button "Log out" press=logout disabled=pending(signedOut) aria-busy=pending(signedOut) testId="logout" appearance="none" class=ManagementButton width="100%" box-sizing="border-box" min-height=52 padding="14px 16px" border-width=0 border-radius=8 color="tx.primary" font-family="Whyte" font-size="1.125rem"
+              if failed(signedOut)
+                text "Could not log out. Please try again." role="status" color="tx.secondary"

@@ -1,5 +1,5 @@
 // The same Snapback device protocol as the web, hosted natively in SQLite.
-// Kept separate from Exact's generated host glue. Native builds remain unverified.
+// Kept separate from Exact's generated host glue. Physical-device behavior still needs verification.
 struct Snapback(exact_snapback4::Module);
 impl exact_js::NativeModule for Snapback {
     fn configure_storage(
