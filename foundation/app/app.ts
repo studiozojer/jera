@@ -1,6 +1,7 @@
 import type { Answer, Sources, Store, Storage, NativeModule } from './app.contract.d.ts';
 import { Snapback, refused } from './snapback4/snapback.ts';
 import { parseLoginInput } from './login-input.ts';
+import { loadAccountProfile } from './account-profile.ts';
 
 const origin = 'http://127.0.0.1:4417';
 export const appId = 'studio.zojer.jera.exact';
@@ -12,7 +13,7 @@ function storageKey(value: string): string {
 }
 const sessionKey = storageKey(origin) + '-atproto-v1';
 const pendingKey = sessionKey + '-login';
-export const grants = `net.fetch ${origin}\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
+export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
 
 function randomToken(): string {
   return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -39,6 +40,10 @@ async function using<T>(store: Store, storage: Storage, native: NativeModule | n
   try { return await fn(db); } finally { await db.close(); }
 }
 const sources: Sources = {
+  accountProfile: ([principal], store, storage) => loadAccountProfile(principal, storage),
+  logout: ([now], store, storage, native) => using(store, storage, native, now, async db => {
+    await db.logout(); return { state: 'sent', id: '' };
+  }),
   loginInput: ([input]) => parseLoginInput(input),
   lookupAccounts: async ([query]) => {
     if (query.trim().replace(/^@/, '').length < 2 || query.trim().startsWith('did:')) return { query, items: [], available: true, complete: true };

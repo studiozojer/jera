@@ -2,7 +2,8 @@ fresh
 epoch now
 
 // OAuth is a fixture here; authorization acceptance requires a real PDS.
-test "sign-in reaches a quiet wordmark screen and survives reload"
+test "account sheet opens, dismisses and logs out without losing the quiet home"
+  fail fetch "https://public.api.bsky.app/"
   expect disabled "login"
   type "handle" "owner..test"
   clock data
@@ -33,7 +34,6 @@ test "sign-in reaches a quiet wordmark screen and survives reload"
   expect tree missing "handle"
   expect tree missing "account-did"
   expect tree missing "refresh"
-  expect tree missing "logout"
   expect tree missing "arm-name"
   expect tree missing "account-loading"
   clock +15000
@@ -47,8 +47,30 @@ test "sign-in reaches a quiet wordmark screen and survives reload"
   expect tree has "jera-wordmark"
   expect tree missing "handle"
   expect tree missing "refresh"
+  expect tree has "account-avatar"
+  tap "account-avatar"
+  clock settle
+  expect text "profile-name" == "Your account"
+  back
+  clock settle
+  tap "account-avatar"
+  clock settle
+  tap "logout"
+  clock data
+  expect state account.principal == ""
+  expect tree has "handle"
+  expect tree missing "account-avatar"
+  type "handle" "other.test"
+  tap "login"
+  authorize
+  clock data
+  expect state account.principal == "did:plc:bbbbbbbbbbbbbbbbbbbbbbbb"
+  tap "account-avatar"
+  clock settle
+  expect text "profile-name" == "Your account"
 
-test "offline session restoration keeps the quiet signed-in screen"
+test "offline session restoration and logout keep account controls usable"
+  fail fetch "https://public.api.bsky.app/"
   type "handle" "offline.test"
   tap "login"
   authorize
@@ -62,8 +84,14 @@ test "offline session restoration keeps the quiet signed-in screen"
   expect tree missing "account-loading"
   expect tree missing "retry-account"
   expect tree missing "refresh"
-  expect tree missing "logout"
   clock +15000
   clock data
   expect tree missing "handle"
   expect tree missing "account-loading"
+  tap "account-avatar"
+  clock settle
+  tap "logout"
+  clock data
+  expect state account.principal == ""
+  expect tree has "handle"
+  expect tree missing "account-avatar"
