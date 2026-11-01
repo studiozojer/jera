@@ -5,8 +5,15 @@ font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
 font "Whyte Inktrap" = "assets/fonts/ABCWhyteInktrap-Regular.otf"
 font "Fraktion Mono" = "assets/fonts/PPFraktionMono-Regular.otf"
 
+routes nav
+  home "/"
+    account "/account"
+
 shape Viewport
   pointer: string
+  width: number
+shape Page
+  navigationType: string
 shape Profile
   principal: string
   name: string
@@ -45,6 +52,7 @@ style ManagementButton
 
 component App
   resource viewport = exactViewport() as shape Viewport
+  resource page = exactPage() as shape Page
   state handle = ""
   resource loginInput = loginInput(handle) as shape LoginInput else empty()
   derive canSubmit = loginInput.input == handle and loginInput.valid and not pending(loginInput) and not pending(signed)
@@ -90,7 +98,7 @@ component App
       else
         focus(`suggestion-${i - 1}`)
   resource time = exactTime() as shape Clock
-  resource account = restore() with time.epochAtZero as shape Account else empty()
+  resource account = restore(page.navigationType != "") with time.epochAtZero as shape Account else empty()
   resource profile = accountProfile(account.principal) as shape Profile else empty()
   derive profileReady = profile.principal == account.principal
   derive profileName = profileReady and profile.name != "" ? profile.name : "Your account"
@@ -98,12 +106,16 @@ component App
   derive profileHandle = profileReady ? profile.handle : ""
   mutation signed as shape Ack refreshes account then afterAuth
   mutation signedOut as shape Ack refreshes account then afterLogout
+  action follow(url: string)
+    nav = go(nav, url)
   action openAccount
-    showModal("account-sheet")
+    nav = push(nav, "/account")
+  action closeAccount
+    nav = back(nav)
   action logout
-    send signedOut = logout(time.epochAtZero + performanceNow())
+    send signedOut = logout(time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterLogout
-    close("account-sheet")
+    nav = go(nav, "/")
     handle = ""
     selectedHandle = ""
     accountQuery = ""
@@ -125,60 +137,66 @@ component App
       hidePopover("account-suggestions")
       send signed = login(handle, time.epochAtZero + performanceNow())
   view
-    column width="100%" height="100%" font-family="Whyte" background-color="bg.base" color="tx.primary"
-      header appearance="none" padding="32px" display="flex" align-items="center" justify-content="space-between" gap=16
-        box role="heading" aria-level=1
-          JeraWordmark()
-        if account.principal != ""
-          button id="account-menu" press=openAccount aria-label="Your account" aria-haspopup="dialog" testId="account-avatar" appearance="none" padding=0 min-width=44 min-height=44 border-width=0 background-color="transparent" border-radius=8 display="flex" align-items="center" justify-content="center"
-            for owner in [account.principal] key=owner
-              AccountAvatar(src=profileAvatar, label=profileName, size="2.5rem", radius=8)
-      if account.principal != ""
-        dialog id="account-sheet" aria-label="Your account" closedby="any" testId="account-sheet" width="100%" max-width="32rem" max-height="calc(100% - 32px)" box-sizing="border-box" margin="auto auto 0" padding=24 border-width=0 border-radius=24 background-color="bg.base" color="tx.primary" font-family="Whyte"
-          column gap=24 min-height="14rem"
-            row gap=16 align-items="center" flex-wrap="wrap"
-              for owner in [account.principal] key=owner
-                AccountAvatar(src=profileAvatar, label=profileName, size="3.5rem", radius=8)
-              column gap=2 min-width=0 flex="1 1 10rem"
-                text profileName role="heading" aria-level=2 font-size="1.25rem" font-weight=400 max-width="100%" overflow="hidden" text-overflow="ellipsis" testId="profile-name"
-                if profileHandle != ""
-                  text `@${profileHandle}` color="tx.secondary" max-width="100%" white-space="nowrap" overflow="hidden" text-overflow="ellipsis" testId="profile-handle"
-            button "Log out" press=logout disabled=pending(signedOut) aria-busy=pending(signedOut) testId="logout" appearance="none" class=ManagementButton width="100%" box-sizing="border-box" min-height=52 padding="14px 16px" border-width=0 border-radius=8 color="tx.primary" font-family="Whyte" font-size="1.125rem"
-            if failed(signedOut)
-              text "Could not log out. Please try again." role="status" color="tx.secondary"
-      if account.principal == "" and not pending(account)
-        scroll flex=1 min-height=0
-          column padding="48px 24px 24px" gap=16 max-width="44rem" margin="0 auto" width="100%" box-sizing="border-box"
-            if failed(account)
-              text "Could not restore your session." color="-exact-system-red"
-              button "Try again" press=retryAccount testId="retry-account"
-            if failed(signed)
-              text (match failure(signed) { case some(f) => f.message, case none => "" }) testId="auth-error" color="-exact-system-red"
-            column gap=0
-              text "Join the cycle." font="-exact-title1" font-size="2rem" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
-              text "Log in with your everything account, and bring your tokens into the network" testId="signin-invitation" color="tx.secondary" margin-top=16 max-width="24rem" line-height=1.5
-              row id="account-entry" testId="account-entry" gap=8 margin-top=32 align-items="stretch" width="100%" max-width="23.5rem"
-                input id="account-handle" value=handle input=editHandle submit=login press=openSuggestions key=accountKey aria-label="ATproto handle or DID" aria-controls="account-suggestions" aria-expanded=accountsOpen placeholder="Name, handle or DID" testId="handle" font-family="Whyte" autocomplete="username" autocapitalize="none" spellcheck=false enterkeyhint="go" appearance="none" flex=1 min-width=0 padding="12px" border-width=1 border-style="solid" border-color="bd.primary" border-radius=8 background-color="bg.field" color="tx.primary" font-size="1rem"
-                button press=login disabled=(not canSubmit) testId="login" aria-label="Continue with ATproto" title="Continue with ATproto" appearance="none" class=LoginButton width="3rem" min-height="3rem" box-sizing="border-box" flex-shrink=0 padding=12 border-radius=8 display="flex" align-items="center" justify-content="center"
-                  if pending(signed)
-                    image "symbol:refresh" aria-hidden=true
-                  else
-                    image (not canSubmit ? "symbol:icon.login-disabled" : viewport.pointer == "coarse" ? "symbol:icon.login-touch" : "symbol:icon.login-desktop") aria-hidden=true font-size="1.5rem"
-              column id="account-suggestions" testId="account-suggestions" popover="auto" toggle=suggestionsToggled role="group" aria-label="Account suggestions" position="absolute" position-area="bottom span-right" position-try-fallbacks="flip-block, flip-inline" margin="8px 0" width="min(376px, calc(100vw - 48px))" max-height="min(352px, 50vh)" overflow-y="auto" box-sizing="border-box" padding=6 gap=2 background-color="bg.card" color="tx.primary" border-width=0 border-radius=10 box-shadow="0 8px 24px #00000033"
-                if pending(suggestions) or accountQuery != handle.trim()
-                  text "Looking for accounts…" padding=12 font="-exact-footnote" color="tx.secondary" aria-live="polite"
-                if accountQuery == handle.trim() and suggestions.query == accountQuery and not pending(suggestions)
-                  if failed(suggestions) or not suggestions.available
-                    text "Suggestions unavailable. You can still enter your full handle or DID." padding=12 font="-exact-footnote" color="tx.secondary" testId="suggestions-error"
-                  else
-                    if suggestions.items.length > 0
-                      for person, i in suggestions.items key=person.did
-                        button id=`suggestion-${i}` press=chooseAccount(person.handle) key=suggestionKey(i) appearance="none" class=AccountRow testId=`suggestion-${i}` aria-label=`Use @${person.handle}` padding=8 border-width=0 border-radius=6 color="tx.primary" text-align="left"
-                          row gap=12 align-items="center" min-width=0 flex-wrap="wrap"
-                            AccountAvatar(src=person.avatar, label=(person.displayName != "" ? person.displayName : person.handle), size="2.5rem", radius=6)
-                            column gap=2 min-width=0 flex="1 1 12rem" align-items="flex-start"
-                              text (person.displayName != "" ? person.displayName : person.handle) font-family="Whyte" text-align="left"
-                              text `@${person.handle}` font-family="Whyte" font="-exact-footnote" color="tx.secondary" white-space="nowrap" overflow="hidden" text-overflow="ellipsis" max-width="100%" text-align="left"
-                    else
-                      text "No matching account found. You can still enter your full handle or DID." padding=12 font="-exact-footnote" color="tx.secondary" testId="suggestions-empty"
-              SignInFAQ()
+    main navigationKey=`${top(nav).id}` navigate=follow width="100%" height="100%" font-family="Whyte" background-color="bg.base" color="tx.primary"
+      for entry in stack(nav) key=entry.id
+        if entry.name == "home"
+          column navigationKey=`${entry.id}` navigationBar="none" navigationSplit="none" position="absolute" inset=0
+            header appearance="none" border-width=0 padding="32px" display="flex" align-items="center" justify-content="space-between" gap=16
+              box role="heading" aria-level=1
+                JeraWordmark()
+              if account.principal != ""
+                button id="account-menu" press=openAccount aria-label="Your account" aria-haspopup="dialog" testId="account-avatar" appearance="none" padding=0 min-width=44 min-height=44 border-width=0 background-color="transparent" border-radius=8 display="flex" align-items="center" justify-content="center"
+                  for owner in [account.principal] key=owner
+                    AccountAvatar(src=profileAvatar, label=profileName, size="2.5rem", radius=8)
+            if account.principal == "" and not pending(account)
+              scroll flex=1 min-height=0
+                column padding="48px 24px 24px" gap=16 max-width="44rem" margin="0 auto" width="100%" box-sizing="border-box"
+                  if failed(account)
+                    text "Could not restore your session." color="-exact-system-red"
+                    button "Try again" press=retryAccount testId="retry-account"
+                  if failed(signed)
+                    text (match failure(signed) { case some(f) => f.message, case none => "" }) testId="auth-error" color="-exact-system-red"
+                  column gap=0
+                    text "Join the cycle." font="-exact-title1" font-size="2rem" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
+                    text "Log in with your everything account, and bring your tokens into the network" testId="signin-invitation" color="tx.secondary" margin-top=16 max-width="24rem" line-height=1.5
+                    row id="account-entry" testId="account-entry" gap=8 margin-top=32 align-items="stretch" width="100%" max-width="23.5rem"
+                      input id="account-handle" value=handle input=editHandle submit=login press=openSuggestions key=accountKey aria-label="ATproto handle or DID" aria-controls="account-suggestions" aria-expanded=accountsOpen placeholder="Name, handle or DID" testId="handle" font-family="Whyte" autocomplete="username" autocapitalize="none" spellcheck=false enterkeyhint="go" appearance="none" flex=1 min-width=0 padding="12px" border-width=1 border-style="solid" border-color="bd.primary" border-radius=8 background-color="bg.field" color="tx.primary" font-size="1rem"
+                      button press=login disabled=(not canSubmit) testId="login" aria-label="Continue with ATproto" title="Continue with ATproto" appearance="none" class=LoginButton width="3rem" min-height="3rem" box-sizing="border-box" flex-shrink=0 padding=12 border-radius=8 display="flex" align-items="center" justify-content="center"
+                        if pending(signed)
+                          image "symbol:refresh" aria-hidden=true
+                        else
+                          image (not canSubmit ? "symbol:icon.login-disabled" : viewport.pointer == "coarse" ? "symbol:icon.login-touch" : "symbol:icon.login-desktop") aria-hidden=true font-size="1.5rem"
+                    column id="account-suggestions" testId="account-suggestions" popover="auto" toggle=suggestionsToggled role="group" aria-label="Account suggestions" position="absolute" position-area="bottom span-right" position-try-fallbacks="flip-block, flip-inline" margin="8px 0" width="min(376px, calc(100vw - 48px))" max-height="min(352px, 50vh)" overflow-y="auto" box-sizing="border-box" padding=6 gap=2 background-color="bg.card" color="tx.primary" border-width=0 border-radius=10 box-shadow="0 8px 24px #00000033"
+                      if pending(suggestions) or accountQuery != handle.trim()
+                        text "Looking for accounts…" padding=12 font="-exact-footnote" color="tx.secondary" aria-live="polite"
+                      if accountQuery == handle.trim() and suggestions.query == accountQuery and not pending(suggestions)
+                        if failed(suggestions) or not suggestions.available
+                          text "Suggestions unavailable. You can still enter your full handle or DID." padding=12 font="-exact-footnote" color="tx.secondary" testId="suggestions-error"
+                        else
+                          if suggestions.items.length > 0
+                            for person, i in suggestions.items key=person.did
+                              button id=`suggestion-${i}` press=chooseAccount(person.handle) key=suggestionKey(i) appearance="none" class=AccountRow testId=`suggestion-${i}` aria-label=`Use @${person.handle}` padding=8 border-width=0 border-radius=6 color="tx.primary" text-align="left"
+                                row gap=12 align-items="center" min-width=0 flex-wrap="wrap"
+                                  AccountAvatar(src=person.avatar, label=(person.displayName != "" ? person.displayName : person.handle), size="2.5rem", radius=6)
+                                  column gap=2 min-width=0 flex="1 1 12rem" align-items="flex-start"
+                                    text (person.displayName != "" ? person.displayName : person.handle) font-family="Whyte" text-align="left"
+                                    text `@${person.handle}` font-family="Whyte" font="-exact-footnote" color="tx.secondary" white-space="nowrap" overflow="hidden" text-overflow="ellipsis" max-width="100%" text-align="left"
+                          else
+                            text "No matching account found. You can still enter your full handle or DID." padding=12 font="-exact-footnote" color="tx.secondary" testId="suggestions-empty"
+                    SignInFAQ()
+        if entry.name == "account"
+          // UIKit owns the sheet, including its safe area and interactive dismissal.
+          // Web uses the dao-panel adapter for the same compact/regular presentation.
+          column id="account-sheet" navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber=(viewport.width < 768 ? "visible" : "hidden") closedby="any" hatch="dao-panel" aria-label="Your account" testId="account-sheet" position="absolute" inset=0 overflow-y="auto" border-radius=24 background-color="bg.base" color="tx.primary" font-family="Whyte"
+            button id="account-dismiss" press=closeAccount aria-label="Dismiss account menu" testId="account-dismiss" display="none" width=44 height=28
+            column gap=24 min-height="14rem" padding="32px 24px 24px" box-sizing="border-box"
+              row gap=16 align-items="center" flex-wrap="wrap"
+                for owner in [account.principal] key=owner
+                  AccountAvatar(src=profileAvatar, label=profileName, size="3.5rem", radius=8)
+                column gap=2 min-width=0 flex="1 1 10rem"
+                  text profileName role="heading" aria-level=2 font-size="1.25rem" font-weight=400 max-width="100%" overflow="hidden" text-overflow="ellipsis" testId="profile-name"
+                  if profileHandle != ""
+                    text `@${profileHandle}` color="tx.secondary" max-width="100%" white-space="nowrap" overflow="hidden" text-overflow="ellipsis" testId="profile-handle"
+              button "Log out" press=logout disabled=pending(signedOut) aria-busy=pending(signedOut) testId="logout" appearance="none" class=ManagementButton width="100%" box-sizing="border-box" min-height=52 padding="14px 16px" border-width=0 border-radius=8 color="tx.primary" font-family="Whyte" font-size="1.125rem"
+              if failed(signedOut)
+                text "Could not log out. Please try again." role="status" color="tx.secondary"

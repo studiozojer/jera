@@ -35,13 +35,15 @@ async function authRequest(path: string, body: unknown, token?: string): Promise
 }
 
 function reject(code: string, message: string): never { throw refused({ code, message }); }
-async function using<T>(store: Store, storage: Storage, native: NativeModule | null | undefined, now: number, fn: (db: Snapback) => Promise<T>): Promise<T> {
-  const db = await Snapback.open({ app: appId, name: sessionKey, origin, storage, native, auth: { store, key: sessionKey, now } });
+async function using<T>(store: Store, storage: Storage, native: NativeModule | null | undefined, now: number, browser: boolean, fn: (db: Snapback) => Promise<T>): Promise<T> {
+  // A web presentation hatch supplies a module too; it is not the native
+  // Snapback device. Navigation Timing is present only in a browser.
+  const db = await Snapback.open({ app: appId, name: sessionKey, origin, storage, native, device: browser ? 'web' : 'native', auth: { store, key: sessionKey, now } });
   try { return await fn(db); } finally { await db.close(); }
 }
 const sources: Sources = {
   accountProfile: ([principal], store, storage) => loadAccountProfile(principal, storage),
-  logout: ([now], store, storage, native) => using(store, storage, native, now, async db => {
+  logout: ([now, browser], store, storage, native) => using(store, storage, native, now, browser, async db => {
     await db.logout(); return { state: 'sent', id: '' };
   }),
   loginInput: ([input]) => parseLoginInput(input),
@@ -54,10 +56,10 @@ const sources: Sources = {
       return { query, items: [], available: false, complete: false };
     }
   },
-  restore: async ([now], store, storage, native) => {
+  restore: async ([browser, now], store, storage, native) => {
     // Prepare before the press so web hosts can open their popup synchronously.
     await prepareLogin(store);
-    return using(store, storage, native, now, async db => {
+    return using(store, storage, native, now, browser, async db => {
       if (!db.session) return { principal: '' };
       const raw = store.get(sessionKey);
       try {

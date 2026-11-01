@@ -60,14 +60,6 @@ test "account sheet opens, dismisses and logs out without losing the quiet home"
   expect state account.principal == ""
   expect tree has "handle"
   expect tree missing "account-avatar"
-  type "handle" "other.test"
-  tap "login"
-  authorize
-  clock data
-  expect state account.principal == "did:plc:bbbbbbbbbbbbbbbbbbbbbbbb"
-  tap "account-avatar"
-  clock settle
-  expect text "profile-name" == "Your account"
 
 test "offline session restoration and logout keep account controls usable"
   fail fetch "https://public.api.bsky.app/"
@@ -95,3 +87,18 @@ test "offline session restoration and logout keep account controls usable"
   expect state account.principal == ""
   expect tree has "handle"
   expect tree missing "account-avatar"
+
+// A separate fixture launch: Exact's web route changes discard authFixture,
+// so its held-auth driver cannot authorize again after navigating. Real popup
+// account switching is checked separately; do not add fixture logic to the app.
+test "account panel on a wider viewport"
+  size 1024x768
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "other.test"
+  tap "login"
+  authorize
+  clock data
+  tap "account-avatar"
+  clock settle
+  expect text "profile-name" == "Your account"
+  expect tree has "logout"
