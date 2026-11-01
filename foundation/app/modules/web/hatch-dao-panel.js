@@ -8,7 +8,7 @@ const styles = `
   inset: auto 0 0 !important; margin: 0 !important;
   width: 100% !important; height: auto !important;
   max-height: calc(100dvh - 32px) !important;
-  border-radius: 24px 24px 0 0; overflow-y: auto;
+  border-radius: 24px 24px 0 0 !important; overflow-y: auto;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 #exact-root [data-hatch="dao-panel"] > #account-dismiss {
@@ -26,7 +26,7 @@ const styles = `
     inset: 0 !important; margin: auto !important;
     width: min(32rem, calc(100vw - 64px)) !important;
     height: fit-content !important; max-height: calc(100dvh - 64px) !important;
-    border-radius: 24px; padding-bottom: 0;
+    border-radius: 24px !important; padding-bottom: 0;
   }
   #exact-root [data-hatch="dao-panel"] > #account-dismiss { display: none !important; }
 }

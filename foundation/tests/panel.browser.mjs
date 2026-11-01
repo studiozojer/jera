@@ -24,6 +24,7 @@ try {
  await page.waitForFunction(() => {const r=document.querySelector('#account-sheet')?.getBoundingClientRect();return r && Math.abs(r.bottom-innerHeight)<1;});
  const box=()=>page.locator('#account-sheet').boundingBox();
  let b=await box();assert.ok(Math.abs(b.y+b.height-844)<1);assert.equal(b.x,0);assert.equal(b.width,390);
+ assert.equal(await page.locator('#account-sheet').evaluate(el=>getComputedStyle(el).borderBottomLeftRadius),'0px');
  await page.screenshot({path:'/private/tmp/jera-panel-web-phone.png'});
  // A short pull returns to rest rather than turning into a click-to-dismiss.
  let grip=await page.locator('#account-dismiss').boundingBox();
