@@ -1,6 +1,6 @@
 # Jera foundation
 
-**Product status:** this build is a working capture/backend prototype, but it does not yet meet Jera's ATproto requirements. Its separate password login is a known misalignment. Read [the current product contract](PRODUCT.md) before extending it. Existing-account OAuth, verified DID ownership, and the agreed record/publication boundary are required corrective work; the checks below do not establish those capabilities.
+**Product status:** this build is a working capture/backend prototype, but its separate password login remains misaligned. Existing-account ATproto OAuth and verified DID ownership are required corrective work. Snapback is the accepted authoritative store for private drafts, shared modules and most initial application data; user input will not be published to ATproto during this phase. Lexicons and PDS storage are deferred while the UX develops. Read [the current product contract](PRODUCT.md) before extending it.
 
 Jera's first Exact + Snapback slice: capture an idea into a module, retain its original wording and provenance, queue organizing work, and let an authenticated operator return attributed context. Multiple armillaries coexist. An armillary's identity is its backend endpoint plus its record ID; there is no assumed universal singleton.
 
@@ -150,7 +150,7 @@ Never enable development doors for a shared or production service. Native build/
 
 ## Current boundaries
 
-- No ATproto publication, Spaces integration, GitHub synchronization or automated AI processing is present. The accepted first ATproto journey and record ownership must guide corrective implementation; these absences are not permission to redefine Jera as a standalone backend app.
+- No ATproto publication, Spaces integration, GitHub synchronization or automated AI processing is present. Publication and protocol storage are explicitly deferred; private data lives authoritatively in Snapback. Existing-account ATproto identity is required now. A running organizer remains future work.
 - Password identity is an implementation defect relative to Jera’s requirements. Replace it with existing-account authorization and verified DID binding, preserving any real data deliberately. Cross-backend membership federation remains separate design work.
 - The screen shows bounded pages (50 ideas/nodes/tasks). It labels incomplete results; the API exposes cursors. Device replication retains the latest 500 artifacts/nodes per module. It is not a complete offline archive.
 - Module revocation denies subsequent module reads and writes. Previously downloaded content cannot be made unknown to its reader. Armillary directory membership currently remains after a module grant is removed, so the recipient can still see that armillary's name; module contents remain denied.
