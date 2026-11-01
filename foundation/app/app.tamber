@@ -15,8 +15,11 @@ theme
   tx.primary = light-dark(#191B18, #FEFFFFF2)
   tx.secondary = light-dark(#3D403BBF, #F3F6F8B3)
   tx.warning = light-dark(#F18736F2, #F18736F2)
+  tx.link = #F7B667 scheme=fixed
+  ic.disabled = light-dark(#3D403B26, #F3F6F826)
   bd.primary = light-dark(#3D403B26, #F3F6F826)
 
 icons
   icon.login-desktop = icon(svg "icons/login-desktop.svg")
   icon.login-touch = icon(svg "icons/login-touch.svg")
+  icon.login-disabled = icon(svg "icons/login-disabled.svg")

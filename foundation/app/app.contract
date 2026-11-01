@@ -208,7 +208,7 @@ component App
                   if pending(signed)
                     image "symbol:refresh" aria-hidden=true
                   else
-                    image (viewport.pointer == "coarse" ? "symbol:icon.login-touch" : "symbol:icon.login-desktop") aria-hidden=true font-size="1.5rem"
+                    image (not canSubmit ? "symbol:icon.login-disabled" : viewport.pointer == "coarse" ? "symbol:icon.login-touch" : "symbol:icon.login-desktop") aria-hidden=true font-size="1.5rem"
               column id="account-suggestions" testId="account-suggestions" popover="auto" toggle=suggestionsToggled role="group" aria-label="Account suggestions" position="absolute" position-area="bottom span-right" position-try-fallbacks="flip-block, flip-inline" margin="8px 0" width="min(376px, calc(100vw - 48px))" max-height="min(352px, 50vh)" overflow-y="auto" box-sizing="border-box" padding=6 gap=2 background-color="bg.card" color="tx.primary" border-width=0 border-radius=10 box-shadow="0 8px 24px #00000033"
                 if pending(suggestions) or accountQuery != handle.trim()
                   text "Looking for accounts…" padding=12 font="-exact-footnote" color="tx.secondary" aria-live="polite"

@@ -17,7 +17,7 @@ style LoginButton
     background-color = "bg.action-pressed"
   :disabled
     background-color = "bg.field"
-    color = "tx.secondary"
+    color = "ic.disabled"
     opacity = 1
 
 component AccountAvatar
@@ -44,13 +44,13 @@ component SignInFAQ
         text "For now, your ideas stay private in Jera. Nothing you enter here is published to the network." color="tx.secondary" line-height=1.55
         text color="tx.secondary" line-height=1.55 testId="everything-account-paragraph"
           text "Here’s a great article by Anuj Ahooja: "
-          text "The Everything Account" href="https://augment.ink/the-everything-account" color="tx.warning" text-decoration="underline"
+          text "The Everything Account" href="https://augment.ink/the-everything-account" color="tx.link" text-decoration="underline"
       column gap=12 border-left-width=3 border-left-style="solid" border-left-color="tx.secondary" padding-left=16
         text "Who is this app’s target user?" role="heading" aria-level=3
         text "Do your AI agents have persistent memory frameworks? Do they track the provenance of their own decision-making?" color="tx.secondary" line-height=1.55
         text color="tx.secondary" line-height=1.55 testId="operator-demo-paragraph"
           text "If so, this app might be for you. Jera is being built as a dynamic interface for interacting with your agents through an ATproto account. Think of a Twitter-like feed where AI operators can go off and write code, then respond with a "
-          text "demo of your prompt" href="https://expo.dev/articles/cloud-simulators/share-a-simulator-link" color="tx.warning" text-decoration="underline"
+          text "demo of your prompt" href="https://expo.dev/articles/cloud-simulators/share-a-simulator-link" color="tx.link" text-decoration="underline"
           text "."
       column gap=12 border-left-width=3 border-left-style="solid" border-left-color="tx.secondary" padding-left=16
         text "What does the name mean?" role="heading" aria-level=3
