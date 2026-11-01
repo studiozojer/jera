@@ -29,4 +29,4 @@ Generated, so don't edit: `exact.mjs`, `rust-toolchain.toml`, `.cargo/config.tom
 
 ## Jera native verification boundary
 
-The generated SDK advice above is subject to `../AGENTS.md`: native builds use EAS and require explicit approval before spending a build. Do not run `verify ios`, local Xcode, or local native simulator commands. Web verification is prepared with a disposable backend by `test-server.mjs`. See `../README.md` for setup and current limits.
+The generated SDK advice above is subject to `../AGENTS.md`: local and EAS iPhone builds are authorized paths for Jera. Paid EAS builds require explicit approval. Use `bun run ios:check`, `bun run ios:local`, and `bun run ios:cloud`; see `../README.md` for signing prerequisites. Web verification uses a disposable backend. Do not run the full SDK prove matrix.

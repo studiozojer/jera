@@ -4,8 +4,14 @@ import { api } from './backend/api.ts';
 
 const origin = 'http://127.0.0.1:4417';
 export const appId = 'studio.zojer.jera.exact';
-const sessionKey = 'jera-http-127.0.0.1-4417';
-export const grants = `net.fetch ${origin}\nsqlite.open app:/data\nsecret.keep ${sessionKey}\nfs.read app:/data\nfs.write app:/data`;
+// Exact rewrites origin when baking. Never share credentials or drafts across servers.
+function storageKey(value: string): string {
+  if (value === 'https://snapback.jera.ink') return 'jera-https-snapback-jera-ink';
+  if (value === 'http://127.0.0.1:4417') return 'jera-http-127.0.0.1-4417';
+  throw new Error('Unconfigured Jera backend: add an origin-specific storage key and grant before using it.');
+}
+const sessionKey = storageKey(origin);
+export const grants = `net.fetch ${origin}\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417\nsecret.keep jera-https-snapback-jera-ink\nfs.read app:/data\nfs.write app:/data`;
 
 function reject(code: string, message: string): never { throw refused({ code, message }); }
 async function using<T>(store: Store, storage: Storage, native: NativeModule | null | undefined, now: number, fn: (db: Snapback) => Promise<T>): Promise<T> {

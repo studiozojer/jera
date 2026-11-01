@@ -1,0 +1,19 @@
+build:
+  name: Jera Exact iPhone
+  steps:
+    - eas/checkout
+    - exact_archive:
+        inputs:
+          credentials: ${ eas.job.secrets.buildCredentials }
+    - eas/upload_artifact:
+        inputs:
+          path: artifacts/jera.ipa
+          type: application-archive
+functions:
+  exact_archive:
+    name: Build signed Exact archive
+    path: ./exact-archive
+    inputs:
+      - name: credentials
+        type: json
+        required: true

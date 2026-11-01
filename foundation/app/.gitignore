@@ -6,3 +6,5 @@
 /.exact/
 /assets/snapback4.wasm
 /assets/snapback4.wasm.json
+/artifacts/
+/credentials.json

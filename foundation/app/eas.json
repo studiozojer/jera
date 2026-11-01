@@ -1,0 +1,13 @@
+{
+  "cli": { "version": "27.2.0", "appVersionSource": "local" },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "environment": "preview",
+      "node": "24.11.0",
+      "bun": "1.4.2",
+      "env": { "EXACT_BACKEND_ORIGIN": "https://snapback.jera.ink" },
+      "ios": { "config": "exact-ios.yml", "image": "latest", "credentialsSource": "remote" }
+    }
+  }
+}
