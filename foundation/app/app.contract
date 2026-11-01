@@ -145,7 +145,7 @@ component App
               box role="heading" aria-level=1
                 JeraWordmark()
               if account.principal != ""
-                button id="account-menu" press=openAccount aria-label="Your account" aria-haspopup="dialog" testId="account-avatar" appearance="none" padding=0 min-width=44 min-height=44 border-width=0 background-color="transparent" border-radius=8 display="flex" align-items="center" justify-content="center"
+                button id="account-menu" press=openAccount aria-label="Your account" aria-haspopup="dialog" testId="account-avatar" appearance="none" cursor="pointer" padding=0 min-width=44 min-height=44 border-width=0 background-color="transparent" border-radius=8 display="flex" align-items="center" justify-content="center"
                   for owner in [account.principal] key=owner
                     AccountAvatar(src=profileAvatar, label=profileName, size="2.5rem", radius=8)
             if account.principal == "" and not pending(account)
