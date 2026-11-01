@@ -1,3 +1,7 @@
+font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
+font "Whyte Inktrap" = "assets/fonts/ABCWhyteInktrap-Regular.otf"
+font "Fraktion Mono" = "assets/fonts/PPFraktionMono-Regular.otf"
+
 shape Clock
   epochAtZero: number
 shape Account
@@ -104,9 +108,9 @@ component App
       module = match createdModule { case some(r) => r.id, case none => "" }
       moduleName = ""
   view
-    column width="100%" height="100%"
+    column width="100%" height="100%" font-family="Whyte"
       header appearance="none" padding=16 display="flex" align-items="center" gap=8 flex-wrap="wrap"
-        text "Jera" role="heading" aria-level=1 flex="1 1 8rem"
+        text "Jera" role="heading" aria-level=1 flex="1 1 8rem" font-family="Whyte Inktrap" font-weight=400
         button "Refresh" press=refreshAll testId="refresh"
         if account.principal != "" and not pending(account) and not failed(account)
           button "Sign out" press=logout disabled=pending(signed) testId="logout"
@@ -118,15 +122,15 @@ component App
             text (match failure(signed) { case some(f) => f.message, case none => "" }) testId="auth-error" color="-exact-system-red"
           if account.principal == "" and not pending(account)
             column gap=12 max-width="26.25rem"
-              text "A place for ideas to become connected." font="-exact-title2" role="heading" aria-level=2
+              text "A place for ideas to become connected." font="-exact-title2" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
               text "Capture a thought. Give it a home. Let your operators carry it forward." color="-exact-secondary-label"
-              input value=handle input=editHandle aria-label="ATproto handle or DID" placeholder="you.bsky.social" testId="handle"
+              input value=handle input=editHandle aria-label="ATproto handle or DID" placeholder="you.bsky.social" testId="handle" font-family="Fraktion Mono"
               text "Sign in with your ATproto account. Your ideas stay private in Jera." color="-exact-secondary-label"
               row gap=12 flex-wrap="wrap"
                 button "Continue with ATproto" press=login disabled=(pending(signed) or handle.trim() == "") testId="login" buttonStyle="filled"
           if account.principal != "" and not pending(account) and not failed(account)
-            text account.principal font="-exact-footnote" testId="account-did" overflow-wrap="anywhere"
-            text "Your armillaries" font="-exact-title2" role="heading" aria-level=2
+            text account.principal font="-exact-footnote" testId="account-did" overflow-wrap="anywhere" font-family="Fraktion Mono"
+            text "Your armillaries" font="-exact-title2" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
             text "Each armillary holds its own modules and working context." color="-exact-secondary-label"
             if failed(arms) or (arms.principal == account.principal and not arms.available)
               text "Armillaries unavailable. Your saved ideas have not been cleared." testId="directory-error"
@@ -136,14 +140,14 @@ component App
               if not arms.complete
                 text "Partial directory. More records are available through the agent API." font="-exact-footnote"
             row gap=8 flex-wrap="wrap"
-              input value=armName input=editArmName aria-label="Armillary name" placeholder="New armillary" testId="arm-name" flex="1 1 200px" min-width=0
+              input value=armName input=editArmName aria-label="Armillary name" placeholder="New armillary" testId="arm-name" flex="1 1 200px" min-width=0 font-family="Whyte"
               button "Create armillary" press=makeArm disabled=(armName.trim() == "" or pending(createdArm)) testId="create-arm"
             if failed(createdArm)
               text (match failure(createdArm) { case some(f) => f.message, case none => "" }) color="-exact-system-red"
             if match createdArm { case some(r) => r.state == "pending", case none => false }
               text "Armillary creation is queued. Refresh and select it when it appears."
             if armillary != ""
-              text "Modules" role="heading" aria-level=2
+              text "Modules" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
               if modules.principal == account.principal and modules.parent == armillary and modules.available and not failed(modules)
                 for item, i in modules.items key=item.id
                   button item.name press=chooseModule(item.id) testId=`module-${i}` buttonStyle=(module == item.id ? "filled" : "bordered")
@@ -152,7 +156,7 @@ component App
               if modules.parent == armillary and modules.available and not modules.complete
                 text "Partial module directory. More records are available through the agent API." font="-exact-footnote"
               row gap=8 flex-wrap="wrap"
-                input value=moduleName input=editModuleName aria-label="Module name" placeholder="New module" testId="module-name" flex="1 1 200px" min-width=0
+                input value=moduleName input=editModuleName aria-label="Module name" placeholder="New module" testId="module-name" flex="1 1 200px" min-width=0 font-family="Whyte"
                 button "Create module" press=makeModule disabled=(moduleName.trim() == "" or pending(createdModule)) testId="create-module"
               if failed(createdModule)
                 text (match failure(createdModule) { case some(f) => f.message, case none => "" }) color="-exact-system-red"
@@ -169,7 +173,7 @@ component App
               if board.principal == account.principal and board.module == module and not failed(board)
                 if not board.complete
                   text "Partial view. More records are available through the agent API." font="-exact-footnote"
-                text "Ideas" role="heading" aria-level=2
+                text "Ideas" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
                 if board.ideas.length == 0
                   text "Leave a fragment, a question, or an unfinished thought." color="-exact-secondary-label" testId="empty-ideas"
                 for idea, i in board.ideas key=idea.id
@@ -177,17 +181,17 @@ component App
                     text idea.body testId=`idea-${i}` white-space="pre-wrap"
                     if idea.source != ""
                       scroll overflow-x="scroll" overflow-y="hidden" height="2rem" width="100%" min-width=0
-                        text idea.source testId=`source-${i}` font="-exact-footnote" white-space="nowrap"
-                    text idea.status font="-exact-footnote" color="-exact-secondary-label" testId=`work-${i}`
-                text "Organized context" role="heading" aria-level=2
+                        text idea.source testId=`source-${i}` font="-exact-footnote" white-space="nowrap" font-family="Fraktion Mono"
+                    text idea.status font="-exact-footnote" color="-exact-secondary-label" testId=`work-${i}` font-family="Fraktion Mono"
+                text "Organized context" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
                 if board.nodes.length == 0
                   text "An operator’s synthesis will appear here, linked to its original idea." color="-exact-secondary-label"
                 for node, i in board.nodes key=node.id
                   column gap=8 padding=16 background-color="-exact-secondary-background" border-radius=12
-                    text node.title role="heading" aria-level=3 testId=`node-title-${i}`
+                    text node.title role="heading" aria-level=3 testId=`node-title-${i}` font-family="Whyte Inktrap" font-weight=400
                     text node.body testId=`node-body-${i}` white-space="pre-wrap"
                     scroll overflow-x="scroll" overflow-y="hidden" height="2rem" width="100%" min-width=0
-                      text `Source: ${node.artifact}` testId=`node-origin-${i}` font="-exact-caption1" white-space="nowrap"
+                      text `Source: ${node.artifact}` testId=`node-origin-${i}` font="-exact-caption1" white-space="nowrap" font-family="Fraktion Mono"
 
 component Composer
   props
@@ -210,15 +214,15 @@ component Composer
     submit(draft.principal, draft.module, body, source)
   view
     column gap=12
-      text "Capture an idea" role="heading" aria-level=2
-      textarea value=body input=edit disabled=(draft.submitted or sending) maxlength=12000 min-height=140 aria-label="Idea" placeholder="What’s on your mind?" testId="idea-input"
-      input value=source input=editSource disabled=(draft.submitted or sending) maxlength=2000 aria-label="Source link" placeholder="Source link (optional)" testId="source-input"
+      text "Capture an idea" role="heading" aria-level=2 font-family="Whyte Inktrap" font-weight=400
+      textarea value=body input=edit disabled=(draft.submitted or sending) maxlength=12000 min-height=140 aria-label="Idea" placeholder="What’s on your mind?" testId="idea-input" font-family="Whyte"
+      input value=source input=editSource disabled=(draft.submitted or sending) maxlength=2000 aria-label="Source link" placeholder="Source link (optional)" testId="source-input" font-family="Fraktion Mono"
       button (draft.submitted ? "Check delivery" : "Capture idea") press=capture disabled=(body.trim() == "" or saving or sending) buttonStyle="filled" testId="capture"
       if saving
-        text "Saving draft…" font="-exact-footnote"
+        text "Saving draft…" font="-exact-footnote" font-family="Fraktion Mono"
       if saveError != ""
         text "Draft could not be saved. Keep this window open and try editing again." color="-exact-system-red" testId="draft-error"
       if draft.submitted
-        text "Queued on this device. Check delivery before editing this idea." testId="queued" font="-exact-footnote"
+        text "Queued on this device. Check delivery before editing this idea." testId="queued" font="-exact-footnote" font-family="Fraktion Mono"
       if captureError != ""
         text captureError testId="capture-error" color="-exact-system-red"

@@ -50,6 +50,10 @@ The development origin is `http://127.0.0.1:4417`. Phone builds bake `https://sn
 
 From `foundation/app`, run `bun run web:live` using Bun 1.4.2, then open `http://127.0.0.1:3033`. This uses the live Snapback backend and real ATproto authorization. The auth service explicitly allows that one loopback callback alongside the native callback. Use the numeric address and fixed port; other origins are not registered. Browser and phone sessions are separate, but the same verified DID accesses the same private backend records. `verify` continues to use its isolated fixture.
 
+## Typography
+
+The Exact view uses the existing Jera pairing: Whyte Book for body text and editing, Whyte Inktrap Regular for headings, and Fraktion Mono for account identifiers, links and status metadata. `app/assets/fonts` contains byte-identical copies of the three source faces in the repository’s root `assets/fonts`; Exact bundles these app-local files for web and native builds. Font sizes retain the platform text styles and accessibility scaling. Native styled buttons retain their platform typography.
+
 ## iPhone builds: local and EAS
 
 Run these commands from `foundation/app`, using Bun 1.4.2. Both paths build **Exact**, use bundle ID `studio.zojer.jera.exact`, and connect to the deployed backend. The repository-root `expo run:ios` and EAS files build the historical Expo app.
