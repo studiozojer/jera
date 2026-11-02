@@ -1,6 +1,6 @@
-use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusMd, radiusXl, minTouchTarget from "./dao.contract"
+use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusMd, radiusXl, iconSize from "./dao.contract"
 use JeraWordmark from "./brand.contract"
-use WhyteXs, WhyteLg, QuietAction from "./dao.contract"
+use WhyteXs, QuietAction from "./dao.contract"
 
 component Chrome
   props
@@ -20,5 +20,5 @@ component WriteButton
     write: action
     compact: bool
   view
-    button press=write aria-label="Write a post" testId="write" appearance="none" class=QuietAction position="absolute" left=(compact ? spaceLg() : spaceXxl()) bottom=`calc(${compact ? spaceLg() : spaceXxl()}px + env(safe-area-inset-bottom))` z-index=10 width=(compact ? "3rem" : "4rem") height=(compact ? "3rem" : "4rem") padding=0 display="flex" align-items="center" justify-content="center" border="1px solid bd.primary" border-radius=radiusXl() background-color="bg.base" color="tx.primary"
-      text "+" class=WhyteLg aria-hidden=true
+    button press=write aria-label="Write a post" testId="write" appearance="none" class=QuietAction position="absolute" right=(compact ? spaceLg() : spaceXxl()) bottom=`calc(${compact ? spaceLg() : spaceXxl()}px + env(safe-area-inset-bottom))` z-index=10 width=(compact ? spaceXxxl() + spaceLg() : spaceXxxl() * 2) height=(compact ? spaceXxxl() + spaceLg() : spaceXxxl() * 2) padding=0 display="flex" align-items="center" justify-content="center" border="1px solid bd.primary" border-radius=radiusXl() background-color="bg.base" color="tx.primary"
+      image "symbol:add" font-size=iconSize() aria-hidden=true

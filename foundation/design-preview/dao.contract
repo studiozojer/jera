@@ -10,6 +10,7 @@ fn radiusMd(): number = 8
 fn radiusXl(): number = 16
 fn radiusFull(): number = 32
 fn minTouchTarget(): number = 44
+fn iconSize(): number = 24
 
 // Scalable text insets contain Whyte ink beyond the browser line box.
 // Exact typography expression of daoUI/type.json at 85fb2ac.
