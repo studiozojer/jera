@@ -4,6 +4,9 @@ use samplePosts from "./fixtures.contract"
 use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction, PrimaryAction from "./dao.contract"
 use Chrome, WriteButton from "./chrome.contract"
 
+shape Viewport
+  width: number
+
 font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
 font "Whyte Inktrap" = "assets/fonts/ABCWhyteInktrap-Regular.otf"
 
@@ -14,6 +17,8 @@ routes nav
     account "/account"
 
 component App
+  resource viewport = exactViewport() as shape Viewport
+  derive compact = viewport.width < 704
   state posts = samplePosts()
   state drafts = [Draft(context="", body="")]
   state replyTo = ""
@@ -48,39 +53,39 @@ component App
     main navigationKey=`${top(nav).id}` navigationBack="back" navigate=follow width="100%" height="100%" color-scheme="dark" font-family="Whyte" background-color="bg.base" color="tx.primary" interactive-widget="resizes-content" display="flex" flex-direction="column"
       for entry in stack(nav) key=entry.id
         if entry.name == "home"
-          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0
-            Chrome(account=account)
-            scroll id="stream" flex=1 min-height=0 margin-bottom="6rem"
-              column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-top=spaceSm() padding-right=spaceMd() padding-bottom=spaceXxl() padding-left=spaceMd()
-                column border="1px solid bd.primary" border-radius=radiusFull() overflow="hidden"
+          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 padding-bottom="env(safe-area-inset-bottom)" box-sizing="border-box"
+            Chrome(account=account, compact=compact)
+            scroll id="stream" flex=1 min-height=0 margin-bottom=(compact ? "5rem" : "6rem")
+              column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-top=(compact ? 0 : spaceSm()) padding-right=(compact ? 0 : spaceMd()) padding-bottom=spaceXxl() padding-left=(compact ? 0 : spaceMd())
+                column border-width=(compact ? 0 : 1) border-style="solid" border-color="bd.primary" border-radius=(compact ? 0 : radiusFull()) overflow="hidden"
                   for item, index in posts.filter(p => p.root == "") key=item.id
-                    article padding=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
+                    article padding-top=(compact ? spaceMd() : spaceLg()) padding-bottom=(compact ? spaceMd() : spaceLg()) padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                       row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
                         PostAvatar(post=item)
                         column flex=1 flex-basis="12rem" min-width=0 gap=spaceSm()
                           Author(post=item, menuId=`stream-menu-${item.id}`)
                           text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
                           PostActions(post=item, comments=posts.filter(p => p.root == item.id).length, comment=follow(path("thread", item.id)), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`)
-                text "Sample conversations" color="tx.secondary" class=WhyteXs padding-top=spaceXxl()
-            WriteButton(write=write)
+                text "Sample conversations" color="tx.secondary" class=WhyteXs padding-top=spaceXxl() padding-left=(compact ? spaceLg() : 0)
+            WriteButton(write=write, compact=compact)
         if entry.name == "thread"
-          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0
-            Chrome(account=account)
-            scroll id="conversation" flex=1 min-height=0 margin-bottom="6rem"
-              column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-top=spaceSm() padding-right=spaceMd() padding-bottom=spaceXxl() padding-left=spaceMd()
-                column border="1px solid bd.primary" border-radius=radiusFull() overflow="hidden"
-                  row align-items="center" gap=spaceMd() padding=spaceXxl()
+          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 padding-bottom="env(safe-area-inset-bottom)" box-sizing="border-box"
+            Chrome(account=account, compact=compact)
+            scroll id="conversation" flex=1 min-height=0 margin-bottom=(compact ? "5rem" : "6rem")
+              column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-top=(compact ? 0 : spaceSm()) padding-right=(compact ? 0 : spaceMd()) padding-bottom=spaceXxl() padding-left=(compact ? 0 : spaceMd())
+                column border-width=(compact ? 0 : 1) border-style="solid" border-color="bd.primary" border-radius=(compact ? 0 : radiusFull()) overflow="hidden"
+                  row align-items="center" gap=spaceMd() padding=(compact ? spaceLg() : spaceXxl())
                     button "←" id="back" press=dismiss aria-label="Back" testId="back" appearance="none" class=QuietAction width="2.75rem" min-height=minTouchTarget() padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
                     text "Thread" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
                   for item in posts.filter(p => p.id == entry.params.id or p.root == entry.params.id) key=item.id
-                    article padding=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column" gap=spaceSm()
+                    article padding-top=(compact ? spaceMd() : spaceLg()) padding-bottom=(compact ? spaceMd() : spaceLg()) padding-left=spaceLg() padding-right=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                       row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
                         PostAvatar(post=item)
                         column flex=1 flex-basis="12rem" min-width=0 gap=spaceSm()
                           Author(post=item, menuId=`thread-menu-${entry.id}-${item.id}`)
                           text item.body class=(item.id == entry.params.id ? WhyteMd : WhyteSm) white-space="pre-wrap" testId=`thread-body-${item.id}`
                           PostActions(post=item, comments=posts.filter(p => p.root == item.id).length, comment=reply(entry.params.id), commentId=(item.id == entry.params.id ? "reply" : `reply-${entry.id}-${item.id}`), commentLabel="Write a reply", context=`thread-${entry.id}-${item.id}`)
-            WriteButton(write=write)
+            WriteButton(write=write, compact=compact)
         if entry.name == "compose"
           column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="bg.base" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"
             row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
