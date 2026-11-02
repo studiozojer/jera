@@ -1,6 +1,7 @@
 use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusMd, radiusXl, radiusFull, iconSize from "./dao.contract"
 use JeraWordmark from "./brand.contract"
 use WhyteXs, QuietAction from "./dao.contract"
+use IconButton from "./dao/actions.contract"
 
 component Chrome
   props
@@ -20,8 +21,9 @@ component WriteButton
     write: action
     compact: bool
   view
-    button press=write aria-label="Write a post" testId="write" appearance="none" class=QuietAction position="absolute" right=(compact ? spaceLg() : spaceXxl()) bottom=`calc(${compact ? spaceLg() : spaceXxl()}px + env(safe-area-inset-bottom))` z-index=10 width=(compact ? spaceXxxl() + spaceLg() : spaceXxxl() * 2) height=(compact ? spaceXxxl() + spaceLg() : spaceXxxl() * 2) padding=0 display="flex" align-items="center" justify-content="center" border="1px solid bd.primary" border-radius=radiusXl() background-color="bg.base" color="tx.primary"
-      image "symbol:add" font-size=iconSize() aria-hidden=true
+    box position="absolute" right=(compact ? spaceLg() : spaceXxl()) bottom=`calc(${compact ? spaceLg() : spaceXxl()}px + env(safe-area-inset-bottom))` z-index=10
+      IconButton(kind="surface", label="Write a post", symbol="symbol:add", glyphSize="24px", targetSize=(compact ? "48px" : "64px"), selected=none, disabled=false, press=write, testId="write", clearance=0)
+
 
 // The page scrolls behind this sticky header. The cap only paints the
 // stationary outline/corners; it never owns scrolling or pointer input.

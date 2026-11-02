@@ -45,7 +45,9 @@
     "sync-reading": "node scripts/sync-reading.mjs",
     "check:dao": "node scripts/sync-reading.mjs --check",
     "sync-symbols": "node scripts/sync-symbols.mjs",
-    "check:symbols": "node scripts/sync-symbols.mjs --check"
+    "check:symbols": "node scripts/sync-symbols.mjs --check",
+    "sync:dao-exact": "node scripts/sync-exact.mjs",
+    "check:dao-exact": "node scripts/sync-exact.mjs --check"
   },
   "private": true
 }

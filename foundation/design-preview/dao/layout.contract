@@ -1,0 +1,71 @@
+use WhyteSm, WhyteXs, WhyteMd from "./foundations.contract"
+use Button from "./actions.contract"
+
+component Stack
+  slot
+  view
+    column gap=16 min-width=0
+      children
+
+component Inline
+  slot
+  view
+    row gap=12 flex-wrap="wrap" align-items="center" min-width=0
+      children
+
+component Divider
+  view
+    box height=0 border-top="0.5px solid dao.bd.secondary" aria-hidden=true
+
+component ScreenHeader
+  props
+    title: string
+    context: string
+  slot
+  view
+    // Caller supplies Back/actions; no router import or policy in this family.
+    header display="flex" flex-direction="row" align-items="center" flex-wrap="wrap" gap=12 padding="12px 16px"
+      column flex=1 min-width=0
+        text title role="heading" aria-level=1 class=WhyteMd
+        text context class=WhyteXs color="dao.tx.secondary"
+      children
+
+component IdentityHeader
+  props
+    name: string
+    context: string
+  slot
+  view
+    header display="flex" flex-direction="row" align-items="center" flex-wrap="wrap" gap=12 padding="12px 16px"
+      column flex=1 min-width=0
+        text name class=WhyteMd role="heading" aria-level=1
+        text context class=WhyteXs color="dao.tx.secondary"
+      children
+
+component Progress
+  props
+    label: string
+    value: number
+  view
+    column gap=8
+      text label class=WhyteSm
+      progress value=value max=1 aria-label=label width="100%" accent-color="dao.tx.accent"
+
+component DetentSections
+  props
+    label: string
+    index: number
+    count: number
+    previous: action
+    next: action
+    append: action
+  slot
+  view
+    // Accessible discrete alternative; no claim of matching the RN pan physics.
+    section aria-label=label display="flex" flex-direction="column" gap=12 min-width=0
+      row gap=8 flex-wrap="wrap" align-items="center"
+        Button(label="Previous section", kind="ghost", size="medium", disabled=(index <= 0), busy=false, press=previous, testId="section-previous")
+        text `${index + 1} / ${count}` class=WhyteXs
+        Button(label="Next section", kind="ghost", size="medium", disabled=(index >= count - 1), busy=false, press=next, testId="section-next")
+        Button(label="Add section", kind="secondary", size="medium", disabled=false, busy=false, press=append, testId="section-add")
+      children

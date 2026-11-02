@@ -1,0 +1,452 @@
+// Exact actions: shared intent with literal host-owned interaction states.
+fn actionTarget(size: string): string = size == "xl" ? "3.5rem" : size == "large" ? "3rem" : "2.75rem"
+
+style Action
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  :hover
+    background-color = "dao.bg.hover"
+  :active
+    background-color = "dao.bg.pressed"
+
+style ActionPrimary
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "param.primaryFill"
+  color = "param.primaryInk"
+  padding = "8px 20px"
+  :hover
+    background-color = "param.primaryHover"
+  :active
+    background-color = "param.primaryPressed"
+  :disabled
+    background-color = "param.primaryDisabled"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionSecondary
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "dao.bg.solid.card"
+  color = "dao.tx.primary"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.solid.card-hover"
+  :active
+    background-color = "dao.bg.solid.card-pressed"
+  :disabled
+    background-color = "dao.bg.solid.card"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionTertiary
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "dao.bg.primary"
+  color = "dao.tx.primary"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.hover"
+  :active
+    background-color = "dao.bg.pressed"
+  :disabled
+    background-color = "dao.bg.primary"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionGhost
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "transparent"
+  color = "dao.tx.primary"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.hover"
+  :active
+    background-color = "dao.bg.pressed"
+  :disabled
+    background-color = "transparent"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionAccentGhost
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "transparent"
+  color = "dao.tx.control.accent"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.accent"
+  :active
+    background-color = "dao.bg.accent-pressed"
+  :disabled
+    background-color = "transparent"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionDestructive
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "dao.bg.solid.error"
+  color = "dao.tx.white"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.solid.error"
+  :active
+    background-color = "dao.bg.solid.error"
+    -exact-press-scale = 0.98
+  :disabled
+    background-color = "dao.bg.solid.error"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionSuccess
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "dao.bg.solid.success"
+  color = "dao.tx.white"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.solid.success"
+  :active
+    background-color = "dao.bg.solid.success"
+    -exact-press-scale = 0.98
+  :disabled
+    background-color = "dao.bg.solid.success"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionWarning
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "dao.bg.solid.warning"
+  color = "dao.tx.black"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.solid.warning"
+  :active
+    background-color = "dao.bg.solid.warning"
+    -exact-press-scale = 0.98
+  :disabled
+    background-color = "dao.bg.solid.warning"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionAccent
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "dao.bg.solidAccent"
+  color = "dao.tx.black"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.solidAccent"
+  :active
+    background-color = "dao.bg.solidAccent"
+    -exact-press-scale = 0.98
+  :disabled
+    background-color = "dao.bg.solidAccent"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionAccentLight
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "dao.bg.accent"
+  color = "dao.tx.control.accent"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.accent"
+  :active
+    background-color = "dao.bg.accent"
+    -exact-press-scale = 0.98
+  :disabled
+    background-color = "dao.bg.accent"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionWarningLight
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "dao.bg.warning"
+  color = "dao.tx.control.warning"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.warning"
+  :active
+    background-color = "dao.bg.warning"
+    -exact-press-scale = 0.98
+  :disabled
+    background-color = "dao.bg.warning"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionSuccessLight
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "dao.bg.success"
+  color = "dao.tx.control.success"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.success"
+  :active
+    background-color = "dao.bg.success"
+    -exact-press-scale = 0.98
+  :disabled
+    background-color = "dao.bg.success"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+style ActionErrorLight
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  cursor = "pointer"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 8
+  white-space = "normal"
+  max-width = "100%"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  background-color = "dao.bg.error"
+  color = "dao.tx.control.error"
+  padding = "8px 20px"
+  :hover
+    background-color = "dao.bg.error"
+  :active
+    background-color = "dao.bg.error"
+    -exact-press-scale = 0.98
+  :disabled
+    background-color = "dao.bg.error"
+    color = "dao.tx.disabled"
+    opacity = 0.6
+
+component Button
+  params
+    primaryFill: color = "dao.bg.solid.button" control="token" group="Color" priority=1
+    primaryHover: color = "dao.bg.solid.button-hover" control="token" group="Color" priority=2
+    primaryPressed: color = "dao.bg.solid.button-pressed" control="token" group="Color" priority=2
+    primaryDisabled: color = "dao.bg.solid.button-disabled" control="token" group="Color" priority=2
+    primaryInk: color = "dao.tx.button" control="token" group="Color" priority=1
+  props
+    label: string
+    kind: enum<"primary", "secondary", "tertiary", "ghost", "accentGhost", "destructive", "success", "warning", "accent", "accentLight", "warningLight", "successLight", "errorLight">
+    size: enum<"small", "medium", "large", "xl">
+    disabled: bool
+    busy: bool
+    press: action
+    testId: string
+  view
+    if kind == "primary"
+      button appearance="none" class=ActionPrimary press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "secondary"
+      button appearance="none" class=ActionSecondary press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "tertiary"
+      button appearance="none" class=ActionTertiary press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "ghost"
+      button appearance="none" class=ActionGhost press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "accentGhost"
+      button appearance="none" class=ActionAccentGhost press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "destructive"
+      button appearance="none" class=ActionDestructive press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "success"
+      button appearance="none" class=ActionSuccess press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "warning"
+      button appearance="none" class=ActionWarning press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "accent"
+      button appearance="none" class=ActionAccent press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "accentLight"
+      button appearance="none" class=ActionAccentLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "warningLight"
+      button appearance="none" class=ActionWarningLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "successLight"
+      button appearance="none" class=ActionSuccessLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+    else if kind == "errorLight"
+      button appearance="none" class=ActionErrorLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
+        text (busy ? `${label}…` : label)
+
+component IconButton
+  params
+    surfaceFill: color = "dao.bg.solid.base" control="token" group="Color" priority=1
+    ink: color = "dao.ic.secondary" control="token" group="Color" priority=1
+    hoverFill: color = "dao.bg.hover" control="token" group="Color" priority=2
+    pressedFill: color = "dao.bg.pressed" control="token" group="Color" priority=2
+  props
+    kind: enum<"ghost", "surface">
+    label: string
+    symbol: string
+    glyphSize: string
+    targetSize: enum<"2.75rem", "3rem", "4rem", "44px", "48px", "64px">
+    selected: option<bool>
+    disabled: bool
+    press: action
+    testId: string
+    clearance: number
+  slot
+  view
+    if selected == none
+      button appearance="none" class=Action press=press disabled=disabled aria-label=label testId=testId min-width=targetSize min-height=targetSize scroll-margin-top=clearance padding="8px" display="flex" align-items="center" justify-content="center" gap=8 color=(disabled ? "dao.ic.disabled" : (match selected { case some(v) => v, case none => false }) ? "dao.tx.control.accent" : "param.ink") background-color=((match selected { case some(v) => v, case none => false }) ? "dao.bg.accent" : kind == "surface" ? "param.surfaceFill" : "transparent") border-width=(kind == "surface" ? 1 : 0) border-style="solid" border-color="dao.bd.primary" border-radius=(kind == "surface" ? 16 : 8) cursor=(disabled ? "default" : "pointer")
+        :hover
+          background-color="param.hoverFill"
+        :active
+          background-color="param.pressedFill"
+        :disabled
+          background-color="transparent"
+        image symbol font-size=glyphSize aria-hidden=true
+        children
+    else
+      button appearance="none" class=Action press=press disabled=disabled aria-label=label aria-pressed=(match selected { case some(v) => v ? "true" : "false", case none => "false" }) testId=testId min-width=targetSize min-height=targetSize scroll-margin-top=clearance padding="8px" display="flex" align-items="center" justify-content="center" gap=8 color=(disabled ? "dao.ic.disabled" : (match selected { case some(v) => v, case none => false }) ? "dao.tx.control.accent" : "param.ink") background-color=((match selected { case some(v) => v, case none => false }) ? "dao.bg.accent" : kind == "surface" ? "param.surfaceFill" : "transparent") border-width=(kind == "surface" ? 1 : 0) border-style="solid" border-color="dao.bd.primary" border-radius=(kind == "surface" ? 16 : 8) cursor=(disabled ? "default" : "pointer")
+        :hover
+          background-color="param.hoverFill"
+        :active
+          background-color="param.pressedFill"
+        :disabled
+          background-color="transparent"
+        image symbol font-size=glyphSize aria-hidden=true
+        children
+
+component FilterChip
+  props
+    label: string
+    selected: bool
+    disabled: bool
+    press: action
+    testId: string
+  view
+    button appearance="none" class=Action aria-pressed=selected disabled=disabled press=press testId=testId min-height="2.75rem" padding="6px 12px" border="1px solid dao.bd.primary" border-radius=32 color=(disabled ? "dao.tx.disabled" : selected ? "dao.tx.control.accent" : "dao.tx.primary") background-color=(selected ? "dao.bg.accent" : "transparent") cursor=(disabled ? "default" : "pointer")
+      :hover
+        background-color="dao.bg.hover"
+      :active
+        background-color="dao.bg.pressed"
+      :disabled
+        background-color="transparent"
+      text label

@@ -1,0 +1,142 @@
+// Generated from type.json; the canonical ramp scales with root text size.
+style WhyteXl
+  font-family = "Whyte Inktrap"
+  font-size = "2.0625rem"
+  line-height = "3.25rem"
+
+style WhyteLg
+  font-family = "Whyte Inktrap"
+  font-size = "1.625rem"
+  line-height = "2.625rem"
+
+style WhyteMd
+  font-family = "Whyte Inktrap"
+  font-size = "1.25rem"
+  line-height = "2rem"
+
+style WhyteSm
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+
+style WhyteXs
+  font-family = "Whyte"
+  font-size = "0.8125rem"
+  line-height = "1rem"
+  padding-top = "0.125rem"
+  padding-bottom = "0.125rem"
+
+style WhyteXxs
+  font-family = "Whyte"
+  font-size = "0.5625rem"
+  line-height = "0.75rem"
+  padding-top = "0.125rem"
+  padding-bottom = "0.125rem"
+
+style FraktionXl
+  font-family = "Fraktion"
+  font-size = "2.0625rem"
+  line-height = "3.25rem"
+  letter-spacing = "0.02em"
+
+style FraktionLg
+  font-family = "Fraktion"
+  font-size = "1.625rem"
+  line-height = "2.625rem"
+  letter-spacing = "0.02em"
+
+style FraktionMd
+  font-family = "Fraktion"
+  font-size = "1.25rem"
+  line-height = "2rem"
+  letter-spacing = "0.02em"
+
+style FraktionSm
+  font-family = "Fraktion"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  letter-spacing = "0.02em"
+
+style FraktionXs
+  font-family = "Fraktion"
+  font-size = "0.8125rem"
+  line-height = "1rem"
+  padding-top = "0.125rem"
+  padding-bottom = "0.125rem"
+  letter-spacing = "0.02em"
+
+style FraktionXxs
+  font-family = "Fraktion"
+  font-size = "0.5625rem"
+  line-height = "0.75rem"
+  padding-top = "0.125rem"
+  padding-bottom = "0.125rem"
+  letter-spacing = "0.02em"
+
+fn spacingNone(): number = 0
+fn spacingXxs(): number = 2
+fn spacingXs(): number = 4
+fn spacingSm(): number = 8
+fn spacingMd(): number = 12
+fn spacingLg(): number = 16
+fn spacingXl(): number = 20
+fn spacingXxl(): number = 24
+fn spacingXxxl(): number = 32
+fn radiusXs(): number = 4
+fn radiusSm(): number = 6
+fn radiusMd(): number = 8
+fn radiusLg(): number = 12
+fn radiusXl(): number = 16
+fn radiusFull(): number = 32
+fn borderHairline(): number = 0.5
+fn borderThin(): number = 1
+fn borderMedium(): number = 1.5
+fn borderThick(): number = 2
+fn opacityTransparent(): number = 0
+fn opacityFaint(): number = 0.1
+fn opacitySubtle(): number = 0.2
+fn opacityMuted(): number = 0.3
+fn opacityMedium(): number = 0.4
+fn opacityHalf(): number = 0.5
+fn opacityProminent(): number = 0.6
+fn opacityPressed(): number = 0.7
+fn opacityHigh(): number = 0.85
+fn opacityOpaque(): number = 1
+fn animationInstant(): number = 0.1
+fn animationFast(): number = 0.15
+fn animationNormal(): number = 0.25
+fn animationSlow(): number = 0.35
+fn animationDeliberate(): number = 0.5
+fn animationSpringResponse(): number = 0.35
+fn animationSpringDamping(): number = 0.85
+fn animationSpringResponseSnappy(): number = 0.25
+fn animationSpringDampingHeavy(): number = 1
+fn layoutIconSizeSmall(): number = 20
+fn layoutIconSize(): number = 24
+fn layoutIconSizeLarge(): number = 32
+fn layoutMinTouchTarget(): number = 44
+fn layoutRowHeight(): number = 44
+fn layoutRowHeightCompact(): number = 32
+fn layoutRowHeightLarge(): number = 56
+fn layoutSectionHeaderHeight(): number = 32
+fn formItemSpacingTight(): number = 4
+fn formItemSpacingCompact(): number = 8
+fn formItemSpacing(): number = 12
+fn formSectionSpacing(): number = 16
+fn formSectionSpacingLarge(): number = 24
+fn formRowInternalSpacing(): number = 8
+fn formRowPaddingVertical(): number = 12
+fn formCardPaddingHorizontal(): number = 16
+fn formCardPaddingVertical(): number = 12
+
+style ElevationDp2
+  box-shadow = "0px 1px 8px 0px rgba(6, 9, 11, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.08), 0px 1px 2px 0px rgba(0, 0, 0, 0.12)"
+
+style ElevationDp4
+  box-shadow = "0px 1px 12px 0px rgba(6, 9, 11, 0.08), 0px 4px 8px 0px rgba(0, 0, 0, 0.12), 0px 2px 4px 0px rgba(0, 0, 0, 0.16)"
+
+style ElevationDp6
+  box-shadow = "0px 1px 16px 0px rgba(6, 9, 11, 0.12), 0px 8px 12px 0px rgba(0, 0, 0, 0.16), 0px 4px 8px 0px rgba(0, 0, 0, 0.2)"
+
+style ElevationDp8
+  box-shadow = "0px 1px 20px 0px rgba(0, 0, 0, 0.16), 0px 12px 16px 0px rgba(6, 9, 11, 0.2), 0px 6px 12px 0px rgba(0, 0, 0, 0.24)"

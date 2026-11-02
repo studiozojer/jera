@@ -1,0 +1,547 @@
+{
+  "generator": "exact/scripts/glyphs.py",
+  "expander": "fonts/kairos-astrology/import_svg.py",
+  "expanderSHA256": "16b881d29d05ef51e049bdeaeb64609132baae7b7a533236aace2b779ffe99b7",
+  "glyphs": {
+    "10h.svg": {
+      "source": "Glyphs/10h.svg",
+      "sourceSHA256": "7aced3036fb1ab45425f6192ab989b594dc76945984fb90bc9c47dea179a1c19",
+      "outputSHA256": "7aced3036fb1ab45425f6192ab989b594dc76945984fb90bc9c47dea179a1c19",
+      "strokeExpanded": false
+    },
+    "11h.svg": {
+      "source": "Glyphs/11h.svg",
+      "sourceSHA256": "99b325462971358dc1ae7860c596b6a2b6b2ecf0004fe381cf584fb1d0f33887",
+      "outputSHA256": "99b325462971358dc1ae7860c596b6a2b6b2ecf0004fe381cf584fb1d0f33887",
+      "strokeExpanded": false
+    },
+    "12h.svg": {
+      "source": "Glyphs/12h.svg",
+      "sourceSHA256": "96c9c8ccddbf9a866a84d3f2d1dedf303b4405bd920154eb2cd476fb1c43e7fc",
+      "outputSHA256": "96c9c8ccddbf9a866a84d3f2d1dedf303b4405bd920154eb2cd476fb1c43e7fc",
+      "strokeExpanded": false
+    },
+    "1h.svg": {
+      "source": "Glyphs/1h.svg",
+      "sourceSHA256": "42cc1d1a3f1be2089326c27b05e97fa5a5fc1cc38efb16937deed564868bfb1a",
+      "outputSHA256": "42cc1d1a3f1be2089326c27b05e97fa5a5fc1cc38efb16937deed564868bfb1a",
+      "strokeExpanded": false
+    },
+    "2h.svg": {
+      "source": "Glyphs/2h.svg",
+      "sourceSHA256": "a87658c048c102cf13f899c046aad571db385e5fa12244e392068bdc8826e95b",
+      "outputSHA256": "a87658c048c102cf13f899c046aad571db385e5fa12244e392068bdc8826e95b",
+      "strokeExpanded": false
+    },
+    "3h.svg": {
+      "source": "Glyphs/3h.svg",
+      "sourceSHA256": "8eda234b28ebfca1f40a6996502c946b8cc75e38e81b0433de62148e6ee8ea54",
+      "outputSHA256": "8eda234b28ebfca1f40a6996502c946b8cc75e38e81b0433de62148e6ee8ea54",
+      "strokeExpanded": false
+    },
+    "4h.svg": {
+      "source": "Glyphs/4h.svg",
+      "sourceSHA256": "3039e7dc8c757eee0969de5ce87e26f6811c0bc64c6aa91c6e6d498991c75edd",
+      "outputSHA256": "3039e7dc8c757eee0969de5ce87e26f6811c0bc64c6aa91c6e6d498991c75edd",
+      "strokeExpanded": false
+    },
+    "5h.svg": {
+      "source": "Glyphs/5h.svg",
+      "sourceSHA256": "54af76d323eced2b9f5f109d61ff3b08cf57954414f23b321f43edf8ff850746",
+      "outputSHA256": "54af76d323eced2b9f5f109d61ff3b08cf57954414f23b321f43edf8ff850746",
+      "strokeExpanded": false
+    },
+    "6h.svg": {
+      "source": "Glyphs/6h.svg",
+      "sourceSHA256": "5e4a4962b30bc2f2f3af7785b5ed4c19143cac6af07d6b0ed31436afa3ad1e82",
+      "outputSHA256": "5e4a4962b30bc2f2f3af7785b5ed4c19143cac6af07d6b0ed31436afa3ad1e82",
+      "strokeExpanded": false
+    },
+    "7h.svg": {
+      "source": "Glyphs/7h.svg",
+      "sourceSHA256": "93414905ecae9a208cd244b503632a4c5bf07aca0f82182cbdbc159a637053f1",
+      "outputSHA256": "93414905ecae9a208cd244b503632a4c5bf07aca0f82182cbdbc159a637053f1",
+      "strokeExpanded": false
+    },
+    "8h.svg": {
+      "source": "Glyphs/8h.svg",
+      "sourceSHA256": "4b692953211be046ba68679aa7150aa40ae63a5b33e29711abc393dc61887089",
+      "outputSHA256": "4b692953211be046ba68679aa7150aa40ae63a5b33e29711abc393dc61887089",
+      "strokeExpanded": false
+    },
+    "9h.svg": {
+      "source": "Glyphs/9h.svg",
+      "sourceSHA256": "589badc91ed2f461beffeb897d5b4d711002572e6bf44178cb1337325b5be1eb",
+      "outputSHA256": "589badc91ed2f461beffeb897d5b4d711002572e6bf44178cb1337325b5be1eb",
+      "strokeExpanded": false
+    },
+    "aldebaran.svg": {
+      "source": "Glyphs/aldebaran.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "altair.svg": {
+      "source": "Glyphs/altair.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "antares.svg": {
+      "source": "Glyphs/antares.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "aquarius.svg": {
+      "source": "Glyphs/aquarius.svg",
+      "sourceSHA256": "255c5e0c5c24d83d699c19acb7ae6f67665fc360fd8cd49bb2c0d4b57e709f19",
+      "outputSHA256": "23f3c2ebad781ab0bcdd575f0602697595cc5c52ca6c89457efb19a170ff67b9",
+      "strokeExpanded": true
+    },
+    "aries.svg": {
+      "source": "Glyphs/aries.svg",
+      "sourceSHA256": "a0a41b0c7acd5a6dc8bd23d9ca4d737c60c82079f92c37ac1d164dfab712700b",
+      "outputSHA256": "6a0f145672fe74100365c77c8b6eb26c2eda8589b7d90982fc2d2d26894448f9",
+      "strokeExpanded": true
+    },
+    "ascendant.svg": {
+      "source": "Glyphs/ascendant.svg",
+      "sourceSHA256": "465c0c9d2b630a608c419fa261d79a8f77948fc58830ef6da4e5cb75df25cedf",
+      "outputSHA256": "465c0c9d2b630a608c419fa261d79a8f77948fc58830ef6da4e5cb75df25cedf",
+      "strokeExpanded": false
+    },
+    "betelgeuse.svg": {
+      "source": "Glyphs/betelgeuse.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "cancer.svg": {
+      "source": "Glyphs/cancer.svg",
+      "sourceSHA256": "7d659bdb3b0291b60ce1340f72cae58c4b47caaf64d8d9a99d2a78517e9c69f2",
+      "outputSHA256": "ddc36910bc1a301266ea538f57ab34c7d1515c63868015680a09e78ec926e5ca",
+      "strokeExpanded": true
+    },
+    "capella.svg": {
+      "source": "Glyphs/capella.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "capricorn.svg": {
+      "source": "Glyphs/capricorn.svg",
+      "sourceSHA256": "719e69e8c462f180a475cab0982bfda1449cc1f20375c79689280c00af986ba7",
+      "outputSHA256": "5d3722755ca9e7842e79d660ea33330f88c9a4bf050eb4bb117a62af4cab45c7",
+      "strokeExpanded": true
+    },
+    "ceres.svg": {
+      "source": "Glyphs/ceres.svg",
+      "sourceSHA256": "61ff378168f1bae93f3de0ce1d8c5004942307939870b6a92de89c657fbbf989",
+      "outputSHA256": "40cbae6d244d7b25f1f93fc93d6d3acd0d20b49d10bf75660b1d9c07032a6909",
+      "strokeExpanded": true
+    },
+    "chiron.svg": {
+      "source": "Glyphs/chiron.svg",
+      "sourceSHA256": "6ea8439e1ae7ab2121b10e1a7148a89c8cb222e04a5c0f8b50e5bfde249b3fdb",
+      "outputSHA256": "e53d6cb0522686460178d030bbaf2e539a12928c316a84f2ae4f85f3dccbdddc",
+      "strokeExpanded": true
+    },
+    "conjunct.svg": {
+      "source": "Glyphs/conjunct.svg",
+      "sourceSHA256": "304353b32c3d867e18b262b47bef8265d4f260c2cfad705dfd21142b40929168",
+      "outputSHA256": "d32d8de0290e07e01e5e084977acd31f43b51a1564c16a92c78c2f5b3ad3b483",
+      "strokeExpanded": true
+    },
+    "cup.svg": {
+      "source": "Glyphs/cup.svg",
+      "sourceSHA256": "96b332a8590954fd1f459341ab8f05bb3a4a5327abf2cff0297c1fd446e2e7f5",
+      "outputSHA256": "2668d28911c3b2d8b084ad35db91088558ee5515f27686d5669d0bd80336ed3a",
+      "strokeExpanded": true
+    },
+    "descendant.svg": {
+      "source": "Glyphs/descendant.svg",
+      "sourceSHA256": "74777c6a7d5808921b36c20b1935777ee2915dce48091dc21f13c4e8e99ce917",
+      "outputSHA256": "74777c6a7d5808921b36c20b1935777ee2915dce48091dc21f13c4e8e99ce917",
+      "strokeExpanded": false
+    },
+    "earth.svg": {
+      "source": "Glyphs/earth.svg",
+      "sourceSHA256": "af68b92bff703bf98f0fee2fe3779a5316a8d5be07f58664c154f2bf121f8159",
+      "outputSHA256": "e2dd151dd6789572723a23e23275b8b338ef190c4369f44774ba29b942c9759c",
+      "strokeExpanded": true
+    },
+    "eris.svg": {
+      "source": "Glyphs/eris.svg",
+      "sourceSHA256": "1b40c002e2b5ac45417562fb040af4db0e0a6dfe6a4b7da215e2d393cb33c2db",
+      "outputSHA256": "5b2dc1c782b40916cf6f0180bb3025f30495eafbb7c955ef231dfbb73fa58e75",
+      "strokeExpanded": true
+    },
+    "eros-asteroid.svg": {
+      "source": "Glyphs/eros-asteroid.svg",
+      "sourceSHA256": "2d68c21b2226a3bb7e00f9ebe7aabd4215c3d2e70503574423f96bd8bc3f2c7c",
+      "outputSHA256": "659129fd9d74a63c34ee42e4d15ea16eae54c8185ded6072a153d7b8ef465740",
+      "strokeExpanded": true
+    },
+    "eros.svg": {
+      "source": "Glyphs/eros.svg",
+      "sourceSHA256": "bfcfce89898c3957e3e6a0ab7ec187a4e154f2a10b42f69ec784ec1369c0251c",
+      "outputSHA256": "972164345598f6ac2fb2b99a454760a5cb335f40d42023c6e5fe1f5e327cb45e",
+      "strokeExpanded": true
+    },
+    "fomalhaut.svg": {
+      "source": "Glyphs/fomalhaut.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "fortune.svg": {
+      "source": "Glyphs/fortune.svg",
+      "sourceSHA256": "7720a4c46469b8ae0f4ebd47fda53e600caa08e6f3746618c6381269776db6bd",
+      "outputSHA256": "a126b2e9421c9f7777cde120158841ba8c00685447e697ca3a6d67a5225bacdd",
+      "strokeExpanded": true
+    },
+    "gemini.svg": {
+      "source": "Glyphs/gemini.svg",
+      "sourceSHA256": "cfd29e418190e27e7b15872dea63d76fa7ef6cec9275255661415a0513485f19",
+      "outputSHA256": "e9c436d9459c15bf13c6c1c54a229bc151972f1fd1f1af323894d008c3e02feb",
+      "strokeExpanded": true
+    },
+    "imum-coeli.svg": {
+      "source": "Glyphs/imum-coeli.svg",
+      "sourceSHA256": "b27b9593da5cc2836de4331adeaf71c94e6d6c659e6432f8152c2aeec2a0be7e",
+      "outputSHA256": "b27b9593da5cc2836de4331adeaf71c94e6d6c659e6432f8152c2aeec2a0be7e",
+      "strokeExpanded": false
+    },
+    "juno.svg": {
+      "source": "Glyphs/juno.svg",
+      "sourceSHA256": "3a9c59de9db40419d02da932e5af8de143daeaa8c8e5311a2a180a57be71812e",
+      "outputSHA256": "8bbe3c2817b2195e6bdb8a0af91444273db9d73a1b7d0952fff8741874147dfb",
+      "strokeExpanded": true
+    },
+    "jupiter.svg": {
+      "source": "Glyphs/jupiter.svg",
+      "sourceSHA256": "787f587644cd5453b247310fe44940be75049ec9c28d15d958a90308b5b295e1",
+      "outputSHA256": "c33d741568973814181e3502122b2c9de33ab7893750193597d7433e54e9b11e",
+      "strokeExpanded": true
+    },
+    "kairos-logo.svg": {
+      "source": "Glyphs/kairos-logo.svg",
+      "sourceSHA256": "ee83366d26da13ebfae61008abbf5b83620c40292f2b393d636efb70aa54fd91",
+      "outputSHA256": "ee83366d26da13ebfae61008abbf5b83620c40292f2b393d636efb70aa54fd91",
+      "strokeExpanded": false
+    },
+    "leo.svg": {
+      "source": "Glyphs/leo.svg",
+      "sourceSHA256": "e3c02324cec6cad4211b013ca53330158ae3edcc3c99cea9ac0d818ca0d0ca9e",
+      "outputSHA256": "5bab2e0a13910790a727ad9712c6ee65e2686b6b7c46ade4117ef1279f49c3bd",
+      "strokeExpanded": true
+    },
+    "libra.svg": {
+      "source": "Glyphs/libra.svg",
+      "sourceSHA256": "3cca1b5cc1b8c6b04cf87e13a839344056c0ea1d31dd5d8dea099a3d7cbd2487",
+      "outputSHA256": "d5613edc5b7c618698024016ebda993cafc217369084c1460be6d60b70d3eebf",
+      "strokeExpanded": true
+    },
+    "lilith.svg": {
+      "source": "Glyphs/lilith.svg",
+      "sourceSHA256": "8fdd09951d2050e31779ad860e2acd9ac9452bb71d90b3b105fba4429785fd9e",
+      "outputSHA256": "c14625a3646d9cc817b5c6ab492b3b17eb227e063941c1c12858eaedfa986a67",
+      "strokeExpanded": true
+    },
+    "lot-of-soul.svg": {
+      "source": "Glyphs/lot-of-soul.svg",
+      "sourceSHA256": "9e9b17ade03dc38250e75e768d11034d214d24099a0a4cfb18f0de04f8c9d258",
+      "outputSHA256": "9e9b17ade03dc38250e75e768d11034d214d24099a0a4cfb18f0de04f8c9d258",
+      "strokeExpanded": false
+    },
+    "mars.svg": {
+      "source": "Glyphs/mars.svg",
+      "sourceSHA256": "1b1047155b4f0a266065ed36428e3d76bbf90988d4ffa18effa9060a625c8c57",
+      "outputSHA256": "63f19653802f1c50668d32bb033b9263b6731eb6a0d7f8fdf5fe1469e39ae559",
+      "strokeExpanded": true
+    },
+    "mercury.svg": {
+      "source": "Glyphs/mercury.svg",
+      "sourceSHA256": "cfeb719cd690ba012a1158e07fae9f39e4fd09cc57dbfd329c78e9c6b7f39a90",
+      "outputSHA256": "4daaf0f10ef7a9937cf4ff6b57ca63dd283d25a373fd12ff87afe5ee1c306454",
+      "strokeExpanded": true
+    },
+    "midheaven.svg": {
+      "source": "Glyphs/midheaven.svg",
+      "sourceSHA256": "a243c7043b359476bda2b9af6b9d7c0d9c7878d5d76deab67af9ed21958d3a97",
+      "outputSHA256": "a243c7043b359476bda2b9af6b9d7c0d9c7878d5d76deab67af9ed21958d3a97",
+      "strokeExpanded": false
+    },
+    "moon.svg": {
+      "source": "Glyphs/moon.svg",
+      "sourceSHA256": "11f9d2d50733625f929a86062ba8581c3ef050a967bdbebc5cf8408569c59437",
+      "outputSHA256": "11f9d2d50733625f929a86062ba8581c3ef050a967bdbebc5cf8408569c59437",
+      "strokeExpanded": false
+    },
+    "neptune.svg": {
+      "source": "Glyphs/neptune.svg",
+      "sourceSHA256": "341d01e7b4b41ef6263e43398a93ab68a3421f16b840629039e7b811a2533bc7",
+      "outputSHA256": "bbb3d20488c0a1bb25880c0cf9cf7722dc92c3f0b03f892838b7205c1877f984",
+      "strokeExpanded": true
+    },
+    "north-node.svg": {
+      "source": "Glyphs/north-node.svg",
+      "sourceSHA256": "d4844b807a242290c7d788b24afea07e8095620eb7f25eeb1b2d8086622cd8df",
+      "outputSHA256": "cfa5872249fe2299a61d541897fb783f701b015b5875e498883408efea48f832",
+      "strokeExpanded": true
+    },
+    "opposite.svg": {
+      "source": "Glyphs/opposite.svg",
+      "sourceSHA256": "22c77f7afd164f9e04b3b472e64ebab0a79e0c0cde241d5a6f3134ddf66f12c3",
+      "outputSHA256": "cd87036ad64c5ce816a80d548490164b0fce5cf0c657de23bd3611c0e7b5fd79",
+      "strokeExpanded": true
+    },
+    "pallas.svg": {
+      "source": "Glyphs/pallas.svg",
+      "sourceSHA256": "0471fa8ef9e62a7746f24acc9a12a35b45947c61b6605142c6ff7f60c74aaff1",
+      "outputSHA256": "59cb57a8b8a047be76d6573211add3f0172fce9aaf8118638b2395cf5dfe7c21",
+      "strokeExpanded": true
+    },
+    "part-of-fortune.svg": {
+      "source": "Glyphs/part-of-fortune.svg",
+      "sourceSHA256": "1a6d9b191218467ca7c2d6390497752ccf065afdb5845d9c5e34eeea8c89d6ee",
+      "outputSHA256": "1a6d9b191218467ca7c2d6390497752ccf065afdb5845d9c5e34eeea8c89d6ee",
+      "strokeExpanded": false
+    },
+    "pentacle.svg": {
+      "source": "Glyphs/pentacle.svg",
+      "sourceSHA256": "5be06dcce24deac1b3af23b83cf7ee4fe5e20ff5935994b82419c03bb8bb43ce",
+      "outputSHA256": "e4b0f0bf85f38b58ecfbadf5f0117ad2e8c59bc0682e6efd894e86ee66447d6a",
+      "strokeExpanded": true
+    },
+    "pholus.svg": {
+      "source": "Glyphs/pholus.svg",
+      "sourceSHA256": "69c9f79181447df8d37b5733f21798edd8b58cbdc85bd121aa961568c8c0107f",
+      "outputSHA256": "17116989d9790c19f556349108b4ff84f7cbc6a1ee19d5d4c2c21155376440cd",
+      "strokeExpanded": true
+    },
+    "pisces.svg": {
+      "source": "Glyphs/pisces.svg",
+      "sourceSHA256": "688e98e4843b8b9673c9305b5e1dc88a07364ccbf70580468691b41a77b0d9ad",
+      "outputSHA256": "e8851f36bfc763d9741df07d98f0c47f0dec9bf7cd427365f0dddbb1975aa2ba",
+      "strokeExpanded": true
+    },
+    "pluto.svg": {
+      "source": "Glyphs/pluto.svg",
+      "sourceSHA256": "c72d5840fdb2490536a1a8f4f653818f635616f935a9f9d1f84304c79300e550",
+      "outputSHA256": "561f8b1f19a65953bcf1ad8f428416cb3c40079c675a775c2ab446f9675d035f",
+      "strokeExpanded": true
+    },
+    "procyon.svg": {
+      "source": "Glyphs/procyon.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "quincunx.svg": {
+      "source": "Glyphs/quincunx.svg",
+      "sourceSHA256": "4ab92d98d30ad9e15ccde62d1f96f977d7b48c368da1f06ae76ec70ba65fdb6b",
+      "outputSHA256": "76f9b0afb994e02ff821763798baed7b212e4dec757bcc1d29075edcb0ef291f",
+      "strokeExpanded": true
+    },
+    "regulus.svg": {
+      "source": "Glyphs/regulus.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "rigel.svg": {
+      "source": "Glyphs/rigel.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "ring1-of-2.svg": {
+      "source": "Glyphs/ring1-of-2.svg",
+      "sourceSHA256": "94b0bff9e353c38ff315e7545d2054fbb89e8ad76df20b2c77fc7880fc57ddde",
+      "outputSHA256": "3929c5d564bbf3441a27c656d088bc1efc8c25cfdb1c8cd23a55299697fdda67",
+      "strokeExpanded": true
+    },
+    "ring1-of-3.svg": {
+      "source": "Glyphs/ring1-of-3.svg",
+      "sourceSHA256": "d5e51e532efd866486ad014bd9575a079553fe150d681e2efa935ab931d49c8c",
+      "outputSHA256": "7fa8a1e864098340e31cf153b0a4f79588e8fb0dba5391dff46c3e75fee833a8",
+      "strokeExpanded": true
+    },
+    "ring2-of-2.svg": {
+      "source": "Glyphs/ring2-of-2.svg",
+      "sourceSHA256": "c2c39bb743dd26ddf77f6e9abf30bfe11ad5597e86a52f44918de794b52f7f05",
+      "outputSHA256": "7d14a5fb5a0d2c00574f7dac6ad02ce4cbc84ea64b6c5d8d4544f332b851bbab",
+      "strokeExpanded": true
+    },
+    "ring2-of-3.svg": {
+      "source": "Glyphs/ring2-of-3.svg",
+      "sourceSHA256": "2df55c03427c891f9497ae4b6a548deae566e736bf9abafb8c1980977cc3d74c",
+      "outputSHA256": "c335abb5e468de17de4dce7eb960e672bd1eacee81e609428e5f9368872ab45a",
+      "strokeExpanded": true
+    },
+    "ring3-of-3.svg": {
+      "source": "Glyphs/ring3-of-3.svg",
+      "sourceSHA256": "1770106886b6e4172cbfeb55b97b26537afbf9512c7d580a5fbd29ae51bf1c55",
+      "outputSHA256": "b51dd0ba323a7dcc9a7ed6f295dfc55fd13b8a85f9ca04db8120169b6f9cd5ce",
+      "strokeExpanded": true
+    },
+    "rx.svg": {
+      "source": "Glyphs/rx.svg",
+      "sourceSHA256": "e707ec202459b49765e29cedb38375641d8099869a77a3685cd1ffb812fe1c57",
+      "outputSHA256": "e707ec202459b49765e29cedb38375641d8099869a77a3685cd1ffb812fe1c57",
+      "strokeExpanded": false
+    },
+    "sagittarius.svg": {
+      "source": "Glyphs/sagittarius.svg",
+      "sourceSHA256": "59144adf2ebe19411e6cdab917945c0713b39285245a7e112b4c1fb0bf090462",
+      "outputSHA256": "8b2bf949949a7c9e9155842a4c164a2ab95d8fb559d1670104fc15622bbe45d2",
+      "strokeExpanded": true
+    },
+    "saturn.svg": {
+      "source": "Glyphs/saturn.svg",
+      "sourceSHA256": "10f14c8b221a0eadeec02e7f41955005e337b5ec790d04f6c41d9cead5dcaa6f",
+      "outputSHA256": "9d3f016ff0dfa65771dcfb12ec99e79baa799f9675f470434f7c5c23e104f7fa",
+      "strokeExpanded": true
+    },
+    "scorpio.svg": {
+      "source": "Glyphs/scorpio.svg",
+      "sourceSHA256": "0922cbafbb482a59d37d595457ca7105e6bc06ca85e02d0fe3169484cea54898",
+      "outputSHA256": "7c4b42fb1eafe41c3f1760cea42b32dcfa5d2adbe58dff7c8a940fff0fd761eb",
+      "strokeExpanded": true
+    },
+    "semi-sextile.svg": {
+      "source": "Glyphs/semi-sextile.svg",
+      "sourceSHA256": "53e8a9241c0b6ff10cba1af781f4a07cbb73f4f66180df8ecfabf9e2be34681a",
+      "outputSHA256": "26605c4944e1ee5bba11cc0520a79251868d9804df9f7796d8e0b8fa4449df5d",
+      "strokeExpanded": true
+    },
+    "sextile.svg": {
+      "source": "Glyphs/sextile.svg",
+      "sourceSHA256": "3e71c9acb1531f9c2faf14163e3d06a987470aa5975d830f4bba94d8d3a0eed3",
+      "outputSHA256": "51d4f50d44a951a214dfcd02340dfc4acb7faf41025bc22d5b668f484bc42963",
+      "strokeExpanded": true
+    },
+    "sirius.svg": {
+      "source": "Glyphs/sirius.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "south-node.svg": {
+      "source": "Glyphs/south-node.svg",
+      "sourceSHA256": "42a3aa4d245929788688855ca67cdc9b646b10027a828e6f057cc6e7e52229ea",
+      "outputSHA256": "6f893608be61102cb8260704de7b10b722c764572bc4e83cf8c55f22e30b78ca",
+      "strokeExpanded": true
+    },
+    "spica.svg": {
+      "source": "Glyphs/spica.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "spirit.svg": {
+      "source": "Glyphs/spirit.svg",
+      "sourceSHA256": "629919594ff394d1c5d3624a9538b3dd73f6102b88f5d4aff5c95fe228a8f084",
+      "outputSHA256": "3c01403c75b5e7715b34c250251f8a00674882d3c41fe3b586e7dcf66de847d6",
+      "strokeExpanded": true
+    },
+    "square.svg": {
+      "source": "Glyphs/square.svg",
+      "sourceSHA256": "640a0e98e13f866d26a98dbaf036b8f3be46f1573b523c39b733c14fb8709e14",
+      "outputSHA256": "cec5f4af99e2b2e2eec6aa94c83e9ec55c5b36775573c57b2cd6130f02c858a9",
+      "strokeExpanded": true
+    },
+    "star.svg": {
+      "source": "Glyphs/star.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "station-direct.svg": {
+      "source": "Glyphs/station-direct.svg",
+      "sourceSHA256": "c0753c6bf9e0be77db75877fe31533c0c6e5e96f3a456d87a761513dc4449c86",
+      "outputSHA256": "d07fb3bdbcc73d207f0c3251e1e44ff23ae487732e92a442ccfa068a1621b9ce",
+      "strokeExpanded": true
+    },
+    "station-retrograde.svg": {
+      "source": "Glyphs/station-retrograde.svg",
+      "sourceSHA256": "30405ed57fb54ccd6df57edf4b852e652e5fc5ecca8f6bdb3cbd6045dfcb71f1",
+      "outputSHA256": "b50afee46a29ac7d31821099c2700261a190cae7ef462682f761d59cd33905f8",
+      "strokeExpanded": true
+    },
+    "sun.svg": {
+      "source": "Glyphs/sun.svg",
+      "sourceSHA256": "189bf1cbcbc3f921e729566a50f6dc0dad59566a8d6c0ccc4c6494a42fe0cb56",
+      "outputSHA256": "22c53a7a8beeb90efb5cb35e46c6fc6955efcf8004b63a69647bd94a36d5927d",
+      "strokeExpanded": true
+    },
+    "sword.svg": {
+      "source": "Glyphs/sword.svg",
+      "sourceSHA256": "b5ec5cd747902248eb6b3d31dbb2911c6d971be9500ff58a72ffc186d5494bdc",
+      "outputSHA256": "2b8cc6fd897401046cb66f183c5ff359ba531c4fa8571341008f6d4d622d6dfa",
+      "strokeExpanded": true
+    },
+    "tarot.svg": {
+      "source": "Glyphs/tarot.svg",
+      "sourceSHA256": "6cd0ae6879dac596bde52efa60f3df073ecd72904d5f6140deb2deadefebb842",
+      "outputSHA256": "0bb5d446117145c0a05fcb2fcad94d15896ca1d5d87ca1b6ebb402e8749c81be",
+      "strokeExpanded": true
+    },
+    "taurus.svg": {
+      "source": "Glyphs/taurus.svg",
+      "sourceSHA256": "f7545b277ed9fcf0a04a3bbdb775d5592e90c4506d86abde87e75313cf4c601e",
+      "outputSHA256": "e8d87b248581881f91a51c85f198b23ab458926118e4e49c68dfaf6e7a082aaf",
+      "strokeExpanded": true
+    },
+    "trine.svg": {
+      "source": "Glyphs/trine.svg",
+      "sourceSHA256": "62a582983d49eb97b0348f891c85300908427a843b6547faefc82ae20e08c146",
+      "outputSHA256": "d5bb2111ca433a2f61a3764f150a694664413733096676091e083a5aa540d171",
+      "strokeExpanded": true
+    },
+    "uranus.svg": {
+      "source": "Glyphs/uranus.svg",
+      "sourceSHA256": "8773feb3dfcfb1bf7ed3c113c5f92d1d2cf8ed85ff3f3fc8be7d63d029ee96e2",
+      "outputSHA256": "504965d7b1623bf58bd893f824bb04321c336f24430258d24e83fd2742972698",
+      "strokeExpanded": true
+    },
+    "vega.svg": {
+      "source": "Glyphs/vega.svg",
+      "sourceSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "outputSHA256": "7573b1003d339491f0b9788bb6d5985321cae3aa8f4ae8b17d2323c6612fa50a",
+      "strokeExpanded": false
+    },
+    "venus.svg": {
+      "source": "Glyphs/venus.svg",
+      "sourceSHA256": "57efce4c7e09e5a42f180d66a6c2e1ab415442a8c689acf445675455078a92a6",
+      "outputSHA256": "3dd5dd27dfb0fe7b3f564d812c8e39ce34e1226299eaa8ab273df4d9840cf759",
+      "strokeExpanded": true
+    },
+    "vertex.svg": {
+      "source": "Glyphs/vertex.svg",
+      "sourceSHA256": "1202fa0083fd6e735abbad040f6ccbb24210b0b8aeb1db60685baff082378a06",
+      "outputSHA256": "1202fa0083fd6e735abbad040f6ccbb24210b0b8aeb1db60685baff082378a06",
+      "strokeExpanded": false
+    },
+    "vesta.svg": {
+      "source": "Glyphs/vesta.svg",
+      "sourceSHA256": "8edb1baa48e2e47a0136202065f67606455a6eaec3d29ac12d9b8ab1ae73fcad",
+      "outputSHA256": "e100b586b3527a29e15257e6de1d6756357d0a545b9e231dbed206fc047046aa",
+      "strokeExpanded": true
+    },
+    "virgo.svg": {
+      "source": "Glyphs/virgo.svg",
+      "sourceSHA256": "df92526daad1e3cea4437563ae4e930403b264a6e4353887a40880bf8dbc4c84",
+      "outputSHA256": "6494daa7c7edeebd143d49615808e969c2f391a9328e306e75bf596cfd0aa5e8",
+      "strokeExpanded": true
+    },
+    "wand.svg": {
+      "source": "Glyphs/wand.svg",
+      "sourceSHA256": "e4d448330c34aeb1a2b04f73b6995cc39cc632f49352f6b46c5a74bed6cc8aa2",
+      "outputSHA256": "7c4b95d21ac706fd88d095c8c8be48f407ebf2230a419cb7936527f7845f5336",
+      "strokeExpanded": true
+    }
+  }
+}

@@ -46,3 +46,6 @@ yarn-error.*
 
 # Isolated development worktrees
 .worktrees/
+
+# Isolated Exact browser artifacts
+/.exact/

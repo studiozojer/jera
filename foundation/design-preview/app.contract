@@ -1,13 +1,15 @@
 use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusSm, radiusMd, radiusFull, minTouchTarget from "./dao.contract"
 use Post, Author, PostAvatar, PostActions, Draft, conversationRoot from "./post.contract"
 use samplePosts from "./fixtures.contract"
-use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction, PrimaryAction from "./dao.contract"
+use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction from "./dao.contract"
+use Button, IconButton from "./dao/actions.contract"
 use ReadingHeader, WriteButton from "./chrome.contract"
 use ThreadHero, ThreadBranch from "./thread.contract"
 
 shape Viewport
   width: number
 
+font "Fraktion" = "assets/dao/fonts/PPFraktionMono-Regular.otf"
 font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
 font "Whyte Inktrap" = "assets/fonts/ABCWhyteInktrap-Regular.otf"
 
@@ -92,7 +94,7 @@ component App
                 column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
                   column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
                     row align-items="center" gap=spaceMd() padding=(compact ? spaceLg() : spaceXxl())
-                      button "←" id="back" press=dismiss aria-label="Back" testId="back" scroll-margin-top=(headerHeight + spaceSm()) appearance="none" class=QuietAction width="2.75rem" min-height=minTouchTarget() padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
+                      IconButton(kind="ghost", label="Back", symbol="symbol:back", glyphSize="1.25rem", targetSize="2.75rem", selected=none, disabled=false, press=dismiss, testId="back", clearance=(headerHeight + spaceSm()))
                       text "Thread" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
                     for focused in posts.filter(p => p.id == entry.params.id) key=focused.id
                       if focused.parent != ""
@@ -107,9 +109,9 @@ component App
         if entry.name == "compose"
           column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="bg.base" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"
             row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
-              button "Cancel" id="back" press=dismiss testId="cancel" appearance="none" class=QuietAction min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceMd() padding-right=spaceMd() border-width=0 border-radius=radiusMd() background-color="transparent" font-family="Whyte"
+              Button(label="Cancel", kind="ghost", size="medium", disabled=false, busy=false, press=dismiss, testId="cancel")
               text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
-              button "Post" press=post testId="post" disabled=(draft.trim() == "") cursor=(draft.trim() == "" ? "default" : "pointer") appearance="none" class=PrimaryAction font-family="Whyte" min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceXl() padding-right=spaceXl() border-width=0 border-radius=radiusMd()
+              Button(label="Post", kind="primary", size="medium", disabled=(draft.trim() == ""), busy=false, press=post, testId="post")
             if replyTo != ""
               for recipient in posts.filter(p => p.id == replyTo) key=recipient.id
                 column gap=spaceSm() border-left="1px solid bd.primary" padding-left=spaceMd()
@@ -120,4 +122,4 @@ component App
           column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 padding=spaceXxl() gap=spaceLg() background-color="bg.base" color="tx.primary"
             text "David" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteLg
             text "Sample account · design preview" color="tx.secondary"
-            button "Done" id="back" press=dismiss testId="account-done" cursor="pointer" min-height=minTouchTarget()
+            Button(label="Done", kind="ghost", size="medium", disabled=false, busy=false, press=dismiss, testId="account-done")

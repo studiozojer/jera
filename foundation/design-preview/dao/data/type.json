@@ -1,0 +1,17 @@
+{
+  "source": "☯︎ daoUI local text styles, read live 2026-08-05 (see zojercommons/projects/daoui/specs/2026-08-05-daoui-type-canon-design.md)",
+  "styles": {
+    "whyte/xl":     { "font": "ABCWhyteInktrap-Regular", "size": 33, "lineHeight": 52 },
+    "whyte/lg":     { "font": "ABCWhyteInktrap-Regular", "size": 26, "lineHeight": 42 },
+    "whyte/md":     { "font": "ABCWhyteInktrap-Regular", "size": 20, "lineHeight": 32 },
+    "whyte/sm":     { "font": "ABCWhyteEdu-Book",        "size": 16, "lineHeight": 24 },
+    "whyte/xs":     { "font": "ABCWhyteEdu-Book",        "size": 13, "lineHeight": 16 },
+    "whyte/xxs":    { "font": "ABCWhyteEdu-Book",        "size": 9,  "lineHeight": 12 },
+    "fraktion/xl":  { "font": "PPFraktionMono-Regular",  "size": 33, "lineHeight": 52, "trackingPercent": 2 },
+    "fraktion/lg":  { "font": "PPFraktionMono-Regular",  "size": 26, "lineHeight": 42, "trackingPercent": 2 },
+    "fraktion/md":  { "font": "PPFraktionMono-Regular",  "size": 20, "lineHeight": 32, "trackingPercent": 2 },
+    "fraktion/sm":  { "font": "PPFraktionMono-Regular",  "size": 16, "lineHeight": 24, "trackingPercent": 2 },
+    "fraktion/xs":  { "font": "PPFraktionMono-Regular",  "size": 13, "lineHeight": 16, "trackingPercent": 2 },
+    "fraktion/xxs": { "font": "PPFraktionMono-Regular",  "size": 9,  "lineHeight": 12, "trackingPercent": 2 }
+  }
+}

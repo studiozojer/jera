@@ -1,0 +1,190 @@
+use WhyteSm, WhyteXs, WhyteMd from "./foundations.contract"
+use Action from "./actions.contract"
+
+shape FieldOption
+  value: string
+  label: string
+
+style FieldControl
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  box-sizing = "border-box"
+  min-height = "2.75rem"
+  min-width = 0
+  max-width = "100%"
+  padding = "8px 12px"
+  border = "1px solid dao.bd.primary"
+  border-radius = 8
+  background-color = "dao.bg.primary"
+  color = "dao.tx.primary"
+  :hover
+    border-color = "dao.bd.hover"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  :disabled
+    color = "dao.tx.disabled"
+
+style NativeSelect
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  box-sizing = "border-box"
+  min-height = "2.75rem"
+  min-width = 0
+  max-width = "100%"
+  padding = "8px 12px"
+  border = "1px solid dao.bd.primary"
+  border-radius = 8
+  background-color = "dao.bg.primary"
+  color = "dao.tx.primary"
+
+component FieldSection
+  props
+    title: string
+    footer: string
+  slot
+  view
+    section display="flex" flex-direction="column" gap=8 min-width=0 aria-label=title
+      text title role="heading" aria-level=2 class=WhyteMd
+      column gap=0 border="1px solid dao.bd.card" border-radius=16 padding="0 16px" background-color="dao.bg.solid.card" min-width=0
+        children
+      if footer != ""
+        text footer class=WhyteXs color="dao.tx.secondary"
+
+component FieldRow
+  props
+    label: string
+    detail: string
+  slot
+  view
+    row flex-wrap="wrap" gap=12 align-items="center" padding="12px 0" border-bottom="0.5px solid dao.bd.secondary" min-width=0
+      column flex=1 flex-basis="10rem" min-width=0
+        text label class=WhyteSm
+        if detail != ""
+          text detail class=WhyteXs color="dao.tx.secondary"
+      children
+
+component FieldText
+  props
+    label: string
+    value: string
+    hint: string
+    error: string
+    placeholder: string
+    disabled: bool
+    edit: action
+    submit: action
+    testId: string
+  view
+    column gap=4 min-width=0 padding="12px 0"
+      text label class=WhyteSm
+      input class=FieldControl value=value input=edit submit=submit placeholder=placeholder disabled=disabled aria-label=label aria-invalid=(error != "") aria-describedby=`${testId}-description` testId=testId width="100%" cursor=(disabled ? "default" : "text")
+      text (error != "" ? error : hint) id=`${testId}-description` testId=`${testId}-hint` class=WhyteXs color=(error != "" ? "dao.tx.error" : "dao.tx.secondary")
+
+component Field
+  props
+    label: string
+    value: string
+    editor: bool
+    disabled: bool
+    edit: action
+    testId: string
+  view
+    if editor
+      textarea class=FieldControl value=value input=edit disabled=disabled aria-label=label testId=testId width="100%" min-height="10rem" resize="vertical" cursor=(disabled ? "default" : "text")
+    else
+      input class=FieldControl type="search" value=value input=edit disabled=disabled aria-label=label placeholder=label testId=testId width="100%" cursor=(disabled ? "default" : "text")
+
+component FieldToggle
+  props
+    label: string
+    value: bool
+    disabled: bool
+    change: action
+    testId: string
+  view
+    FieldRow(label=label, detail="")
+      input type="checkbox" switch checked=value change=change disabled=disabled aria-label=label testId=testId min-width="2.75rem" min-height="2.75rem" cursor=(disabled ? "default" : "pointer") accent-color="dao.tx.accent"
+
+component Checkbox
+  props
+    label: string
+    value: bool
+    disabled: bool
+    change: action
+    testId: string
+  view
+    row gap=8 align-items="center" flex-wrap="wrap"
+      input type="checkbox" checked=value change=change disabled=disabled aria-label=label testId=testId min-width="2.75rem" min-height="2.75rem" cursor=(disabled ? "default" : "pointer") accent-color="dao.tx.accent"
+      text label class=WhyteSm
+
+component FieldPicker
+  props
+    label: string
+    value: string
+    options: FieldOption[]
+    disabled: bool
+    change: action
+    testId: string
+  view
+    FieldRow(label=label, detail="")
+      select class=NativeSelect value=value change=change disabled=disabled aria-label=label testId=testId cursor=(disabled ? "default" : "pointer")
+        for o in options key=o.value
+          option o.label value=o.value
+
+component FieldColor
+  props
+    label: string
+    value: string
+    options: FieldOption[]
+    disabled: bool
+    change: action
+    testId: string
+  view
+    // Options retain semantic names, including a host-supplied Default/reset.
+    FieldPicker(label=label, value=value, options=options, disabled=disabled, change=change, testId=testId)
+
+component FieldStepper
+  props
+    label: string
+    value: number
+    minimum: number
+    maximum: number
+    step: number
+    disabled: bool
+    change: action
+    testId: string
+  action less
+    change(max(minimum, round((value - step) * 1000000) / 1000000))
+  action more
+    change(min(maximum, round((value + step) * 1000000) / 1000000))
+  view
+    FieldRow(label=label, detail="")
+      row gap=4 align-items="center"
+        button appearance="none" class=Action press=less disabled=(disabled or value <= minimum) aria-label=`Decrease ${label}` testId=`${testId}-less` min-width="2.75rem" min-height="2.75rem" background-color="dao.bg.secondary" color="dao.ic.primary" cursor=((disabled or value <= minimum) ? "default" : "pointer")
+          image "symbol:minus" font-size="1.25rem" aria-hidden=true
+        text `${value}` class=WhyteSm testId=testId
+        button appearance="none" class=Action press=more disabled=(disabled or value >= maximum) aria-label=`Increase ${label}` testId=`${testId}-more` min-width="2.75rem" min-height="2.75rem" background-color="dao.bg.secondary" color="dao.ic.primary" cursor=((disabled or value >= maximum) ? "default" : "pointer")
+          image "symbol:add" font-size="1.25rem" aria-hidden=true
+
+component FieldNavigation
+  props
+    label: string
+    detail: string
+    disabled: bool
+    press: action
+    testId: string
+  view
+    button appearance="none" class=Action press=press disabled=disabled testId=testId aria-label=label width="100%" min-height="2.75rem" padding="12px 0" display="flex" flex-direction="row" flex-wrap="wrap" align-items="center" gap=12 text-align="start" color=(disabled ? "dao.tx.disabled" : "dao.tx.primary") background-color="transparent" cursor=(disabled ? "default" : "pointer")
+      :hover
+        background-color="dao.bg.hover"
+      :active
+        background-color="dao.bg.pressed"
+      :disabled
+        background-color="transparent"
+      column flex=1 min-width=0
+        text label class=WhyteSm
+        if detail != ""
+          text detail class=WhyteXs color="dao.tx.secondary"
+      image "symbol:forward-chevron" font-size="1.25rem" aria-hidden=true

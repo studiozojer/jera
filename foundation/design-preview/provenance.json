@@ -65,5 +65,23 @@
     "No login, network requests, backend writes or live model replies",
     "Post and per-post drafts reset on reload",
     "Web evidence does not establish native typing or sheet behavior"
-  ]
+  ],
+  "sharedExactComponents": {
+    "receipt": "dao/provenance.json",
+    "distribution": "generate-and-commit; scripts/sync-exact.mjs",
+    "scope": [
+      "post action IconButtons",
+      "post MenuTrigger/Menu/MenuItem",
+      "composer Button",
+      "thread Back IconButton",
+      "floating surface IconButton"
+    ],
+    "consumerOwned": [
+      "gold action and hover surfaces via Tamber params",
+      "navigation and drafts",
+      "post projection",
+      "editor behavior",
+      "account avatar and sticky chrome"
+    ]
+  }
 }
