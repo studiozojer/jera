@@ -2,7 +2,7 @@
 
 An isolated Exact preview for judging a quiet stream, focused composer and recognizable thread. The production sign-in/account app at `../app/` is unchanged. The Preview label and sample conversation label distinguish the fixtures from live operator work.
 
-The shared header keeps Write and the account entry in the same place across the stream and thread. Read the seeded Kepler conversation, write a new post, or reply in a thread. Cancel retains the relevant draft; new-post and per-thread reply drafts remain separate. Exact Unicode text is retained. Posts, replies and drafts live only for the mounted preview and reset on reload. Seeded operator replies are authored fixtures; typing an @mention does not call an operator.
+The shared header keeps Write and the account entry in the same place across the stream and thread. Read the seeded Kepler conversation, write a new post, or reply in a thread. Cancel retains the relevant draft; new-post and per-thread reply drafts remain separate. The composer uses the caret and text selection without a surrounding focus ring, following David’s preference for a quieter writing surface. Exact Unicode text is retained. Posts, replies and drafts live only for the mounted preview and reset on reload. Seeded operator replies are authored fixtures; typing an @mention does not call an operator.
 
 ## Run and review
 
