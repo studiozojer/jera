@@ -1,0 +1,31 @@
+{
+  "kind": "Exact composition prototype; not a shared cross-platform component package",
+  "sources": {
+    "daoUI": {
+      "revision": "85fb2acb3cdba5f7cb88ef42eeff59b93d1af332",
+      "color": "tokens.json via the existing Jera app.tamber mapping",
+      "typography": "type.json; named family/size styles in dao.contract",
+      "composition": "rn/reading/README.md guidance, adapted to Exact rather than copied React Native source",
+      "layout": {
+        "path": "Sources/DaoUI/DesignTokens.swift",
+        "sha256": "e42cf00081d3fc560a3064d3b2bb0422e6bacbf38de6ca34673d530912630c23",
+        "adapter": "named spacing, radius and touch-target functions in dao.contract"
+      }
+    },
+    "jera": {
+      "revision": "b31f385",
+      "files": {
+        "brand.contract": "d24d0f6b4ea895a205f60be1b7330c97778252db8632ed01863755715c51a856",
+        "assets/fonts/ABCWhyteEdu-Book.otf": "427e310b6116e2cb00e3c84f7e7157ee64a723b4da88af6c226b4a4ae06e44d0",
+        "assets/fonts/ABCWhyteInktrap-Regular.otf": "6066690c00eac7d8dd8651ca2286436c64e3bb8eae4529366ca9a640ae245030"
+      }
+    }
+  },
+  "local_expression": "Shared chrome, post author and thread components. Canonical type sizes/leading are retained; scalable insets contain browser font ink. Reading width, post spacing and preview-only fixture state are local composition choices. Gold action colors retain David's existing approved Jera mapping.",
+  "limits": [
+    "Synthetic sample accounts and posts",
+    "No login, network requests, backend writes or live model replies",
+    "Post and per-thread drafts reset on reload",
+    "Web evidence does not establish native typing or sheet behavior"
+  ]
+}

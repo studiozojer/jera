@@ -1,0 +1,39 @@
+{
+  "$schema": "../../tooling/exact2/scripts/app.schema.json",
+  "name": "Jera design preview",
+  "short_name": "Jera preview",
+  "id": "studio.zojer.jera.design-preview",
+  "start_url": "/",
+  "display": "standalone",
+  "app": {
+    "id": "studio.zojer.jera.design-preview",
+    "name": "Jera design preview"
+  },
+  "host": {
+    "ios": {
+      "minimumOS": "17.0",
+      "deviceFamily": [
+        "iphone",
+        "ipad"
+      ]
+    },
+    "macos": {
+      "minimumOS": "14.0",
+      "window": {
+        "width": 900,
+        "height": 700
+      }
+    },
+    "web": {}
+  },
+  "deploy": {
+    "store": {
+      "web": "0",
+      "macos": "0",
+      "ios": "0",
+      "linux": "0"
+    }
+  },
+  "background_color": "#1A1714",
+  "theme_color": "#1A1714"
+}

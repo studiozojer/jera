@@ -1,0 +1,51 @@
+test "read an operator conversation and return to the stream"
+  tap "thread-seed-2"
+  clock settle
+  expect text "thread-body-seed-3" == "We start asking what needs tending. Some ideas need another season; some need room around them."
+  tap "back"
+  clock settle
+  expect tree has "write"
+
+test "cancel preserves a draft and posting retains exact symbols"
+  tap "write"
+  clock settle
+  expect disabled "post"
+  type "composer" "A thought ♍︎ ♍️ :virgo:"
+  tap "cancel"
+  clock settle
+  tap "write"
+  clock settle
+  expect text "composer" == "A thought ♍︎ ♍️ :virgo:"
+  tap "post"
+  clock settle
+  expect text "thread-body-post-6" == "A thought ♍︎ ♍️ :virgo:"
+  tap "reply"
+  clock settle
+  expect text "composer" == ""
+  type "composer" "There is room for another angle."
+  tap "post"
+  clock settle
+  expect text "thread-body-post-7" == "There is room for another angle."
+
+test "new-post and thread-reply drafts stay separate"
+  tap "write"
+  clock settle
+  type "composer" "An unfinished new post"
+  tap "cancel"
+  clock settle
+  tap "thread-seed-2"
+  clock settle
+  tap "reply"
+  clock settle
+  expect text "composer" == ""
+  type "composer" "An unfinished reply"
+  tap "cancel"
+  clock settle
+  tap "write"
+  clock settle
+  expect text "composer" == "An unfinished new post"
+  tap "cancel"
+  clock settle
+  tap "reply"
+  clock settle
+  expect text "composer" == "An unfinished reply"

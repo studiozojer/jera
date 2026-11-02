@@ -1,0 +1,63 @@
+// Layout values from daoUI/Sources/DaoUI/DesignTokens.swift at 85fb2ac.
+fn spaceSm(): number = 8
+fn spaceMd(): number = 12
+fn spaceLg(): number = 16
+fn spaceXl(): number = 20
+fn spaceXxl(): number = 24
+fn spaceXxxl(): number = 32
+fn radiusSm(): number = 6
+fn radiusMd(): number = 8
+fn minTouchTarget(): number = 44
+
+// Scalable text insets contain Whyte ink beyond the browser line box.
+// Exact typography expression of daoUI/type.json at 85fb2ac.
+// Family/size names retain the shared ramp; rem values scale with text size.
+style WhyteSm
+  padding-right = "0.5rem"
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+
+style WhyteXs
+  padding-top = "0.125rem"
+  padding-bottom = "0.125rem"
+  font-family = "Whyte"
+  font-size = "0.8125rem"
+  line-height = "1rem"
+
+style WhyteMd
+  padding-right = "0.5rem"
+  font-family = "Whyte Inktrap"
+  font-size = "1.25rem"
+  line-height = "2rem"
+
+style WhyteLg
+  font-family = "Whyte Inktrap"
+  font-size = "1.625rem"
+  line-height = "2.625rem"
+
+style QuietAction
+  box-sizing = "border-box"
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  color = "tx.secondary"
+  :hover
+    background-color = "bg.field"
+  :focus-visible
+    box-shadow = "0 0 0 2px tx.link"
+
+style PrimaryAction
+  box-sizing = "border-box"
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  background-color = "bg.action"
+  color = "tx.on-action"
+  :hover
+    background-color = "bg.action-hover"
+  :active
+    background-color = "bg.action-pressed"
+  :disabled
+    background-color = "bg.field"
+    color = "tx.secondary"

@@ -1,0 +1,84 @@
+use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusSm, radiusMd, minTouchTarget from "./dao.contract"
+use Post, Author, Draft from "./post.contract"
+use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction, PrimaryAction from "./dao.contract"
+use Chrome from "./chrome.contract"
+
+font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
+font "Whyte Inktrap" = "assets/fonts/ABCWhyteInktrap-Regular.otf"
+
+routes nav
+  home "/"
+    thread "/thread/:id"
+    compose "/write"
+    account "/account"
+
+component App
+  state posts = [Post(id="seed-1", root="", author="David", handle="david", initial="D", body="A thought doesn't have to become a task to be worth keeping.", stamp="12m"), Post(id="seed-2", root="", author="David", handle="david", initial="D", body="@kepler What changes when we treat memory as a garden?", stamp="1h"), Post(id="seed-3", root="seed-2", author="Kepler", handle="kepler", initial="K", body="We start asking what needs tending. Some ideas need another season; some need room around them.", stamp="58m"), Post(id="seed-4", root="seed-2", author="David", handle="david", initial="D", body="Yes. And pruning can be a kind of care.", stamp="55m"), Post(id="seed-5", root="", author="Albers", handle="albers", initial="A", body="A first sketch: give the thought room, keep the conversation close, and see what grows.", stamp="2h")]
+  state drafts = [Draft(context="", body="")]
+  state replyTo = ""
+  derive draft = match first(drafts.filter(d => d.context == replyTo)) { case some(d) => d.body, case none => "" }
+  task defaultTheme mount
+    after(1, darkTheme)
+  action darkTheme
+    setScheme("dark")
+  action follow(url: string)
+    nav = go(nav, url)
+  action dismiss
+    nav = back(nav)
+  action write
+    replyTo = ""
+    nav = push(nav, "/write")
+  action reply(id: string)
+    replyTo = id
+    nav = push(nav, "/write")
+  action edit(value: string)
+    drafts = drafts.filter(d => d.context != replyTo).concat([Draft(context=replyTo, body=value)])
+  action post
+    if draft.trim() != ""
+      let id = `post-${posts.length + 1}`
+      let root = replyTo == "" ? id : replyTo
+      posts = posts.concat([Post(id=id, root=replyTo, author="David", handle="david", initial="D", body=draft, stamp="now")])
+      drafts = drafts.filter(d => d.context != replyTo)
+      nav = go(nav, path("thread", root))
+  action account
+    nav = push(nav, "/account")
+  view
+    main navigationKey=`${top(nav).id}` navigationBack="back" navigate=follow width="100%" height="100%" color-scheme="dark" font-family="Whyte" background-color="bg.base" color="tx.primary" interactive-widget="resizes-content" display="flex" flex-direction="column"
+      for entry in stack(nav) key=entry.id
+        if entry.name == "home"
+          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0
+            Chrome(account=account, write=write)
+            scroll id="stream" flex=1 min-height=0
+              column width="100%" max-width="40rem" margin="0 auto" box-sizing="border-box" padding-top=spaceXl() padding-right=spaceXxl() padding-bottom=(spaceXxxl() * 2) padding-left=spaceXxl()
+                for item in posts.filter(p => p.root == "") key=item.id
+                  article padding-top=spaceXxl() padding-bottom=spaceXxl() border-top="0.5px solid bd.primary" display="flex" flex-direction="column" gap=spaceLg()
+                    Author(post=item)
+                    text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
+                    link href=path("thread", item.id) testId=`thread-${item.id}` class=QuietAction align-self="flex-start" min-height=minTouchTarget() display="flex" align-items="center" padding=0 min-width=minTouchTarget() border-radius=radiusSm() text-decoration="none" aria-label=`Open conversation by ${item.author}`
+                      text (posts.filter(p => p.root == item.id).length == 0 ? "Reply" : `${posts.filter(p => p.root == item.id).length} ${posts.filter(p => p.root == item.id).length == 1 ? "reply" : "replies"}`) class=WhyteXs
+                text "Sample conversations" color="tx.secondary" class=WhyteXs padding-top=spaceXxl()
+        if entry.name == "thread"
+          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0
+            Chrome(account=account, write=write)
+            scroll id="conversation" flex=1 min-height=0
+              column width="100%" max-width="40rem" margin="0 auto" box-sizing="border-box" padding-top=spaceSm() padding-right=spaceXxl() padding-bottom=(spaceXxxl() * 2) padding-left=spaceXxl()
+                row align-items="center" gap=spaceMd() padding-bottom=spaceLg()
+                  button "←" id="back" press=dismiss aria-label="Back to conversations" testId="back" appearance="none" class=QuietAction width="2.75rem" min-height=minTouchTarget() padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
+                  text "Thread" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
+                for item in posts.filter(p => p.id == entry.params.id or p.root == entry.params.id) key=item.id
+                  article padding-top=spaceXxl() padding-bottom=spaceXxl() border-top="0.5px solid bd.primary" display="flex" flex-direction="column" gap=spaceLg()
+                    Author(post=item)
+                    text item.body class=(item.id == entry.params.id ? WhyteMd : WhyteSm) white-space="pre-wrap" testId=`thread-body-${item.id}`
+                button "Reply" press=reply(entry.params.id) testId="reply" appearance="none" class=QuietAction font-family="Whyte" min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceXl() padding-right=spaceXl() border-width=0 border-radius=radiusMd() align-self="flex-start" margin-top=spaceLg()
+        if entry.name == "compose"
+          column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="bg.base" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"
+            row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
+              button "Cancel" id="back" press=dismiss testId="cancel" appearance="none" class=QuietAction min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceMd() padding-right=spaceMd() border-width=0 border-radius=radiusMd() background-color="transparent" font-family="Whyte"
+              text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
+              button "Post" press=post testId="post" disabled=(draft.trim() == "") appearance="none" class=PrimaryAction font-family="Whyte" min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceXl() padding-right=spaceXl() border-width=0 border-radius=radiusMd()
+            textarea id="composer" value=draft input=edit placeholder=(replyTo == "" ? "What's on your mind?" : "Continue the conversation…") aria-label=(replyTo == "" ? "Write a post" : "Write a reply") testId="composer" rows=8 min-height=224 width="100%" box-sizing="border-box" padding-top=spaceSm() padding-bottom=spaceSm() border-width=0 background-color="transparent" color="tx.primary" font-family="Whyte" class=WhyteSm resize="none"
+        if entry.name == "account"
+          column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 padding=spaceXxl() gap=spaceLg() background-color="bg.base" color="tx.primary"
+            text "David" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteLg
+            text "Sample account · design preview" color="tx.secondary"
+            button "Done" id="back" press=dismiss testId="account-done" min-height=minTouchTarget()

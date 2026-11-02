@@ -1,0 +1,27 @@
+use spaceMd, radiusMd from "./dao.contract"
+use WhyteSm, WhyteXs from "./dao.contract"
+
+shape Post
+  id: string
+  root: string
+  author: string
+  handle: string
+  initial: string
+  body: string
+  stamp: string
+
+component Author
+  props
+    post: Post
+  view
+    row gap=spaceMd() align-items="center"
+      box width="2.25rem" height="2.25rem" flex-shrink=0 border-radius=radiusMd() background-color="bg.field" display="flex" align-items="center" justify-content="center" aria-hidden=true
+        text post.initial color="tx.secondary" class=WhyteXs
+      column gap=2 min-width=0 flex=1
+        text post.author class=WhyteSm
+        text `@${post.handle} · ${post.stamp}` color="tx.secondary" class=WhyteXs
+
+
+shape Draft
+  context: string
+  body: string
