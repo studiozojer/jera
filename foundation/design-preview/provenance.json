@@ -19,9 +19,14 @@
         "assets/fonts/ABCWhyteEdu-Book.otf": "427e310b6116e2cb00e3c84f7e7157ee64a723b4da88af6c226b4a4ae06e44d0",
         "assets/fonts/ABCWhyteInktrap-Regular.otf": "6066690c00eac7d8dd8651ca2286436c64e3bb8eae4529366ca9a640ae245030"
       }
+    },
+    "threads_reference": {
+      "source": "David’s attached screenshot and message, 2026-11-01; retained in composed commons projects/jera/sources/2026-11-01-threads-composition-reference.md",
+      "image_sha256": "1101c479d66a3607bb4e38f24cd19f4ed390898909662fe4f10b1aee40d1c13c",
+      "scope": "Composition reference; no Threads assets or source code copied into the application"
     }
   },
-  "local_expression": "Shared chrome, post author and thread components. Canonical type sizes/leading are retained; scalable insets contain browser font ink. Reading width, post spacing and preview-only fixture state are local composition choices. Gold action colors retain David's existing approved Jera mapping.",
+  "local_expression": "Shared chrome, post author and thread components. Canonical type sizes/leading are retained; scalable insets contain browser font ink. David’s Threads screenshot guides a single rounded reading-column outline, post dividers, inline author/timestamp and a viewport-anchored outlined Write control. His text specifies bottom left and the existing account-avatar position, with no sidebar. Header placement from daoUI’s earlier reading guidance is adapted for this use case. The post layout wraps for enlarged text; a separate lower action area prevents Write from covering the scroller. Reading width, preview-only fixture state and this composition remain local choices. Gold action colors retain David’s existing approved Jera mapping in the composer.",
   "limits": [
     "Synthetic sample accounts and posts",
     "No login, network requests, backend writes or live model replies",

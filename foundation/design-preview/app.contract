@@ -1,7 +1,7 @@
-use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusSm, radiusMd, minTouchTarget from "./dao.contract"
-use Post, Author, Draft from "./post.contract"
+use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusSm, radiusMd, radiusFull, minTouchTarget from "./dao.contract"
+use Post, Author, PostAvatar, Draft from "./post.contract"
 use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction, PrimaryAction from "./dao.contract"
-use Chrome from "./chrome.contract"
+use Chrome, WriteButton from "./chrome.contract"
 
 font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
 font "Whyte Inktrap" = "assets/fonts/ABCWhyteInktrap-Regular.otf"
@@ -48,29 +48,39 @@ component App
       for entry in stack(nav) key=entry.id
         if entry.name == "home"
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0
-            Chrome(account=account, write=write)
-            scroll id="stream" flex=1 min-height=0
-              column width="100%" max-width="40rem" margin="0 auto" box-sizing="border-box" padding-top=spaceXl() padding-right=spaceXxl() padding-bottom=(spaceXxxl() * 2) padding-left=spaceXxl()
-                for item in posts.filter(p => p.root == "") key=item.id
-                  article padding-top=spaceXxl() padding-bottom=spaceXxl() border-top="0.5px solid bd.primary" display="flex" flex-direction="column" gap=spaceLg()
-                    Author(post=item)
-                    text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
-                    link href=path("thread", item.id) testId=`thread-${item.id}` class=QuietAction align-self="flex-start" min-height=minTouchTarget() display="flex" align-items="center" padding=0 min-width=minTouchTarget() border-radius=radiusSm() text-decoration="none" aria-label=`Open conversation by ${item.author}`
-                      text (posts.filter(p => p.root == item.id).length == 0 ? "Reply" : `${posts.filter(p => p.root == item.id).length} ${posts.filter(p => p.root == item.id).length == 1 ? "reply" : "replies"}`) class=WhyteXs
+            Chrome(account=account)
+            scroll id="stream" flex=1 min-height=0 margin-bottom="6rem"
+              column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-top=spaceSm() padding-right=spaceMd() padding-bottom=spaceXxl() padding-left=spaceMd()
+                column border="1px solid bd.primary" border-radius=radiusFull() overflow="hidden"
+                  for item, index in posts.filter(p => p.root == "") key=item.id
+                    article padding=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
+                      row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
+                        PostAvatar(post=item)
+                        column flex=1 flex-basis="12rem" min-width=0 gap=spaceSm()
+                          Author(post=item)
+                          text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
+                          link href=path("thread", item.id) testId=`thread-${item.id}` class=QuietAction align-self="flex-start" min-height=minTouchTarget() display="flex" align-items="center" padding=0 min-width=minTouchTarget() border-radius=radiusSm() text-decoration="none" aria-label=`Open conversation by ${item.author}`
+                            text (posts.filter(p => p.root == item.id).length == 0 ? "Reply" : `${posts.filter(p => p.root == item.id).length} ${posts.filter(p => p.root == item.id).length == 1 ? "reply" : "replies"}`) class=WhyteXs
                 text "Sample conversations" color="tx.secondary" class=WhyteXs padding-top=spaceXxl()
+            WriteButton(write=write)
         if entry.name == "thread"
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0
-            Chrome(account=account, write=write)
-            scroll id="conversation" flex=1 min-height=0
-              column width="100%" max-width="40rem" margin="0 auto" box-sizing="border-box" padding-top=spaceSm() padding-right=spaceXxl() padding-bottom=(spaceXxxl() * 2) padding-left=spaceXxl()
-                row align-items="center" gap=spaceMd() padding-bottom=spaceLg()
-                  button "←" id="back" press=dismiss aria-label="Back" testId="back" appearance="none" class=QuietAction width="2.75rem" min-height=minTouchTarget() padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
-                  text "Thread" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
-                for item in posts.filter(p => p.id == entry.params.id or p.root == entry.params.id) key=item.id
-                  article padding-top=spaceXxl() padding-bottom=spaceXxl() border-top="0.5px solid bd.primary" display="flex" flex-direction="column" gap=spaceLg()
-                    Author(post=item)
-                    text item.body class=(item.id == entry.params.id ? WhyteMd : WhyteSm) white-space="pre-wrap" testId=`thread-body-${item.id}`
-                button "Reply" press=reply(entry.params.id) testId="reply" appearance="none" class=QuietAction font-family="Whyte" min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceXl() padding-right=spaceXl() border-width=0 border-radius=radiusMd() align-self="flex-start" margin-top=spaceLg()
+            Chrome(account=account)
+            scroll id="conversation" flex=1 min-height=0 margin-bottom="6rem"
+              column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-top=spaceSm() padding-right=spaceMd() padding-bottom=spaceXxl() padding-left=spaceMd()
+                column border="1px solid bd.primary" border-radius=radiusFull() overflow="hidden"
+                  row align-items="center" gap=spaceMd() padding=spaceXxl()
+                    button "←" id="back" press=dismiss aria-label="Back" testId="back" appearance="none" class=QuietAction width="2.75rem" min-height=minTouchTarget() padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
+                    text "Thread" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
+                  for item in posts.filter(p => p.id == entry.params.id or p.root == entry.params.id) key=item.id
+                    article padding=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column" gap=spaceSm()
+                      row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
+                        PostAvatar(post=item)
+                        column flex=1 flex-basis="12rem" min-width=0 gap=spaceSm()
+                          Author(post=item)
+                          text item.body class=(item.id == entry.params.id ? WhyteMd : WhyteSm) white-space="pre-wrap" testId=`thread-body-${item.id}`
+                  button "Reply" press=reply(entry.params.id) testId="reply" appearance="none" class=QuietAction font-family="Whyte" min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceXl() padding-right=spaceXl() border-width=0 border-radius=radiusMd() align-self="flex-start" margin-left=spaceLg() margin-bottom=spaceXxl()
+            WriteButton(write=write)
         if entry.name == "compose"
           column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="bg.base" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"
             row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"

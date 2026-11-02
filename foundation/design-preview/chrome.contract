@@ -1,17 +1,22 @@
-use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, radiusMd, minTouchTarget from "./dao.contract"
+use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusMd, radiusXl, minTouchTarget from "./dao.contract"
 use JeraWordmark from "./brand.contract"
-use WhyteXs, PrimaryAction from "./dao.contract"
+use WhyteXs, WhyteLg, QuietAction from "./dao.contract"
 
 component Chrome
   props
     account: action
-    write: action
   view
     box role="banner" padding-top=spaceXl() padding-bottom=spaceXl() padding-left=spaceXxl() padding-right=spaceXxl() width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" display="flex" align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
       row gap=spaceMd() align-items="center" flex-wrap="wrap"
         JeraWordmark()
         text "Preview" color="tx.secondary" class=WhyteXs
       row gap=spaceMd() align-items="center" flex-wrap="wrap"
-        button "Write" press=write testId="write" appearance="none" class=PrimaryAction min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceXl() padding-right=spaceXl() border-width=0 border-radius=radiusMd()
         button press=account aria-label="Your account" testId="account" appearance="none" width="2.75rem" height="2.75rem" padding=0 border-width=0 border-radius=radiusMd() background-color="bg.field" color="tx.primary"
           text "D"
+
+component WriteButton
+  props
+    write: action
+  view
+    button press=write aria-label="Write a post" testId="write" appearance="none" class=QuietAction position="absolute" left=spaceXxl() bottom=spaceXxl() z-index=10 width="4rem" height="4rem" padding=0 display="flex" align-items="center" justify-content="center" border="1px solid bd.primary" border-radius=radiusXl() background-color="bg.base" color="tx.primary"
+      text "+" class=WhyteLg aria-hidden=true

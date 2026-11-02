@@ -7,6 +7,8 @@ fn spaceXxl(): number = 24
 fn spaceXxxl(): number = 32
 fn radiusSm(): number = 6
 fn radiusMd(): number = 8
+fn radiusXl(): number = 16
+fn radiusFull(): number = 32
 fn minTouchTarget(): number = 44
 
 // Scalable text insets contain Whyte ink beyond the browser line box.

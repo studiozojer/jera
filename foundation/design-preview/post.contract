@@ -10,16 +10,20 @@ shape Post
   body: string
   stamp: string
 
+component PostAvatar
+  props
+    post: Post
+  view
+    box width="2.25rem" height="2.25rem" flex-shrink=0 border-radius=radiusMd() background-color="bg.field" display="flex" align-items="center" justify-content="center" aria-hidden=true
+      text post.initial color="tx.secondary" class=WhyteXs
+
 component Author
   props
     post: Post
   view
-    row gap=spaceMd() align-items="center"
-      box width="2.25rem" height="2.25rem" flex-shrink=0 border-radius=radiusMd() background-color="bg.field" display="flex" align-items="center" justify-content="center" aria-hidden=true
-        text post.initial color="tx.secondary" class=WhyteXs
-      column gap=2 min-width=0 flex=1
-        text post.author class=WhyteSm
-        text `@${post.handle} · ${post.stamp}` color="tx.secondary" class=WhyteXs
+    row gap=spaceMd() align-items="center" flex-wrap="wrap" min-width=0
+      text post.author class=WhyteSm
+      text post.stamp color="tx.secondary" class=WhyteXs
 
 
 shape Draft
