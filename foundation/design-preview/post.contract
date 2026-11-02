@@ -1,5 +1,5 @@
 use spaceSm, spaceMd, radiusMd, minTouchTarget from "./dao.contract"
-use WhyteSm, WhyteXs, PostAction, QuietAction from "./dao.contract"
+use WhyteSm, WhyteXs, PostAction, PostGlyph, QuietAction from "./dao.contract"
 
 shape Post
   id: string
@@ -47,16 +47,16 @@ component PostActions
     clearance: number
   view
     row gap=0 align-items="center" flex-wrap="wrap"
-      button disabled=true aria-label="Like" testId=`like-${context}` appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
-        image "symbol:heart" font-size="1.25rem" aria-hidden=true
+      button disabled=true cursor="default" aria-label="Like" testId=`like-${context}` appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
+        image "symbol:heart" class=PostGlyph aria-hidden=true
       button press=comment aria-label=`${commentLabel}: ${post.author}, ${post.body.slice(0, 64)}` testId=commentId appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center" gap=spaceSm()
-        image "symbol:icon.post-comment" font-size="1.25rem" aria-hidden=true
+        image "symbol:icon.post-comment" class=PostGlyph aria-hidden=true
         if comments > 0
           text `${comments}` class=WhyteXs
-      button disabled=true aria-label="Repost" testId=`repost-${context}` appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
-        image "symbol:repeat" font-size="1.25rem" aria-hidden=true
-      button disabled=true aria-label="Send" testId=`send-${context}` appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
-        image "symbol:icon.post-send" font-size="1.25rem" aria-hidden=true
+      button disabled=true cursor="default" aria-label="Repost" testId=`repost-${context}` appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
+        image "symbol:repeat" class=PostGlyph aria-hidden=true
+      button disabled=true cursor="default" aria-label="Send" testId=`send-${context}` appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
+        image "symbol:icon.post-send" class=PostGlyph aria-hidden=true
 
 
 shape Draft

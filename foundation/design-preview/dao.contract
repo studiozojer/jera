@@ -40,17 +40,21 @@ style WhyteLg
   line-height = "2.625rem"
 
 style QuietAction
+  cursor = "pointer"
   box-sizing = "border-box"
   font-family = "Whyte"
   font-size = "1rem"
   line-height = "1.5rem"
   color = "tx.secondary"
   :hover
-    background-color = "bg.field"
+    background-color = "bg.hover"
+  :active
+    background-color = "bg.pressed"
   :focus-visible
     box-shadow = "0 0 0 2px tx.link"
 
 style PrimaryAction
+  cursor = "pointer"
   box-sizing = "border-box"
   font-family = "Whyte"
   font-size = "1rem"
@@ -67,14 +71,22 @@ style PrimaryAction
 
 // Quiet post affordances; unavailable social actions remain visibly disabled.
 style PostAction
+  cursor = "pointer"
   box-sizing = "border-box"
   font-family = "Whyte"
   font-size = "1rem"
   line-height = "1.5rem"
   color = "tx.secondary"
   :hover
-    background-color = "bg.field"
+    background-color = "bg.hover"
+  :active
+    background-color = "bg.pressed"
   :focus-visible
     box-shadow = "0 0 0 2px tx.link"
   :disabled
     opacity = 0.45
+
+// Post glyphs align with daoUI's Whyte/sm size (16px at the default root).
+// The surrounding button retains its larger touch target.
+style PostGlyph
+  font-size = "1rem"

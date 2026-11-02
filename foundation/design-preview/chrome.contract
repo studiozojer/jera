@@ -12,7 +12,7 @@ component Chrome
         JeraWordmark(scale=(compact ? 1.6 : 2))
         text "Preview" color="tx.secondary" class=WhyteXs
       row gap=spaceMd() align-items="center" flex-wrap="wrap"
-        button press=account aria-label="Your account" testId="account" appearance="none" width="2.75rem" height="2.75rem" padding=0 border-width=0 border-radius=radiusMd() background-color="bg.field" color="tx.primary"
+        button press=account aria-label="Your account" testId="account" appearance="none" class=QuietAction width="2.75rem" height="2.75rem" padding=0 border-width=0 border-radius=radiusMd() background-color="bg.field" color="tx.primary"
           text "D"
 
 component WriteButton
