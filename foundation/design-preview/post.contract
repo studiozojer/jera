@@ -4,6 +4,7 @@ use WhyteSm, WhyteXs, PostAction, PostGlyph, QuietAction from "./dao.contract"
 shape Post
   id: string
   root: string
+  parent: string
   author: string
   handle: string
   initial: string
@@ -62,3 +63,5 @@ component PostActions
 shape Draft
   context: string
   body: string
+
+fn conversationRoot(posts: Post[], id: string): string = match first(posts.filter(p => p.id == id)) { case some(p) => p.root == "" ? p.id : p.root, case none => id }
