@@ -36,10 +36,11 @@ component App
   action post
     if draft.trim() != ""
       let id = `post-${posts.length + 1}`
-      let root = replyTo == "" ? id : replyTo
       posts = posts.concat([Post(id=id, root=replyTo, author="David", handle="david", initial="D", body=draft, stamp="now")])
       drafts = drafts.filter(d => d.context != replyTo)
-      nav = go(nav, path("thread", root))
+      // Posting consumes the temporary composer. A reply returns to its
+      // existing thread; a new post opens above the screen that invoked it.
+      nav = replyTo == "" ? push(back(nav), path("thread", id)) : back(nav)
   action account
     nav = push(nav, "/account")
   view
@@ -63,7 +64,7 @@ component App
             scroll id="conversation" flex=1 min-height=0
               column width="100%" max-width="40rem" margin="0 auto" box-sizing="border-box" padding-top=spaceSm() padding-right=spaceXxl() padding-bottom=(spaceXxxl() * 2) padding-left=spaceXxl()
                 row align-items="center" gap=spaceMd() padding-bottom=spaceLg()
-                  button "←" id="back" press=dismiss aria-label="Back to conversations" testId="back" appearance="none" class=QuietAction width="2.75rem" min-height=minTouchTarget() padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
+                  button "←" id="back" press=dismiss aria-label="Back" testId="back" appearance="none" class=QuietAction width="2.75rem" min-height=minTouchTarget() padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
                   text "Thread" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
                 for item in posts.filter(p => p.id == entry.params.id or p.root == entry.params.id) key=item.id
                   article padding-top=spaceXxl() padding-bottom=spaceXxl() border-top="0.5px solid bd.primary" display="flex" flex-direction="column" gap=spaceLg()

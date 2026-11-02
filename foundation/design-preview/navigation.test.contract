@@ -1,0 +1,29 @@
+test "posting from the stream consumes the composer before returning"
+  tap "write"
+  clock settle
+  type "composer" "A new thought from the stream."
+  tap "post"
+  clock settle
+  expect text "thread-body-post-6" == "A new thought from the stream."
+  tap "back"
+  clock settle
+  expect tree missing "composer"
+  expect text "body-post-6" == "A new thought from the stream."
+
+test "posting from a thread returns to that thread without a completed composer"
+  tap "thread-seed-2"
+  clock settle
+  tap "write"
+  clock settle
+  type "composer" "A related thought in a new post."
+  tap "post"
+  clock settle
+  expect text "thread-body-post-6" == "A related thought in a new post."
+  tap "back"
+  clock settle
+  expect tree missing "composer"
+  expect text "thread-body-seed-2" == "@kepler What changes when we treat memory as a garden?"
+  tap "back"
+  clock settle
+  expect tree missing "composer"
+  expect text "body-post-6" == "A related thought in a new post."
