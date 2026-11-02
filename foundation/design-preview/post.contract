@@ -21,6 +21,7 @@ component Author
   props
     post: Post
     menuId: string
+    clearance: number
   action copyPost
     copyText(post.body)
   view
@@ -28,7 +29,7 @@ component Author
       row gap=spaceMd() align-items="center" flex-wrap="wrap" min-width=0 flex=1 flex-basis="8rem"
         text post.author class=WhyteSm
         text post.stamp color="tx.secondary" class=WhyteXs
-      button popovertarget=menuId aria-label=`More options for ${post.author}: ${post.body.slice(0, 64)}` testId=`more-${menuId}` appearance="none" class=PostAction width="2.75rem" min-height=minTouchTarget() margin-left="auto" margin-top=(0 - spaceSm()) margin-bottom=(0 - spaceSm()) display="flex" align-items="center" justify-content="center" padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
+      button popovertarget=menuId aria-label=`More options for ${post.author}: ${post.body.slice(0, 64)}` testId=`more-${menuId}` appearance="none" class=PostAction scroll-margin-top=clearance width="2.75rem" min-height=minTouchTarget() margin-left="auto" margin-top=(0 - spaceSm()) margin-bottom=(0 - spaceSm()) display="flex" align-items="center" justify-content="center" padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
         image "symbol:ellipsis" font-size="1.25rem" aria-hidden=true
       column id=menuId popover="auto" role="menu" aria-label=`Post by ${post.author}` testId=menuId padding=spaceSm() border="1px solid bd.primary" border-radius=radiusMd() background-color="bg.card" color="tx.primary"
         button press=copyPost popovertarget=menuId popovertargetaction="hide" testId=`copy-${menuId}` appearance="none" class=QuietAction min-height=minTouchTarget() padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" gap=spaceSm()
@@ -43,17 +44,18 @@ component PostActions
     commentId: string
     commentLabel: string
     context: string
+    clearance: number
   view
     row gap=0 align-items="center" flex-wrap="wrap"
-      button disabled=true aria-label="Like" testId=`like-${context}` appearance="none" class=PostAction min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
+      button disabled=true aria-label="Like" testId=`like-${context}` appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
         image "symbol:heart" font-size="1.25rem" aria-hidden=true
-      button press=comment aria-label=`${commentLabel}: ${post.author}, ${post.body.slice(0, 64)}` testId=commentId appearance="none" class=PostAction min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center" gap=spaceSm()
+      button press=comment aria-label=`${commentLabel}: ${post.author}, ${post.body.slice(0, 64)}` testId=commentId appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center" gap=spaceSm()
         image "symbol:icon.post-comment" font-size="1.25rem" aria-hidden=true
         if comments > 0
           text `${comments}` class=WhyteXs
-      button disabled=true aria-label="Repost" testId=`repost-${context}` appearance="none" class=PostAction min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
+      button disabled=true aria-label="Repost" testId=`repost-${context}` appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
         image "symbol:repeat" font-size="1.25rem" aria-hidden=true
-      button disabled=true aria-label="Send" testId=`send-${context}` appearance="none" class=PostAction min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
+      button disabled=true aria-label="Send" testId=`send-${context}` appearance="none" class=PostAction scroll-margin-top=clearance min-width="2.75rem" min-height="2.75rem" padding=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" display="flex" align-items="center" justify-content="center"
         image "symbol:icon.post-send" font-size="1.25rem" aria-hidden=true
 
 
