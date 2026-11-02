@@ -1,4 +1,7 @@
 test "read an operator conversation and return to the stream"
+  expect disabled "like-stream-seed-2"
+  expect disabled "repost-stream-seed-2"
+  expect disabled "send-stream-seed-2"
   tap "thread-seed-2"
   clock settle
   expect text "thread-body-seed-3" == "We start asking what needs tending. Some ideas need another season; some need room around them."
@@ -18,14 +21,14 @@ test "cancel preserves a draft and posting retains exact symbols"
   expect text "composer" == "A thought ♍︎ ♍️ :virgo:"
   tap "post"
   clock settle
-  expect text "thread-body-post-6" == "A thought ♍︎ ♍️ :virgo:"
+  expect text "thread-body-post-61" == "A thought ♍︎ ♍️ :virgo:"
   tap "reply"
   clock settle
   expect text "composer" == ""
   type "composer" "There is room for another angle."
   tap "post"
   clock settle
-  expect text "thread-body-post-7" == "There is room for another angle."
+  expect text "thread-body-post-62" == "There is room for another angle."
 
 test "new-post and thread-reply drafts stay separate"
   tap "write"

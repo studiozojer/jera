@@ -63,3 +63,17 @@ style PrimaryAction
   :disabled
     background-color = "bg.field"
     color = "tx.secondary"
+
+// Quiet post affordances; unavailable social actions remain visibly disabled.
+style PostAction
+  box-sizing = "border-box"
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  color = "tx.secondary"
+  :hover
+    background-color = "bg.field"
+  :focus-visible
+    box-shadow = "0 0 0 2px tx.link"
+  :disabled
+    opacity = 0.45

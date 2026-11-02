@@ -24,9 +24,17 @@
       "source": "David’s attached screenshot and message, 2026-11-01; retained in composed commons projects/jera/sources/2026-11-01-threads-composition-reference.md",
       "image_sha256": "1101c479d66a3607bb4e38f24cd19f4ed390898909662fe4f10b1aee40d1c13c",
       "scope": "Composition reference; no Threads assets or source code copied into the application"
+    },
+    "post_icons": {
+      "source": "Original local outline geometry in assets/icons; shared Exact roles for heart, repeat, ellipsis and copy",
+      "mapping": "app.tamber icon.post-comment and icon.post-send, with bubble.left and paperplane SF mappings for Apple",
+      "files": {
+        "assets/icons/post-comment.svg": "2213df19c722a5ca1c942825ad1af843506d2eb6ccff6214997a2e36808944fa",
+        "assets/icons/post-send.svg": "bd9d0f483ced8c7f774d831b46ac6e2c3c785446fb0ede72c8ab022aede6b456"
+      }
     }
   },
-  "local_expression": "Shared chrome, post author and thread components. Canonical type sizes/leading are retained; scalable insets contain browser font ink. David’s Threads screenshot guides a single rounded reading-column outline, post dividers, inline author/timestamp and a viewport-anchored outlined Write control. His text specifies bottom left and the existing account-avatar position, with no sidebar. Header placement from daoUI’s earlier reading guidance is adapted for this use case. The post layout wraps for enlarged text; a separate lower action area prevents Write from covering the scroller. Reading width, preview-only fixture state and this composition remain local choices. Gold action colors retain David’s existing approved Jera mapping in the composer.",
+  "local_expression": "Shared chrome, post author and thread components. Canonical type sizes/leading are retained; scalable insets contain browser font ink. David’s Threads screenshot guides a single rounded reading-column outline, post dividers, inline author/timestamp and a viewport-anchored outlined Write control. His text specifies bottom left and the existing account-avatar position, with no sidebar. Header placement from daoUI’s earlier reading guidance is adapted for this use case. The post layout wraps for enlarged text; a separate lower action area prevents Write from covering the scroller. Reading width, preview-only fixture state and this composition remain local choices. Gold action colors retain David’s existing approved Jera mapping in the composer. Post options and heart/comment/repost/send anatomy follow David’s follow-up request. Only comment and the Copy text menu action are enabled. The finite authored sample set contains forty root posts and twenty replies; it establishes composition at length, not pagination or virtualization.",
   "limits": [
     "Synthetic sample accounts and posts",
     "No login, network requests, backend writes or live model replies",

@@ -21,3 +21,8 @@ theme
   tx.link = #F7B667 scheme=fixed
   ic.disabled = light-dark(#3D403B26, #F3F6F826)
   bd.primary = light-dark(#3D403B26, #F3F6F826)
+
+// Local outline expressions for the post toolbar; use SF Symbols on Apple.
+icons
+  icon.post-comment = icon(sf "bubble.left", svg "icons/post-comment.svg")
+  icon.post-send = icon(sf "paperplane", svg "icons/post-send.svg")

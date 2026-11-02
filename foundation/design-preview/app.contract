@@ -1,5 +1,6 @@
 use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusSm, radiusMd, radiusFull, minTouchTarget from "./dao.contract"
-use Post, Author, PostAvatar, Draft from "./post.contract"
+use Post, Author, PostAvatar, PostActions, Draft from "./post.contract"
+use samplePosts from "./fixtures.contract"
 use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction, PrimaryAction from "./dao.contract"
 use Chrome, WriteButton from "./chrome.contract"
 
@@ -13,7 +14,7 @@ routes nav
     account "/account"
 
 component App
-  state posts = [Post(id="seed-1", root="", author="David", handle="david", initial="D", body="A thought doesn't have to become a task to be worth keeping.", stamp="12m"), Post(id="seed-2", root="", author="David", handle="david", initial="D", body="@kepler What changes when we treat memory as a garden?", stamp="1h"), Post(id="seed-3", root="seed-2", author="Kepler", handle="kepler", initial="K", body="We start asking what needs tending. Some ideas need another season; some need room around them.", stamp="58m"), Post(id="seed-4", root="seed-2", author="David", handle="david", initial="D", body="Yes. And pruning can be a kind of care.", stamp="55m"), Post(id="seed-5", root="", author="Albers", handle="albers", initial="A", body="A first sketch: give the thought room, keep the conversation close, and see what grows.", stamp="2h")]
+  state posts = samplePosts()
   state drafts = [Draft(context="", body="")]
   state replyTo = ""
   derive draft = match first(drafts.filter(d => d.context == replyTo)) { case some(d) => d.body, case none => "" }
@@ -57,10 +58,9 @@ component App
                       row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
                         PostAvatar(post=item)
                         column flex=1 flex-basis="12rem" min-width=0 gap=spaceSm()
-                          Author(post=item)
+                          Author(post=item, menuId=`stream-menu-${item.id}`)
                           text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
-                          link href=path("thread", item.id) testId=`thread-${item.id}` class=QuietAction align-self="flex-start" min-height=minTouchTarget() display="flex" align-items="center" padding=0 min-width=minTouchTarget() border-radius=radiusSm() text-decoration="none" aria-label=`Open conversation by ${item.author}`
-                            text (posts.filter(p => p.root == item.id).length == 0 ? "Reply" : `${posts.filter(p => p.root == item.id).length} ${posts.filter(p => p.root == item.id).length == 1 ? "reply" : "replies"}`) class=WhyteXs
+                          PostActions(post=item, comments=posts.filter(p => p.root == item.id).length, comment=follow(path("thread", item.id)), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`)
                 text "Sample conversations" color="tx.secondary" class=WhyteXs padding-top=spaceXxl()
             WriteButton(write=write)
         if entry.name == "thread"
@@ -77,9 +77,9 @@ component App
                       row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
                         PostAvatar(post=item)
                         column flex=1 flex-basis="12rem" min-width=0 gap=spaceSm()
-                          Author(post=item)
+                          Author(post=item, menuId=`thread-menu-${entry.id}-${item.id}`)
                           text item.body class=(item.id == entry.params.id ? WhyteMd : WhyteSm) white-space="pre-wrap" testId=`thread-body-${item.id}`
-                  button "Reply" press=reply(entry.params.id) testId="reply" appearance="none" class=QuietAction font-family="Whyte" min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceXl() padding-right=spaceXl() border-width=0 border-radius=radiusMd() align-self="flex-start" margin-left=spaceLg() margin-bottom=spaceXxl()
+                          PostActions(post=item, comments=posts.filter(p => p.root == item.id).length, comment=reply(entry.params.id), commentId=(item.id == entry.params.id ? "reply" : `reply-${entry.id}-${item.id}`), commentLabel="Write a reply", context=`thread-${entry.id}-${item.id}`)
             WriteButton(write=write)
         if entry.name == "compose"
           column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="bg.base" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"

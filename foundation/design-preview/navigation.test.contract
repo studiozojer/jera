@@ -4,11 +4,11 @@ test "posting from the stream consumes the composer before returning"
   type "composer" "A new thought from the stream."
   tap "post"
   clock settle
-  expect text "thread-body-post-6" == "A new thought from the stream."
+  expect text "thread-body-post-61" == "A new thought from the stream."
   tap "back"
   clock settle
   expect tree missing "composer"
-  expect text "body-post-6" == "A new thought from the stream."
+  expect text "body-post-61" == "A new thought from the stream."
 
 test "posting from a thread returns to that thread without a completed composer"
   tap "thread-seed-2"
@@ -18,7 +18,7 @@ test "posting from a thread returns to that thread without a completed composer"
   type "composer" "A related thought in a new post."
   tap "post"
   clock settle
-  expect text "thread-body-post-6" == "A related thought in a new post."
+  expect text "thread-body-post-61" == "A related thought in a new post."
   tap "back"
   clock settle
   expect tree missing "composer"
@@ -26,4 +26,4 @@ test "posting from a thread returns to that thread without a completed composer"
   tap "back"
   clock settle
   expect tree missing "composer"
-  expect text "body-post-6" == "A related thought in a new post."
+  expect text "body-post-61" == "A related thought in a new post."
