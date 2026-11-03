@@ -93,8 +93,8 @@ component App
             scroll id="conversation" testId="conversation" aria-label="Conversation" tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
               column min-height="100%"
                 ThreadHeader(back=dismiss, compact=compact, measure=measureThreadHeader)
-                column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
-                  column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
+                column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd()) padding-bottom=(compact ? "5rem" : "6rem")
+                  column flex-shrink=0 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-bottom-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-bottom-style="solid" border-color="bd.primary" border-bottom-left-radius=(compact ? 0 : radiusFull()) border-bottom-right-radius=(compact ? 0 : radiusFull()) testId="thread-frame"
                     for focused in posts.filter(p => p.id == entry.params.id) key=focused.id
                       if focused.parent != ""
                         for parent in posts.filter(p => p.id == focused.parent) key=parent.id
@@ -103,7 +103,7 @@ component App
                       ThreadHero(post=focused, posts=posts, reply=reply, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
                       for child in posts.filter(p => p.parent == focused.id) key=child.id
                         ThreadBranch(post=child, posts=posts, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
-                    box height="env(safe-area-inset-bottom)" flex-shrink=0
+                  box height="env(safe-area-inset-bottom)" flex-shrink=0
             WriteButton(write=write, compact=compact)
         if entry.name == "compose"
           column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="bg.base" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"
