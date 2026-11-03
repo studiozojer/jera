@@ -13,7 +13,7 @@ component MenuTrigger
     testId: string
     clearance: number
   view
-    button appearance="none" id=`${menuId}-trigger` class=Action press=press aria-label=label aria-haspopup="menu" aria-expanded=expanded aria-controls=menuId disabled=disabled testId=testId min-width="2.75rem" min-height="2.75rem" scroll-margin-top=clearance padding=8 background-color="transparent" color=(disabled ? "dao.ic.disabled" : "dao.ic.secondary") cursor=(disabled ? "default" : "pointer")
+    button appearance="none" id=`${menuId}-trigger` class=Action press=press aria-label=label aria-haspopup="menu" aria-expanded=expanded aria-controls=menuId disabled=disabled testId=testId min-width="2.75rem" min-height="2.75rem" scroll-margin-top=clearance padding="dao.space.sm" background-color="transparent" color=(disabled ? "dao.ic.disabled" : "dao.ic.secondary") cursor=(disabled ? "default" : "pointer")
       :hover
         background-color="dao.bg.hover"
       :active
@@ -39,7 +39,7 @@ component Menu
   view
     row min-width=0 align-items="center"
       MenuTrigger(label=label, menuId=id, symbol=symbol, expanded=expanded, disabled=disabled, press=present, testId=testId, clearance=clearance)
-      column id=id testId=id popover="auto" role="menu" aria-label=label toggle=visibility padding=8 gap=4 border="1px solid dao.bd.primary" border-radius=8 background-color="dao.bg.solid.card" color="dao.tx.primary"
+      column id=id testId=id popover="auto" role="menu" aria-label=label toggle=visibility padding="dao.space.sm" gap="dao.space.xs" border="1px solid dao.bd.primary" border-radius="dao.radius.md" background-color="dao.bg.solid.card" color="dao.tx.primary"
         children
 
 component MenuItem
@@ -64,7 +64,7 @@ component DialogTrigger
   action openDialog
     showModal(dialogId)
   view
-    button appearance="none" class=Action press=openDialog aria-haspopup="dialog" aria-controls=dialogId disabled=disabled testId=testId min-height="2.75rem" padding="8px 16px" background-color="dao.bg.solid.card" color="dao.tx.primary" cursor=(disabled ? "default" : "pointer")
+    button appearance="none" class=Action press=openDialog aria-haspopup="dialog" aria-controls=dialogId disabled=disabled testId=testId min-height="2.75rem" padding-top="dao.space.sm" padding-right="dao.space.lg" padding-bottom="dao.space.sm" padding-left="dao.space.lg" background-color="dao.bg.solid.card" color="dao.tx.primary" cursor=(disabled ? "default" : "pointer")
       :hover
         background-color="dao.bg.hover"
       :active
@@ -81,9 +81,9 @@ component Dialog
     cancel: action
   slot
   view
-    dialog id=id testId=id aria-label=title cancel=cancel closedby="closerequest" width="100%" max-width="36rem" box-sizing="border-box" background-color="dao.bg.solid.card" color="dao.tx.primary" border="1px solid dao.bd.primary" border-radius=16
+    dialog id=id testId=id aria-label=title cancel=cancel closedby="closerequest" width="100%" max-width="36rem" box-sizing="border-box" background-color="dao.bg.solid.card" color="dao.tx.primary" border="1px solid dao.bd.primary" border-radius="dao.radius.xl"
       SheetHeader(title=title, context=context)
-      column padding="0 16px 16px" gap=12 min-width=0
+      column padding="0 16px 16px" gap="dao.space.md" min-width=0
         children
 
 component DialogClose
@@ -93,7 +93,7 @@ component DialogClose
     press: action
     testId: string
   view
-    button appearance="none" class=Action commandfor=dialogId command="close" press=press testId=testId min-height="2.75rem" padding="8px 16px" background-color="dao.bg.solid.button" color="dao.tx.button"
+    button appearance="none" class=Action commandfor=dialogId command="close" press=press testId=testId min-height="2.75rem" padding-top="dao.space.sm" padding-right="dao.space.lg" padding-bottom="dao.space.sm" padding-left="dao.space.lg" background-color="dao.bg.solid.button" color="dao.tx.button"
       text label
 
 component Confirmation

@@ -94,7 +94,7 @@ component App
                 column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
                   column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
                     row align-items="center" gap=spaceMd() padding=(compact ? spaceLg() : spaceXxl())
-                      IconButton(kind="ghost", label="Back", symbol="symbol:back", glyphSize="1.25rem", targetSize="2.75rem", selected=none, disabled=false, press=dismiss, testId="back", clearance=(headerHeight + spaceSm()))
+                      IconButton(controlId="back", kind="ghost", label="Back", symbol="symbol:back", glyphSize="1.25rem", targetSize="2.75rem", selected=none, disabled=false, press=dismiss, testId="back", clearance=(headerHeight + spaceSm()))
                       text "Thread" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
                     for focused in posts.filter(p => p.id == entry.params.id) key=focused.id
                       if focused.parent != ""
@@ -109,9 +109,9 @@ component App
         if entry.name == "compose"
           column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="bg.base" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"
             row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
-              Button(label="Cancel", kind="ghost", size="medium", disabled=false, busy=false, press=dismiss, testId="cancel")
+              Button(controlId="back", icon=none, label="Cancel", kind="ghost", size="medium", disabled=false, busy=false, press=dismiss, testId="cancel")
               text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
-              Button(label="Post", kind="primary", size="medium", disabled=(draft.trim() == ""), busy=false, press=post, testId="post")
+              Button(controlId="", icon=none, label="Post", kind="primary", size="medium", disabled=(draft.trim() == ""), busy=false, press=post, testId="post")
             if replyTo != ""
               for recipient in posts.filter(p => p.id == replyTo) key=recipient.id
                 column gap=spaceSm() border-left="1px solid bd.primary" padding-left=spaceMd()
@@ -122,4 +122,4 @@ component App
           column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 padding=spaceXxl() gap=spaceLg() background-color="bg.base" color="tx.primary"
             text "David" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteLg
             text "Sample account · design preview" color="tx.secondary"
-            Button(label="Done", kind="ghost", size="medium", disabled=false, busy=false, press=dismiss, testId="account-done")
+            Button(controlId="back", icon=none, label="Done", kind="ghost", size="medium", disabled=false, busy=false, press=dismiss, testId="account-done")

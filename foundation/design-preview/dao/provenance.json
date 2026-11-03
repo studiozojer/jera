@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "sourceRepository": "daoUI",
-  "sourceRevision": "ab370edee68c8e0a7f0a4d95234044381a3e783d",
+  "sourceRevision": "804b73aa834ce66ceed1fe582c94b1fce260a243",
   "sourceDirty": false,
   "toolchain": {
     "exact2": {
@@ -13,12 +13,13 @@
     "browser": "playwright-core 1.64.1 (Exact lockfile)"
   },
   "files": {
-    "dao/actions.contract": "ff22d6b79ed6679a9a8dfadbdc03fb08eab5d36e118d0b69076ea09170f82aaa",
-    "dao/fields.contract": "d7a46a49cb669475c08b0b5456163c8f723bde5fd67c00291bbdfe94ed75f717",
+    "dao/actions.contract": "f19b65068f6b0b7ed819e9251b8795a18de52a767160fbf25eb3703c416bde1e",
+    "dao/fields.contract": "84df5a81d42347cbc844a9e3db2e0be6f92844f3030db41adcb6bfb9bb9af2b6",
     "dao/foundations.contract": "09b4387f5b1d80647cd757adf8e49eede4be5b6399be893856cb5e45174afd35",
-    "dao/layout.contract": "4d0b7887d8ecd1e3ec5cadd3745caed690594b4dcc87060a48740c19269f63de",
-    "dao/overlays.contract": "e4253cb8055ae85024f6d0c16ed663e48c5455b8f1783a5f5368323ab9028121",
-    "dao/reading.contract": "1e36ec8b2a54292ce6c98cbc28d9f62b8442a906acc3941e555912e753c92fe0",
+    "dao/layout.contract": "1fc86809cb6c14d475e6b3c2013dd509560308deb780337607a0f0b06f0c9c60",
+    "dao/overlays.contract": "9c55e2e55b525b8dbc49a4a863a6f349f972d63fa63eaa6db1077c712bb62e61",
+    "dao/reading.contract": "d76ff4b146332b8509957ace4c0b2f0856d2b22a579ef70cbaf3fbd36098a435",
+    "dao/selection.contract": "a973c4fad0b007515fea9bc1df95d55f82bf9b4b92022f446a4839affd95fa3c",
     "assets/dao/fonts/ABCWhyteEdu-Book.otf": "427e310b6116e2cb00e3c84f7e7157ee64a723b4da88af6c226b4a4ae06e44d0",
     "assets/dao/fonts/ABCWhyteInktrap-Regular.otf": "6066690c00eac7d8dd8651ca2286436c64e3bb8eae4529366ca9a640ae245030",
     "assets/dao/fonts/PPFraktionMono-Regular.otf": "9df6d8b725ec45168d401d8fbf55ed26e7c518497a08a6fcc52fe60644dd79cd",
@@ -121,7 +122,7 @@
   },
   "tamberBlocks": {
     "axes": "0e48d9a0e05355a657c9a3f60b94b8ff06828ed6a198eece8bbe8780846c263f",
-    "theme": "ad6d44a41d09f4151af6c75637b8c27d368783f5293f3b641b2c9a14966104fd",
+    "theme": "84743156dab1557b9072ff6b3dd422493f370a6218bd9dc248b6a4dc20a992b6",
     "icons": "2c1322f5aaeb51cdfe0c81d4a80cc5973440c25397027310a0de150a841b751a"
   }
 }

@@ -22,7 +22,7 @@ component WriteButton
     compact: bool
   view
     box position="absolute" right=(compact ? spaceLg() : spaceXxl()) bottom=`calc(${compact ? spaceLg() : spaceXxl()}px + env(safe-area-inset-bottom))` z-index=10
-      IconButton(kind="surface", label="Write a post", symbol="symbol:add", glyphSize="24px", targetSize=(compact ? "48px" : "64px"), selected=none, disabled=false, press=write, testId="write", clearance=0)
+      IconButton(controlId="", kind="surface", label="Write a post", symbol="symbol:add", glyphSize="24px", targetSize=(compact ? "48px" : "64px"), selected=none, disabled=false, press=write, testId="write", clearance=0)
 
 
 // The page scrolls behind this sticky header. The cap only paints the

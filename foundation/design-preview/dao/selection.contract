@@ -1,0 +1,208 @@
+use WhyteSm, WhyteXs from "./foundations.contract"
+use Action, IconButton from "./actions.contract"
+
+shape TabOption
+  value: string
+  label: string
+  disabled: bool
+
+shape TagOption
+  value: string
+  label: string
+  count: string
+  disabled: bool
+
+shape TagGroup
+  value: string
+  label: string
+  disabled: bool
+  options: TagOption[]
+
+shape TagSelection
+  group: string
+  value: string
+
+fn moved(ids: string[], current: string, key: string): string = ids.length == 0 ? current : match ids.at(key == "Home" ? 0 : key == "End" ? ids.length - 1 : (max(0, ids.indexOf(current)) + (key == "ArrowRight" ? 1 : -1) + ids.length) % ids.length) { case some(v) => v, case none => current }
+fn navigationKey(key: string): bool = key == "ArrowLeft" or key == "ArrowRight" or key == "Home" or key == "End"
+fn pickedTag(values: TagSelection[], group: string): string = match first(values.filter(v => v.group == group)) { case some(v) => v.value, case none => "" }
+fn tagLabel(group: TagGroup, value: string): string = match first(group.options.filter(o => o.value == value)) { case some(o) => o.label, case none => value }
+
+style TabLook
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  background-color = "transparent"
+  border-width = 0
+  border-bottom-width = 2
+  border-bottom-style = "solid"
+  padding = "10px 0"
+  min-height = "2.75rem"
+  max-width = "100%"
+  box-sizing = "border-box"
+  :hover
+    background-color = "dao.bg.hover"
+  :active
+    background-color = "dao.bg.pressed"
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  :disabled
+    color = "dao.tx.disabled"
+
+component Tabs
+  props
+    id: string
+    label: string
+    options: TabOption[]
+    value: string
+    change: action
+  action navigate(current: string, k: string, e: KeyboardEvent)
+    if navigationKey(k) and not e.isComposing
+      preventDefault()
+      let target = moved(options.filter(o => not o.disabled).map(o => o.value), current, k)
+      change(target)
+      focus(`${id}-${target}`)
+  view
+    row role="tablist" aria-label=label aria-orientation="horizontal" gap="dao.space.xxl" flex-wrap="wrap" border-bottom="1px solid dao.bd.card" min-width=0
+      for o in options key=o.value
+        button appearance="none" class=TabLook id=`${id}-${o.value}` testId=`${id}-${o.value}` role="tab" aria-controls=`${id}-${o.value}-panel` aria-selected=(value == o.value) tabindex=(value == o.value and not o.disabled ? 0 : -1) disabled=o.disabled press=change(o.value) key=navigate(o.value) color=(value == o.value ? "dao.tx.primary" : "dao.tx.secondary") border-bottom-color=(value == o.value ? "dao.tx.primary" : "transparent") cursor=(o.disabled ? "default" : "pointer")
+          text o.label
+
+style PanelLook
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+
+component TabPanel
+  props
+    tabsId: string
+    value: string
+    selected: string
+  slot
+  view
+    column class=PanelLook id=`${tabsId}-${value}-panel` testId=`${tabsId}-${value}-panel` role="tabpanel" aria-labelledby=`${tabsId}-${value}` tabindex=0 display=(selected == value ? "flex" : "none") min-width=0 gap="dao.space.md" padding-top="dao.space.lg"
+      children
+
+style TagLook
+  font-family = "Whyte"
+  font-size = "1rem"
+  line-height = "1.5rem"
+  min-height = "2.75rem"
+  max-width = "100%"
+  padding = "6px 12px"
+  box-sizing = "border-box"
+  border-width = 0
+  border-radius = 24
+  background-color = "dao.bg.primary"
+  color = "dao.tx.primary"
+  :hover
+    box-shadow = "inset 0 0 0 1px dao.bd.heavy"
+  :active
+    -exact-press-scale = 0.98
+  :focus-visible
+    box-shadow = "0 0 0 2px dao.focus"
+  :disabled
+    color = "dao.tx.disabled"
+
+component TagPill
+  props
+    id: string
+    label: string
+    count: string
+    selected: bool
+    disabled: bool
+    press: action
+    navigate: action
+  view
+    button appearance="none" class=TagLook background-color=(selected ? "dao.bg.solid.button" : "dao.bg.primary") color=(selected ? "dao.tx.button" : "dao.tx.primary") id=id testId=id aria-label=(count == "" ? label : `${label}, ${count}`) aria-pressed=(selected ? "true" : "false") disabled=disabled press=press key=navigate(id) cursor=(disabled ? "default" : "pointer") display="flex" flex-wrap="wrap" align-items="center" justify-content="center" gap="dao.space.sm"
+      text label
+      if count != ""
+        text count class=WhyteXs
+
+component FlatTagFilter
+  props
+    id: string
+    label: string
+    options: TagOption[]
+    value: string
+    change: action
+  slot
+  action navigate(current: string, k: string, e: KeyboardEvent)
+    if navigationKey(k) and not e.isComposing
+      preventDefault()
+      focus(moved(options.filter(o => not o.disabled).map(o => `${id}-${o.value}`), current, k))
+  view
+    row role="group" aria-label=label gap="dao.space.sm" flex-wrap="wrap" align-items="center" min-width=0
+      children
+      for o in options key=o.value
+        TagPill(id=`${id}-${o.value}`, label=o.label, count=o.count, selected=(o.value == value), disabled=o.disabled, press=change(o.value), navigate=navigate)
+
+component TagFilter
+  props
+    id: string
+    label: string
+    groups: TagGroup[]
+    values: TagSelection[]
+    change: action
+  slot
+  state opened = ""
+  state collapsed = false
+  derive active = groups.map(g => g.value).includes(opened) ? opened : ""
+  derive group = match first(groups.filter(g => g.value == active)) { case some(g) => some(g), case none => none }
+  derive hasValues = values.length > 0
+  derive filterIds = match group { case some(g) => (collapsed ? [`${id}-category-${g.value}`, `${id}-value-${g.value}`] : [`${id}-category-${g.value}`].concat(g.options.filter(o => not o.disabled).map(o => `${id}-option-${o.value}`))), case none => groups.filter(g => not g.disabled).map(g => pickedTag(values, g.value) == "" ? [`${id}-category-${g.value}`] : [`${id}-category-${g.value}`, `${id}-value-${g.value}`]).flat() }
+  derive focusIds = (active != "" or hasValues ? [`${id}-clear`] : []).concat(filterIds)
+  action toggleGroup(value: string)
+    if active == value and not collapsed
+      overview(value)
+    else
+      openGroup(value)
+  action openGroup(value: string)
+    opened = value
+    collapsed = false
+    focus(`${id}-category-${value}`)
+  action overview(value: string)
+    opened = ""
+    collapsed = false
+    focus(`${id}-category-${value}`)
+  action choose(category: string, value: string)
+    let next = pickedTag(values, category) == value ? "" : value
+    change(values.filter(v => v.group != category).concat(next == "" ? [] : [TagSelection(group=category, value=next)]))
+    collapsed = next != ""
+    focus(`${id}-category-${category}`)
+  action clearValue(category: string)
+    change(values.filter(v => v.group != category))
+    opened = category
+    collapsed = false
+    focus(`${id}-category-${category}`)
+  action clear
+    change(active == "" ? [] : values.filter(v => v.group != active))
+    let target = active == "" ? (match first(groups.filter(g => not g.disabled)) { case some(g) => g.value, case none => "" }) : active
+    opened = ""
+    collapsed = false
+    focus(`${id}-category-${target}`)
+  action navigate(current: string, k: string, e: KeyboardEvent)
+    if k == "Escape" and active != "" and not e.isComposing
+      preventDefault()
+      stopPropagation()
+      overview(active)
+    else if navigationKey(k) and not e.isComposing
+      preventDefault()
+      focus(moved(focusIds, current, k))
+  view
+    row role="group" aria-label=label gap="dao.space.sm" flex-wrap="wrap" align-items="center" min-width=0
+      children
+      if active != "" or hasValues
+        button appearance="none" class=Action id=`${id}-clear` testId=`${id}-clear` aria-label=(active == "" ? "Clear all tag filters" : "Clear category filter") press=clear key=navigate(`${id}-clear`) min-width="2.75rem" min-height="2.75rem" background-color="transparent" color="dao.tx.primary" cursor="pointer"
+          image "symbol:close" font-size="1.25rem" aria-hidden=true
+      for g in groups key=g.value
+        if active == "" or active == g.value
+          row gap="dao.space.none" flex-wrap="wrap" min-width=0 max-width="100%"
+            button appearance="none" class=TagLook background-color=(pickedTag(values, g.value) != "" ? "dao.bg.solid.button" : "dao.bg.primary") color=(pickedTag(values, g.value) != "" ? "dao.tx.button" : "dao.tx.primary") id=`${id}-category-${g.value}` testId=`${id}-category-${g.value}` aria-label=(pickedTag(values, g.value) == "" ? g.label : `${g.label}: ${tagLabel(g, pickedTag(values, g.value))}`) aria-expanded=(active == g.value and not collapsed) aria-pressed=(pickedTag(values, g.value) != "" ? "true" : "false") disabled=g.disabled press=toggleGroup(g.value) key=navigate(`${id}-category-${g.value}`) cursor=(g.disabled ? "default" : "pointer")
+              text g.label
+            if pickedTag(values, g.value) != "" and (active == "" or collapsed)
+              button appearance="none" class=TagLook id=`${id}-value-${g.value}` testId=`${id}-value-${g.value}` aria-label=`Clear ${tagLabel(g, pickedTag(values, g.value))}` press=clearValue(g.value) key=navigate(`${id}-value-${g.value}`) cursor="pointer"
+                text tagLabel(g, pickedTag(values, g.value))
+          if active == g.value and not collapsed
+            for o in g.options key=o.value
+              TagPill(id=`${id}-option-${o.value}`, label=o.label, count=o.count, selected=(pickedTag(values, g.value) == o.value), disabled=o.disabled, press=choose(g.value, o.value), navigate=navigate)
+            if g.options.length == 0
+              text "No tags yet" class=WhyteSm color="dao.tx.secondary"

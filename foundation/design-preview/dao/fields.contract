@@ -13,9 +13,12 @@ style FieldControl
   min-height = "2.75rem"
   min-width = 0
   max-width = "100%"
-  padding = "8px 12px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.md"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.md"
   border = "1px solid dao.bd.primary"
-  border-radius = 8
+  border-radius = "dao.radius.md"
   background-color = "dao.bg.primary"
   color = "dao.tx.primary"
   :hover
@@ -33,9 +36,12 @@ style NativeSelect
   min-height = "2.75rem"
   min-width = 0
   max-width = "100%"
-  padding = "8px 12px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.md"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.md"
   border = "1px solid dao.bd.primary"
-  border-radius = 8
+  border-radius = "dao.radius.md"
   background-color = "dao.bg.primary"
   color = "dao.tx.primary"
 
@@ -45,9 +51,9 @@ component FieldSection
     footer: string
   slot
   view
-    section display="flex" flex-direction="column" gap=8 min-width=0 aria-label=title
+    section display="flex" flex-direction="column" gap="dao.space.sm" min-width=0 aria-label=title
       text title role="heading" aria-level=2 class=WhyteMd
-      column gap=0 border="1px solid dao.bd.card" border-radius=16 padding="0 16px" background-color="dao.bg.solid.card" min-width=0
+      column gap="dao.space.none" border="1px solid dao.bd.card" border-radius="dao.radius.xl" padding="0 16px" background-color="dao.bg.solid.card" min-width=0
         children
       if footer != ""
         text footer class=WhyteXs color="dao.tx.secondary"
@@ -58,7 +64,7 @@ component FieldRow
     detail: string
   slot
   view
-    row flex-wrap="wrap" gap=12 align-items="center" padding="12px 0" border-bottom="0.5px solid dao.bd.secondary" min-width=0
+    row flex-wrap="wrap" gap="dao.space.md" align-items="center" padding="12px 0" border-bottom="0.5px solid dao.bd.secondary" min-width=0
       column flex=1 flex-basis="10rem" min-width=0
         text label class=WhyteSm
         if detail != ""
@@ -77,7 +83,7 @@ component FieldText
     submit: action
     testId: string
   view
-    column gap=4 min-width=0 padding="12px 0"
+    column gap="dao.space.xs" min-width=0 padding="12px 0"
       text label class=WhyteSm
       input class=FieldControl value=value input=edit submit=submit placeholder=placeholder disabled=disabled aria-label=label aria-invalid=(error != "") aria-describedby=`${testId}-description` testId=testId width="100%" cursor=(disabled ? "default" : "text")
       text (error != "" ? error : hint) id=`${testId}-description` testId=`${testId}-hint` class=WhyteXs color=(error != "" ? "dao.tx.error" : "dao.tx.secondary")
@@ -115,7 +121,7 @@ component Checkbox
     change: action
     testId: string
   view
-    row gap=8 align-items="center" flex-wrap="wrap"
+    row gap="dao.space.sm" align-items="center" flex-wrap="wrap"
       input type="checkbox" checked=value change=change disabled=disabled aria-label=label testId=testId min-width="2.75rem" min-height="2.75rem" cursor=(disabled ? "default" : "pointer") accent-color="dao.tx.accent"
       text label class=WhyteSm
 
@@ -133,17 +139,27 @@ component FieldPicker
         for o in options key=o.value
           option o.label value=o.value
 
+shape FieldColorOption
+  value: string
+  label: string
+  color: string
+
 component FieldColor
   props
     label: string
     value: string
-    options: FieldOption[]
+    options: FieldColorOption[]
     disabled: bool
     change: action
     testId: string
+  derive selectedColor = match first(options.filter(o => o.value == value)) { case some(o) => o.color, case none => "" }
   view
-    // Options retain semantic names, including a host-supplied Default/reset.
-    FieldPicker(label=label, value=value, options=options, disabled=disabled, change=change, testId=testId)
+    FieldRow(label=label, detail="")
+      row gap="dao.space.sm" align-items="center" min-width=0 max-width="100%"
+        box aria-hidden=true width="dao.layout.iconSizeSmall" height="dao.layout.iconSizeSmall" flex-shrink=0 border="1px solid dao.bd.primary" border-radius="dao.radius.full" background-color=(selectedColor == "" ? "transparent" : selectedColor)
+        select class=NativeSelect value=value change=change disabled=disabled aria-label=label testId=testId cursor=(disabled ? "default" : "pointer") min-width=0
+          for o in options key=o.value
+            option o.label value=o.value
 
 component FieldStepper
   props
@@ -161,7 +177,7 @@ component FieldStepper
     change(min(maximum, round((value + step) * 1000000) / 1000000))
   view
     FieldRow(label=label, detail="")
-      row gap=4 align-items="center"
+      row gap="dao.space.xs" align-items="center"
         button appearance="none" class=Action press=less disabled=(disabled or value <= minimum) aria-label=`Decrease ${label}` testId=`${testId}-less` min-width="2.75rem" min-height="2.75rem" background-color="dao.bg.secondary" color="dao.ic.primary" cursor=((disabled or value <= minimum) ? "default" : "pointer")
           image "symbol:minus" font-size="1.25rem" aria-hidden=true
         text `${value}` class=WhyteSm testId=testId
@@ -176,14 +192,14 @@ component FieldNavigation
     press: action
     testId: string
   view
-    button appearance="none" class=Action press=press disabled=disabled testId=testId aria-label=label width="100%" min-height="2.75rem" padding="12px 0" display="flex" flex-direction="row" flex-wrap="wrap" align-items="center" gap=12 text-align="start" color=(disabled ? "dao.tx.disabled" : "dao.tx.primary") background-color="transparent" cursor=(disabled ? "default" : "pointer")
+    button appearance="none" class=Action press=press disabled=disabled testId=testId aria-label=label width="100%" min-height="2.75rem" padding="12px 0" display="flex" flex-direction="row" flex-wrap="wrap" align-items="center" gap="dao.space.md" text-align="start" color=(disabled ? "dao.tx.disabled" : "dao.tx.primary") background-color="transparent" cursor=(disabled ? "default" : "pointer")
       :hover
         background-color="dao.bg.hover"
       :active
         background-color="dao.bg.pressed"
       :disabled
         background-color="transparent"
-      column flex=1 min-width=0
+      column flex=1 flex-basis="10rem" min-width=0
         text label class=WhyteSm
         if detail != ""
           text detail class=WhyteXs color="dao.tx.secondary"

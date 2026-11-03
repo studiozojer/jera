@@ -8,7 +8,7 @@ style Action
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
@@ -25,14 +25,17 @@ style ActionPrimary
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "param.primaryFill"
   color = "param.primaryInk"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "param.primaryHover"
   :active
@@ -49,14 +52,17 @@ style ActionSecondary
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "dao.bg.solid.card"
   color = "dao.tx.primary"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.solid.card-hover"
   :active
@@ -73,14 +79,17 @@ style ActionTertiary
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "dao.bg.primary"
   color = "dao.tx.primary"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.hover"
   :active
@@ -97,14 +106,17 @@ style ActionGhost
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "transparent"
   color = "dao.tx.primary"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.hover"
   :active
@@ -121,14 +133,17 @@ style ActionAccentGhost
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "transparent"
   color = "dao.tx.control.accent"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.accent"
   :active
@@ -145,14 +160,17 @@ style ActionDestructive
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "dao.bg.solid.error"
   color = "dao.tx.white"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.solid.error"
   :active
@@ -170,14 +188,17 @@ style ActionSuccess
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "dao.bg.solid.success"
   color = "dao.tx.white"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.solid.success"
   :active
@@ -195,14 +216,17 @@ style ActionWarning
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "dao.bg.solid.warning"
   color = "dao.tx.black"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.solid.warning"
   :active
@@ -220,14 +244,17 @@ style ActionAccent
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "dao.bg.solidAccent"
   color = "dao.tx.black"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.solidAccent"
   :active
@@ -245,14 +272,17 @@ style ActionAccentLight
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "dao.bg.accent"
   color = "dao.tx.control.accent"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.accent"
   :active
@@ -270,14 +300,17 @@ style ActionWarningLight
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "dao.bg.warning"
   color = "dao.tx.control.warning"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.warning"
   :active
@@ -295,14 +328,17 @@ style ActionSuccessLight
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "dao.bg.success"
   color = "dao.tx.control.success"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.success"
   :active
@@ -320,14 +356,17 @@ style ActionErrorLight
   cursor = "pointer"
   box-sizing = "border-box"
   border-width = 0
-  border-radius = 8
+  border-radius = "dao.radius.md"
   white-space = "normal"
   max-width = "100%"
   :focus-visible
     box-shadow = "0 0 0 2px dao.focus"
   background-color = "dao.bg.error"
   color = "dao.tx.control.error"
-  padding = "8px 20px"
+  padding-top = "dao.space.sm"
+  padding-right = "dao.space.xl"
+  padding-bottom = "dao.space.sm"
+  padding-left = "dao.space.xl"
   :hover
     background-color = "dao.bg.error"
   :active
@@ -347,52 +386,120 @@ component Button
     primaryInk: color = "dao.tx.button" control="token" group="Color" priority=1
   props
     label: string
+    icon: option<string>
     kind: enum<"primary", "secondary", "tertiary", "ghost", "accentGhost", "destructive", "success", "warning", "accent", "accentLight", "warningLight", "successLight", "errorLight">
     size: enum<"small", "medium", "large", "xl">
     disabled: bool
     busy: bool
     press: action
     testId: string
+    controlId: string
   view
     if kind == "primary"
-      button appearance="none" class=ActionPrimary press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionPrimary press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "secondary"
-      button appearance="none" class=ActionSecondary press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionSecondary press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "tertiary"
-      button appearance="none" class=ActionTertiary press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionTertiary press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "ghost"
-      button appearance="none" class=ActionGhost press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionGhost press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "accentGhost"
-      button appearance="none" class=ActionAccentGhost press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionAccentGhost press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "destructive"
-      button appearance="none" class=ActionDestructive press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionDestructive press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "success"
-      button appearance="none" class=ActionSuccess press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionSuccess press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "warning"
-      button appearance="none" class=ActionWarning press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionWarning press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "accent"
-      button appearance="none" class=ActionAccent press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionAccent press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "accentLight"
-      button appearance="none" class=ActionAccentLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionAccentLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "warningLight"
-      button appearance="none" class=ActionWarningLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionWarningLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "successLight"
-      button appearance="none" class=ActionSuccessLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionSuccessLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
     else if kind == "errorLight"
-      button appearance="none" class=ActionErrorLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer")
-        text (busy ? `${label}…` : label)
+      button appearance="none" class=ActionErrorLight press=press disabled=(disabled or busy) aria-label=label aria-busy=busy testId=testId id=controlId min-height=actionTarget(size) font-family=(size == "xl" ? "Whyte Inktrap" : "Whyte") font-size=(size == "small" ? "0.8125rem" : size == "xl" ? "1.25rem" : "1rem") line-height=(size == "small" ? "1rem" : size == "xl" ? "2rem" : "1.5rem") cursor=((disabled or busy) ? "default" : "pointer") display="flex" align-items="center" justify-content="center" gap="dao.space.sm"
+        match icon
+          case some(source)
+            image source font-size=(size == "small" ? "1rem" : "1.25rem") aria-hidden=true
+          case none
+            box display="none"
+        text (busy ? `${label}…` : label) padding-top=(size == "small" ? "0.125rem" : 0) padding-bottom=(size == "small" ? "0.125rem" : 0) min-width=0
+
 
 component IconButton
   params
@@ -410,11 +517,12 @@ component IconButton
     disabled: bool
     press: action
     testId: string
+    controlId: string
     clearance: number
   slot
   view
     if selected == none
-      button appearance="none" class=Action press=press disabled=disabled aria-label=label testId=testId min-width=targetSize min-height=targetSize scroll-margin-top=clearance padding="8px" display="flex" align-items="center" justify-content="center" gap=8 color=(disabled ? "dao.ic.disabled" : (match selected { case some(v) => v, case none => false }) ? "dao.tx.control.accent" : "param.ink") background-color=((match selected { case some(v) => v, case none => false }) ? "dao.bg.accent" : kind == "surface" ? "param.surfaceFill" : "transparent") border-width=(kind == "surface" ? 1 : 0) border-style="solid" border-color="dao.bd.primary" border-radius=(kind == "surface" ? 16 : 8) cursor=(disabled ? "default" : "pointer")
+      button appearance="none" class=Action press=press disabled=disabled aria-label=label testId=testId id=controlId min-width=targetSize min-height=targetSize scroll-margin-top=clearance padding-top="dao.space.sm" padding-right="dao.space.sm" padding-bottom="dao.space.sm" padding-left="dao.space.sm" display="flex" align-items="center" justify-content="center" gap="dao.space.sm" color=(disabled ? "dao.ic.disabled" : (match selected { case some(v) => v, case none => false }) ? "dao.tx.control.accent" : "param.ink") background-color=((match selected { case some(v) => v, case none => false }) ? "dao.bg.accent" : kind == "surface" ? "param.surfaceFill" : "transparent") border-width=(kind == "surface" ? 1 : 0) border-style="solid" border-color="dao.bd.primary" border-radius=(kind == "surface" ? 16 : 8) cursor=(disabled ? "default" : "pointer")
         :hover
           background-color="param.hoverFill"
         :active
@@ -424,7 +532,7 @@ component IconButton
         image symbol font-size=glyphSize aria-hidden=true
         children
     else
-      button appearance="none" class=Action press=press disabled=disabled aria-label=label aria-pressed=(match selected { case some(v) => v ? "true" : "false", case none => "false" }) testId=testId min-width=targetSize min-height=targetSize scroll-margin-top=clearance padding="8px" display="flex" align-items="center" justify-content="center" gap=8 color=(disabled ? "dao.ic.disabled" : (match selected { case some(v) => v, case none => false }) ? "dao.tx.control.accent" : "param.ink") background-color=((match selected { case some(v) => v, case none => false }) ? "dao.bg.accent" : kind == "surface" ? "param.surfaceFill" : "transparent") border-width=(kind == "surface" ? 1 : 0) border-style="solid" border-color="dao.bd.primary" border-radius=(kind == "surface" ? 16 : 8) cursor=(disabled ? "default" : "pointer")
+      button appearance="none" class=Action press=press disabled=disabled aria-label=label aria-pressed=(match selected { case some(v) => v ? "true" : "false", case none => "false" }) testId=testId id=controlId min-width=targetSize min-height=targetSize scroll-margin-top=clearance padding-top="dao.space.sm" padding-right="dao.space.sm" padding-bottom="dao.space.sm" padding-left="dao.space.sm" display="flex" align-items="center" justify-content="center" gap="dao.space.sm" color=(disabled ? "dao.ic.disabled" : (match selected { case some(v) => v, case none => false }) ? "dao.tx.control.accent" : "param.ink") background-color=((match selected { case some(v) => v, case none => false }) ? "dao.bg.accent" : kind == "surface" ? "param.surfaceFill" : "transparent") border-width=(kind == "surface" ? 1 : 0) border-style="solid" border-color="dao.bd.primary" border-radius=(kind == "surface" ? 16 : 8) cursor=(disabled ? "default" : "pointer")
         :hover
           background-color="param.hoverFill"
         :active
@@ -442,7 +550,7 @@ component FilterChip
     press: action
     testId: string
   view
-    button appearance="none" class=Action aria-pressed=selected disabled=disabled press=press testId=testId min-height="2.75rem" padding="6px 12px" border="1px solid dao.bd.primary" border-radius=32 color=(disabled ? "dao.tx.disabled" : selected ? "dao.tx.control.accent" : "dao.tx.primary") background-color=(selected ? "dao.bg.accent" : "transparent") cursor=(disabled ? "default" : "pointer")
+    button appearance="none" class=Action aria-pressed=selected disabled=disabled press=press testId=testId min-height="2.75rem" padding="6px 12px" border="1px solid dao.bd.primary" border-radius="dao.radius.full" color=(disabled ? "dao.tx.disabled" : selected ? "dao.tx.control.accent" : "dao.tx.primary") background-color=(selected ? "dao.bg.accent" : "transparent") cursor=(disabled ? "default" : "pointer")
       :hover
         background-color="dao.bg.hover"
       :active

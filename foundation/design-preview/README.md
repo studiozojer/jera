@@ -27,3 +27,5 @@ This integration is isolated on `feat/daoui-exact`; the active social-loop workt
 From the Jera root, `npm run check:dao-exact` verifies the committed copy without a sibling daoUI checkout. To update, set `DAOUI_REPO=/path/to/daoUI npm run sync:dao-exact`, then verify this preview and commit the changed receipt and files. Generated sources must not be edited here. The application builds and runs from its own source/assets plus its explicitly pinned Exact toolchain. `foundation/design-preview/dao/check.py` is also runnable with Python alone.
 
 Shared typography and layout functions are available in `dao/foundations.contract`; this bounded integration retains the local preview's existing typography/insets and app chrome while replacing the controls that exposed the missing shared interaction contract. The avatar account button remains an app-specific identity control. Native screen-reader, keyboard/IME and physical-device presentation remain unverified. The canonical coverage and verification record lives in daoUI `exact/docs/`.
+
+See [the canonical integration review](DAOUI-EXACT.md) for reproducible checks, consumer findings and native-validation boundaries.
