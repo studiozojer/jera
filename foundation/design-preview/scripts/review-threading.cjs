@@ -14,6 +14,8 @@ const output = path.resolve(__dirname, '../.exact/threading-review');
     const capture = name => page.screenshot({ path: path.join(output, `${name}.png`) });
     await page.goto(process.env.JERA_PREVIEW_URL || 'http://127.0.0.1:3034/');
     await at('thread-seed-2').click();
+    await at('thread-header').waitFor();
+    assert.equal(await at('account').count(), 0, 'Thread header replaces the account/brand header');
     await capture('desktop');
     await page.setViewportSize({ width: 390, height: 844 });
     await capture('phone');
@@ -43,6 +45,7 @@ const output = path.resolve(__dirname, '../.exact/threading-review');
     await page.locator('[data-testid="composer"]').waitFor({ state: 'hidden' });
     assert.equal(await at('composer').count(), 0);
     assert(page.url().endsWith('/thread/seed-2'));
+    assert.equal(await at('thread-header').count(), 1);
     await at('show-replies-seed-3').click();
     await at('thread-body-post-61').waitFor();
     for (const width of [320, 390, 768, 1280]) {

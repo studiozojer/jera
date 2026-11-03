@@ -2,7 +2,7 @@ use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusSm, radiusMd,
 use Post, Author, PostAvatar, PostActions, Draft, conversationRoot from "./post.contract"
 use samplePosts from "./fixtures.contract"
 use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction, PrimaryAction from "./dao.contract"
-use ReadingHeader, WriteButton from "./chrome.contract"
+use ReadingHeader, ThreadHeader, WriteButton from "./chrome.contract"
 use ThreadHero, ThreadBranch from "./thread.contract"
 
 shape Viewport
@@ -20,7 +20,8 @@ routes nav
 component App
   resource viewport = exactViewport() as shape Viewport
   derive compact = viewport.width < 704
-  state headerHeight = 0
+  state feedHeaderHeight = 0
+  state threadHeaderHeight = 0
   state posts = samplePosts()
   state drafts = [Draft(context="", body="")]
   state replyTo = ""
@@ -58,9 +59,12 @@ component App
   action revealPost
     scrollIntoView(`thread-${top(nav).id}-${lastPosted}`, block="nearest")
     lastPosted = ""
-  action measureHeader(w: number, h: number)
+  action measureFeedHeader(w: number, h: number)
     if h > 0
-      headerHeight = h + (compact ? 0 : spaceSm())
+      feedHeaderHeight = h + (compact ? 0 : spaceSm())
+  action measureThreadHeader(w: number, h: number)
+    if h > 0
+      threadHeaderHeight = h + (compact ? 0 : spaceSm())
   action account
     nav = push(nav, "/account")
   view
@@ -70,7 +74,7 @@ component App
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 box-sizing="border-box"
             scroll id="stream" testId="stream" aria-label="Posts" tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
               column min-height="100%"
-                ReadingHeader(account=account, compact=compact, measure=measureHeader)
+                ReadingHeader(account=account, compact=compact, measure=measureFeedHeader)
                 column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
                   column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
                     for item, index in posts.filter(p => p.root == "") key=item.id
@@ -78,9 +82,9 @@ component App
                         row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
                           PostAvatar(post=item)
                           column flex=1 flex-basis="12rem" min-width=0 gap=spaceSm()
-                            Author(post=item, menuId=`stream-menu-${item.id}`, clearance=(headerHeight + spaceSm()))
+                            Author(post=item, menuId=`stream-menu-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
                             text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
-                            PostActions(post=item, comments=posts.filter(p => p.parent == item.id).length, comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(headerHeight + spaceSm()))
+                            PostActions(post=item, comments=posts.filter(p => p.parent == item.id).length, comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
                     text "Sample conversations" color="tx.secondary" class=WhyteXs padding-top=spaceXxl() padding-left=spaceLg()
                     box height="env(safe-area-inset-bottom)" flex-shrink=0
             WriteButton(write=write, compact=compact)
@@ -88,20 +92,17 @@ component App
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 box-sizing="border-box"
             scroll id="conversation" testId="conversation" aria-label="Conversation" tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
               column min-height="100%"
-                ReadingHeader(account=account, compact=compact, measure=measureHeader)
+                ThreadHeader(back=dismiss, compact=compact, measure=measureThreadHeader)
                 column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
                   column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
-                    row align-items="center" gap=spaceMd() padding=(compact ? spaceLg() : spaceXxl())
-                      button "←" id="back" press=dismiss aria-label="Back" testId="back" scroll-margin-top=(headerHeight + spaceSm()) appearance="none" class=QuietAction width="2.75rem" min-height=minTouchTarget() padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
-                      text "Thread" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
                     for focused in posts.filter(p => p.id == entry.params.id) key=focused.id
                       if focused.parent != ""
                         for parent in posts.filter(p => p.id == focused.parent) key=parent.id
-                          button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(headerHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
+                          button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(threadHeaderHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
                             text `Replying to ${parent.author}` color="tx.secondary" class=WhyteXs
-                      ThreadHero(post=focused, posts=posts, reply=reply, context=`${entry.id}`, clearance=(headerHeight + spaceSm()))
+                      ThreadHero(post=focused, posts=posts, reply=reply, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
                       for child in posts.filter(p => p.parent == focused.id) key=child.id
-                        ThreadBranch(post=child, posts=posts, reply=reply, open=openThread, context=`${entry.id}`, clearance=(headerHeight + spaceSm()))
+                        ThreadBranch(post=child, posts=posts, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
                     box height="env(safe-area-inset-bottom)" flex-shrink=0
             WriteButton(write=write, compact=compact)
         if entry.name == "compose"
