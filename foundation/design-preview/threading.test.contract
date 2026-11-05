@@ -1,3 +1,35 @@
+test "thread reply entry shares the focused post draft with its comment action"
+  tap "thread-seed-2"
+  clock settle
+  tap "thread-reply-entry-seed-2"
+  clock settle
+  expect state replyTo == "seed-2"
+  expect text "reply-context" == "@kepler What changes when we treat memory as a garden?"
+  type "composer" "A reply from the inline entry"
+  tap "cancel"
+  clock settle
+  tap "reply"
+  clock settle
+  expect text "composer" == "A reply from the inline entry"
+  tap "post"
+  clock settle
+  expect state posts.60 .parent == "seed-2"
+  expect text "thread-body-post-61" == "A reply from the inline entry"
+  expect tree has "thread-reply-entry-seed-2"
+
+test "reply entry on a focused nested conversation targets that post"
+  tap "thread-seed-2"
+  clock settle
+  tap "show-replies-seed-3"
+  clock settle
+  tap "thread-reply-entry-seed-4"
+  clock settle
+  expect state replyTo == "seed-4"
+  expect text "reply-context" == "Yes. And pruning can be a kind of care."
+  tap "cancel"
+  clock settle
+  expect tree has "thread-reply-entry-seed-4"
+
 test "a nested continuation opens without losing the original thread"
   tap "thread-seed-2"
   clock settle

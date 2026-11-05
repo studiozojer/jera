@@ -3,7 +3,7 @@ use Post, Author, PostAvatar, PostActions, Draft, conversationRoot from "./post.
 use samplePosts from "./fixtures.contract"
 use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction from "./dao.contract"
 use ReadingHeader, ThreadHeader, WriteButton, FeedComposer from "./chrome.contract"
-use ThreadHero, ThreadBranch from "./thread.contract"
+use ThreadHero, ThreadBranch, ThreadReplyEntry from "./thread.contract"
 use Button, Action from "./dao/actions.contract"
 use ExperienceSnapshot, ExperienceModeControl from "./experience.contract"
 
@@ -136,6 +136,7 @@ component App
                           button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(threadHeaderHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
                             text `Replying to ${parent.author}` color="tx.secondary" class=WhyteXs
                       ThreadHero(post=focused, posts=visiblePosts, reply=reply, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                      ThreadReplyEntry(post=focused, reply=reply, clearance=(threadHeaderHeight + spaceSm()))
                       for child in visiblePosts.filter(p => p.parent == focused.id) key=child.id
                         ThreadBranch(post=child, posts=visiblePosts, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
                   box height="env(safe-area-inset-bottom)" flex-shrink=0

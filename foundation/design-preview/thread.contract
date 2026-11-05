@@ -1,6 +1,21 @@
-use spaceSm, spaceMd, spaceLg, spaceXxl, radiusMd, minTouchTarget from "./dao.contract"
+use spaceSm, spaceMd, spaceLg, spaceXxl, radiusMd, radiusFull, minTouchTarget from "./dao.contract"
 use WhyteSm, WhyteXs, QuietAction from "./dao.contract"
 use Post, PostAvatar, Author, PostActions from "./post.contract"
+use Action from "./dao/actions.contract"
+use Avatar from "./dao/reading.contract"
+
+component ThreadReplyEntry
+  props
+    post: Post
+    reply: action
+    clearance: number
+  view
+    column padding=spaceLg() border-top="1px solid bd.primary"
+      button press=reply(post.id) testId=`thread-reply-entry-${post.id}` aria-label=`Reply to ${post.author}` appearance="none" class=Action width="100%" min-width=0 min-height=minTouchTarget() padding=spaceSm() border="1px solid bd.primary" border-radius=radiusFull() background-color="bg.field" color="tx.secondary" display="flex" align-items="center" gap=spaceMd() flex-wrap="wrap" text-align="left" scroll-margin-top=clearance
+        :hover
+          background-color="bg.field"
+        Avatar(initial="D", large=false)
+        text `Reply to ${post.author}…` class=WhyteSm min-width=0 flex=1 flex-basis="8rem"
 
 // Jera owns conversation structure; the shared author/actions keep their anatomy.
 component ThreadHero
