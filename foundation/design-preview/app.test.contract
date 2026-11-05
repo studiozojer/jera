@@ -52,3 +52,28 @@ test "new-post and thread-reply drafts stay separate"
   tap "reply"
   clock settle
   expect text "composer" == "An unfinished reply"
+
+test "new roots lead the feed while replies preserve conversation order"
+  tap "write"
+  clock settle
+  type "composer" "First new thought"
+  tap "post"
+  clock settle
+  expect state posts.0 .id == "post-61"
+  tap "back"
+  clock settle
+  tap "write"
+  clock settle
+  type "composer" "Newest thought"
+  tap "post"
+  clock settle
+  expect state posts.0 .id == "post-62"
+  expect state posts.1 .id == "post-61"
+  tap "reply"
+  clock settle
+  type "composer" "A later reply"
+  tap "post"
+  clock settle
+  expect state posts.0 .id == "post-62"
+  expect state posts.62 .id == "post-63"
+  expect text "thread-body-post-63" == "A later reply"

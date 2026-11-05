@@ -76,7 +76,9 @@ component App
   action post
     if draft.trim() != "" and not pending(experienceChanged) and (replyTo == "" or visiblePosts.filter(p => p.id == replyTo).length == 1)
       let id = `post-${posts.length + 1}`
-      posts = posts.concat([Post(id=id, root=(replyTo == "" ? "" : conversationRoot(visiblePosts, replyTo)), parent=replyTo, visibility=mode, author="David", handle="david", initial="D", body=draft, stamp="now")])
+      let created = Post(id=id, root=(replyTo == "" ? "" : conversationRoot(visiblePosts, replyTo)), parent=replyTo, visibility=mode, author="David", handle="david", initial="D", body=draft, stamp="now")
+      // The feed reads newest first; conversations retain oldest-first replies.
+      posts = replyTo == "" ? [created].concat(posts) : posts.concat([created])
       drafts = drafts.filter(d => d.context != replyTo or d.mode != mode)
       // Consume the composer and focus the actual recipient's conversation.
       let previous = composeContextChanged ? go(nav, "/") : back(nav)
