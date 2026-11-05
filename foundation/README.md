@@ -10,7 +10,7 @@ The existing Expo application at the repository root remains historical. New fou
 
 ## Current mobile delivery
 
-The November 5 release uses the live backend for posts, audiences and owner-only drafts, with local input/retry recovery. See [delivery evidence](MOBILE-PROMOTION.md). A production-trust signed IPA is available at `app/artifacts/jera.ipa`; installation is waiting for the paired iPhone to be unlocked. Native interactive acceptance remains separate from the completed browser/backend review.
+The November 5 release uses the live backend for posts, audiences and owner-only drafts, with local input/retry recovery. See [delivery evidence](MOBILE-PROMOTION.md). A production-trust signed IPA is available at `app/artifacts/jera.ipa`; the release is installed and launched on the paired iPhone. Native interactive acceptance remains separate from the completed browser/backend review.
 
 ## Pinned dependencies
 
