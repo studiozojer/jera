@@ -15,5 +15,8 @@ if (!existsSync(cli)) {
 }
 const { ensureBun } = await import(resolve(EXACT2, 'scripts/bun.mjs'));
 ensureBun("1.4.2");
+// Jera carries diagnosed SDK compatibility fixes on its pinned base.
+const { patchSDK } = await import('../scripts/patch-sdk.mjs');
+patchSDK(EXACT2);
 const { run } = await import(cli);
 process.exit(await run({ dir: import.meta.dir, name: "app", exact2: EXACT2, args: process.argv.slice(2) }));

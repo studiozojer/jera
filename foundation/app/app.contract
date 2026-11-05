@@ -163,7 +163,7 @@ component App
   task experienceTheme when currentExperience.principal == account.principal key=`${account.principal}-${mode}`
     after(1, applyExperienceTheme)
   action applyExperienceTheme
-    setMode("experience", mode)
+    setMode("experience", account.principal == "" ? "public" : mode)
   state dataNow = 0
   task initializeDataClock mount
     after(1, sampleDataClock)
@@ -322,7 +322,7 @@ component App
       hidePopover("account-suggestions")
       send signed = login(handle, time.epochAtZero + performanceNow())
   view
-    main status-bar-style="light-content" navigationKey=`${top(nav).id}` navigationBack="back" navigate=follow width="100%" height="100%" color-scheme="dark" font-family="Whyte" background-color="experience.canvas" color="tx.primary" interactive-widget="resizes-content" display="flex" flex-direction="column"
+    main status-bar-style="light-content" navigationKey=`${top(nav).id}` navigationBack="back" navigate=follow width="100%" height="100%" color-scheme="dark" font-family="Whyte" background-color=(account.principal == "" ? "bg.base" : "experience.canvas") color="tx.primary" interactive-widget="resizes-content" display="flex" flex-direction="column"
       for entry in stack(nav) key=entry.id
         if entry.name == "home"
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 box-sizing="border-box"

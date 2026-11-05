@@ -15,7 +15,7 @@ The November 5 release uses the live backend for posts, audiences and owner-only
 ## Pinned dependencies
 
 - Exact2: `../tooling/exact2` git submodule, revision `4e9000abbdaa8315ae864cdb8253af143aac510c`.
-- Native compatibility: [two recorded upstream Swift fixes](patches/README.md), applied automatically by both iPhone build paths to the pinned SDK.
+- Compatibility: [two upstream Swift compile fixes and a web OAuth popup correction](patches/README.md), carried on the pinned SDK and applied idempotently by the app launcher and iPhone wrapper.
 - Snapback server: `snapback4@0.4.33` in `package.json` and `bun.lock`, matching Exact's device engine.
 - Bun: `1.4.2`. Node 22 runs the agent CLI and backend integration test.
 - The SDK's native/device Rust dependencies require access to Expo's private Snapback repository. A plain public checkout alone is insufficient. No secrets are checked in.
