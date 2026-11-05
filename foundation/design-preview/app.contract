@@ -108,12 +108,12 @@ component App
                 column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
                   column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
                     for item, index in visiblePosts.filter(p => p.root == "") key=item.id
-                      article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=(compact ? spaceMd() : spaceLg()) padding-bottom=(compact ? spaceMd() : spaceLg()) padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
+                      article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom=spaceMd() padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                         :hover
                           background-color="transparent"
                         row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
                           PostAvatar(post=item)
-                          column flex=1 flex-basis="12rem" min-width=0 gap=spaceSm()
+                          column flex=1 flex-basis="12rem" min-width=0 gap="dao.space.xs"
                             Author(post=item, menuId=`stream-menu-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
                             text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
                             PostActions(post=item, comments=visiblePosts.filter(p => p.parent == item.id).length, comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))

@@ -33,8 +33,11 @@ component Author
       row gap=spaceMd() align-items="center" flex-wrap="wrap" min-width=0 flex=1 flex-basis="8rem"
         text post.author class=WhyteSm
         text post.stamp color="tx.secondary" class=WhyteXs
-      Menu(id=menuId, label=`More options for ${post.author}: ${post.body.slice(0, 64)}`, symbol="symbol:ellipsis", disabled=false, testId=`more-${menuId}`, clearance=clearance)
-        MenuItem(label="Copy text", menuId=menuId, destructive=false, disabled=false, press=copyPost, testId=`copy-${menuId}`)
+      // Keep the author line at reading height; the full menu target extends
+      // into the surrounding space without adding a blank line below the name.
+      box height="1.5rem" display="flex" align-items="center" flex-shrink=0
+        Menu(id=menuId, label=`More options for ${post.author}: ${post.body.slice(0, 64)}`, symbol="symbol:ellipsis", disabled=false, testId=`more-${menuId}`, clearance=clearance)
+          MenuItem(label="Copy text", menuId=menuId, destructive=false, disabled=false, press=copyPost, testId=`copy-${menuId}`)
 
 
 component PostActions
