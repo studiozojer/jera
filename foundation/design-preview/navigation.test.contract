@@ -1,3 +1,24 @@
+test "feed rows open their thread while nested controls stay independent"
+  tap "post-row-seed-2"
+  clock settle
+  expect text "thread-body-seed-2" == "@kepler What changes when we treat memory as a garden?"
+  tap "back"
+  clock settle
+  expect tree missing "thread-body-seed-2"
+  tap "more-stream-menu-seed-2"
+  clock settle
+  expect tree has "copy-stream-menu-seed-2"
+  expect tree missing "thread-body-seed-2"
+  tap "copy-stream-menu-seed-2"
+  clock settle
+  expect tree missing "thread-body-seed-2"
+  tap "thread-seed-2"
+  clock settle
+  expect tree has "thread-body-seed-2"
+  tap "back"
+  clock settle
+  expect tree missing "thread-body-seed-2"
+
 test "posting from the stream consumes the composer before returning"
   tap "write"
   clock settle
