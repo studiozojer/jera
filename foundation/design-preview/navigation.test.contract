@@ -1,3 +1,29 @@
+test "feed writing entry shares the composer draft and experience"
+  tap "feed-write"
+  clock settle
+  type "composer" "A thought started from the feed"
+  tap "cancel"
+  clock settle
+  tap "feed-write-post"
+  clock settle
+  expect text "composer" == "A thought started from the feed"
+  tap "experience-private"
+  clock settle
+  tap "cancel"
+  clock settle
+  tap "feed-write"
+  clock settle
+  expect state mode == "private"
+  expect text "composer" == ""
+  type "composer" "A private thought from the feed"
+  tap "post"
+  clock settle
+  expect text "thread-body-post-61" == "A private thought from the feed"
+  tap "back"
+  clock settle
+  expect tree has "feed-composer"
+  expect tree has "body-post-61"
+
 test "feed rows open their thread while nested controls stay independent"
   tap "post-row-seed-2"
   clock settle

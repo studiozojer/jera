@@ -2,7 +2,7 @@ use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusSm, radiusMd,
 use Post, Author, PostAvatar, PostActions, Draft, conversationRoot from "./post.contract"
 use samplePosts from "./fixtures.contract"
 use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction from "./dao.contract"
-use ReadingHeader, ThreadHeader, WriteButton from "./chrome.contract"
+use ReadingHeader, ThreadHeader, WriteButton, FeedComposer from "./chrome.contract"
 use ThreadHero, ThreadBranch from "./thread.contract"
 use Button, Action from "./dao/actions.contract"
 use ExperienceSnapshot, ExperienceModeControl from "./experience.contract"
@@ -107,6 +107,7 @@ component App
                 ReadingHeader(account=account, compact=compact, measure=measureFeedHeader, mode=mode)
                 column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
                   column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
+                    FeedComposer(write=write)
                     for item, index in visiblePosts.filter(p => p.root == "") key=item.id
                       article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom=spaceMd() padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                         :hover

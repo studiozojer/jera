@@ -1,7 +1,22 @@
 use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusMd, radiusXl, radiusFull, iconSize, minTouchTarget from "./dao.contract"
 use JeraWordmark from "./brand.contract"
-use WhyteXs, WhyteMd, QuietAction from "./dao.contract"
-use IconButton from "./dao/actions.contract"
+use WhyteSm, WhyteXs, WhyteMd, QuietAction from "./dao.contract"
+use IconButton, Action from "./dao/actions.contract"
+use Avatar from "./dao/reading.contract"
+
+// Both entries share the existing composer route, experience and retained draft.
+component FeedComposer
+  props
+    write: action
+  view
+    row testId="feed-composer" align-items="center" gap=spaceMd() flex-wrap="wrap" padding=spaceLg() border-bottom="1px solid bd.primary"
+      button press=write testId="feed-write" aria-label="Write a post" appearance="none" class=Action flex=1 flex-basis="12rem" min-width=0 min-height=minTouchTarget() padding=0 background-color="transparent" color="tx.secondary" display="flex" align-items="center" gap=spaceMd() flex-wrap="wrap" text-align="left"
+        :hover
+          background-color="transparent"
+        Avatar(initial="D", large=false)
+        text "What's new?" class=WhyteSm min-width=0 max-width="100%" box-sizing="border-box"
+      button press=write testId="feed-write-post" aria-label="Open post composer" appearance="none" class=Action min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border="1px solid bd.primary" border-radius=radiusMd() background-color="transparent" color="tx.primary"
+        text "Post" class=WhyteSm
 
 component Chrome
   props
