@@ -124,11 +124,14 @@ component App
                         row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
                           PostAvatar(post=item)
                           column flex=1 flex-basis="12rem" min-width=0 gap="dao.space.xs"
-                            Author(post=item, menuId=`stream-menu-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
-                            if item.parent != ""
-                              for parent in visiblePosts.filter(p => p.id == item.parent) key=parent.id
-                                text `Private reply to ${parent.author}` class=WhyteXs color="tx.secondary"
-                            text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
+                            // Clear the menu's full touch target without widening action gaps.
+                            column gap=spaceMd()
+                              Author(post=item, menuId=`stream-menu-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
+                              column gap="dao.space.xs"
+                                if item.parent != ""
+                                  for parent in visiblePosts.filter(p => p.id == item.parent) key=parent.id
+                                    text `Private reply to ${parent.author}` class=WhyteXs color="tx.secondary"
+                                text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
                             PostActions(post=item, comments=visiblePosts.filter(p => p.parent == item.id).length, comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
                     text (mode == "private" ? "Private sample conversations" : "Public sample conversations") color="tx.secondary" class=WhyteXs padding-top=spaceXxl() padding-left=spaceLg()
                     box height="env(safe-area-inset-bottom)" flex-shrink=0

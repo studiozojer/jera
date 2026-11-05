@@ -52,8 +52,9 @@ component ThreadRow
       if continued
         box aria-hidden=true pointer-events="none" position="absolute" left="1.125rem" top="2.25rem" margin-top=spaceSm() bottom=0 width=1 background-color="bd.primary"
       column flex=1 min-width=0 gap=spaceSm()
-        Author(post=post, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
-        text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
+        column gap=spaceMd()
+          Author(post=post, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
+          text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
         PostActions(post=post, comments=posts.filter(p => p.parent == post.id).length, comment=reply(post.id), commentId=`reply-to-${post.id}`, commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
 
 component ThreadBranch
