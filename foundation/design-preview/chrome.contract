@@ -1,16 +1,18 @@
 use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusMd, radiusXl, radiusFull, iconSize, minTouchTarget from "./dao.contract"
 use JeraWordmark from "./brand.contract"
 use WhyteXs, WhyteMd, QuietAction from "./dao.contract"
+use IconButton from "./dao/actions.contract"
 
 component Chrome
   props
+    mode: string
     account: action
     compact: bool
   view
     box role="banner" padding-top=`calc(${compact ? spaceMd() : spaceXl()}px + env(safe-area-inset-top))` padding-bottom=(compact ? spaceMd() : spaceXl()) padding-left=(compact ? spaceLg() : spaceXxl()) padding-right=(compact ? spaceLg() : spaceXxl()) border-bottom-width=(compact ? 1 : 0) border-bottom-style="solid" border-bottom-color="bd.primary" width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" display="flex" align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
       row gap=spaceMd() align-items="center" flex-wrap="wrap"
         JeraWordmark(scale=(compact ? 1.6 : 2))
-        text "Preview" color="tx.secondary" class=WhyteXs
+        text (mode == "private" ? "Private · Preview" : "Public · Preview") color="tx.secondary" class=WhyteXs
       row gap=spaceMd() align-items="center" flex-wrap="wrap"
         button press=account aria-label="Your account" testId="account" appearance="none" class=QuietAction width="2.75rem" height="2.75rem" padding=0 border-width=0 border-radius=radiusMd() background-color="bg.field" color="tx.primary"
           text "D"
@@ -20,32 +22,36 @@ component WriteButton
     write: action
     compact: bool
   view
-    button press=write aria-label="Write a post" testId="write" appearance="none" class=QuietAction position="absolute" right=(compact ? spaceLg() : spaceXxl()) bottom=`calc(${compact ? spaceLg() : spaceXxl()}px + env(safe-area-inset-bottom))` z-index=10 width=(compact ? spaceXxxl() + spaceLg() : spaceXxxl() * 2) height=(compact ? spaceXxxl() + spaceLg() : spaceXxxl() * 2) padding=0 display="flex" align-items="center" justify-content="center" border="1px solid bd.primary" border-radius=radiusXl() background-color="bg.base" color="tx.primary"
-      image "symbol:add" font-size=iconSize() aria-hidden=true
+    box position="absolute" right=(compact ? spaceLg() : spaceXxl()) bottom=`calc(${compact ? spaceLg() : spaceXxl()}px + env(safe-area-inset-bottom))` z-index=10
+      IconButton(controlId="", kind="surface", label="Write a post", symbol="symbol:add", glyphSize="24px", targetSize=(compact ? "48px" : "64px"), selected=none, disabled=false, press=write, testId="write", clearance=0)
+
 
 // The page scrolls behind this sticky header. The cap only paints the
 // stationary outline/corners; it never owns scrolling or pointer input.
 component ReadingHeader
   props
+    mode: string
     account: action
     compact: bool
     measure: action
   view
-    column resize=measure position="sticky" top=0 z-index=2 background-color="bg.base" padding-bottom=(compact ? 0 : spaceSm()) testId="reading-header"
-      Chrome(account=account, compact=compact)
+    column resize=measure position="sticky" top=0 z-index=2 background-color="experience.canvas" padding-bottom=(compact ? 0 : spaceSm()) testId="reading-header"
+      Chrome(account=account, compact=compact, mode=mode)
       if not compact
         ReadingCap()
 
 component ThreadHeader
   props
+    mode: string
     back: action
     compact: bool
     measure: action
   view
-    column resize=measure position="sticky" top=0 z-index=2 background-color="bg.base" padding-bottom=(compact ? 0 : spaceSm()) testId="reading-header"
+    column resize=measure position="sticky" top=0 z-index=2 background-color="experience.canvas" padding-bottom=(compact ? 0 : spaceSm()) testId="reading-header"
       row role="banner" padding-top=`calc(${compact ? spaceMd() : spaceXl()}px + env(safe-area-inset-top))` padding-bottom=(compact ? spaceMd() : spaceXl()) padding-left=(compact ? spaceLg() : spaceXxl()) padding-right=(compact ? spaceLg() : spaceXxl()) border-bottom-width=(compact ? 1 : 0) border-bottom-style="solid" border-bottom-color="bd.primary" width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" align-items="center" gap=spaceMd() flex-wrap="wrap" testId="thread-header"
-        button "←" id="back" press=back aria-label="Back" testId="back" appearance="none" class=QuietAction width="2.75rem" min-height=minTouchTarget() flex-shrink=0 padding=0 border-width=0 border-radius=radiusMd() background-color="transparent"
+        IconButton(controlId="back", kind="ghost", label="Back", symbol="symbol:back", glyphSize="1.25rem", targetSize="2.75rem", selected=none, disabled=false, press=back, testId="back", clearance=0)
         text "Thread" role="heading" aria-level=1 class=WhyteMd
+        text (mode == "private" ? "Private" : "Public") class=WhyteXs color="tx.secondary" margin-left="auto" testId="thread-experience"
       if not compact
         ReadingCap()
 
@@ -56,8 +62,8 @@ component ReadingCap
         box position="relative" width="100%" height=radiusFull()
           box position="absolute" left=radiusFull() right=radiusFull() top=0 height=1 background-color="bd.primary"
           svg position="absolute" left=0 top=0 width=radiusFull() height=radiusFull() viewBox="0 0 32 32"
-            path d="M0 0H32A32 32 0 0 0 0 32Z" fill="bg.base"
+            path d="M0 0H32A32 32 0 0 0 0 32Z" fill="experience.canvas"
             path d="M0.5 32A31.5 31.5 0 0 1 32 0.5" fill="none" stroke="bd.primary" stroke-width=1
           svg position="absolute" right=0 top=0 width=radiusFull() height=radiusFull() viewBox="0 0 32 32"
-            path d="M0 0H32V32A32 32 0 0 0 0 0Z" fill="bg.base"
+            path d="M0 0H32V32A32 32 0 0 0 0 0Z" fill="experience.canvas"
             path d="M0 0.5A31.5 31.5 0 0 1 31.5 32" fill="none" stroke="bd.primary" stroke-width=1

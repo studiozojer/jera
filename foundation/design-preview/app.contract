@@ -1,12 +1,17 @@
 use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusSm, radiusMd, radiusFull, minTouchTarget from "./dao.contract"
 use Post, Author, PostAvatar, PostActions, Draft, conversationRoot from "./post.contract"
 use samplePosts from "./fixtures.contract"
-use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction, PrimaryAction from "./dao.contract"
+use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction from "./dao.contract"
 use ReadingHeader, ThreadHeader, WriteButton from "./chrome.contract"
 use ThreadHero, ThreadBranch from "./thread.contract"
+use Button from "./dao/actions.contract"
+use ExperienceSnapshot, ExperienceModeControl from "./experience.contract"
 
 shape Viewport
   width: number
+
+shape Clock
+  epochAtZero: number
 
 font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
 font "Whyte Inktrap" = "assets/fonts/ABCWhyteInktrap-Regular.otf"
@@ -18,40 +23,63 @@ routes nav
     account "/account"
 
 component App
+  resource time = exactTime() as shape Clock
   resource viewport = exactViewport() as shape Viewport
   derive compact = viewport.width < 704
   state feedHeaderHeight = 0
   state threadHeaderHeight = 0
+  resource experienceState = experienceSnapshot() as shape ExperienceSnapshot else empty()
+  mutation experienceChanged as shape ExperienceSnapshot refreshes experienceState then afterExperienceChange
+  derive currentExperience = match experienceChanged { case some(s) => s.revision >= experienceState.revision ? s : experienceState, case none => experienceState }
+  derive mode = currentExperience.mode == "private" ? "private" : "public"
   state posts = samplePosts()
-  state drafts = [Draft(context="", body="")]
+  derive visiblePosts = posts.filter(p => p.visibility == mode)
+  state drafts: Draft[] = []
   state replyTo = ""
+  state composeContextChanged = false
   state lastPosted = ""
-  derive draft = match first(drafts.filter(d => d.context == replyTo)) { case some(d) => d.body, case none => "" }
+  derive draft = match first(drafts.filter(d => d.context == replyTo and d.mode == mode)) { case some(d) => d.body, case none => "" }
   task defaultTheme mount
     after(1, darkTheme)
   action darkTheme
     setScheme("dark")
+  // One canvas-only presentation experiment. Future lexicon/context policies
+  // resolve here rather than forking app routes or duplicating base components.
+  task experienceTheme when currentExperience.mode != "" key=currentExperience.revision
+    after(1, applyExperienceTheme)
+  action applyExperienceTheme
+    setMode("experience", mode)
+  action selectExperience(value: string)
+    if value != mode and not pending(experienceChanged)
+      send experienceChanged = changeExperience(value, time.epochAtZero + performanceNow())
+  action afterExperienceChange
+    // Keep the composer mounted (and keyboard focus intact). A switch starts
+    // a new post; exit/posting normalize its return to the selected-mode feed.
+    replyTo = ""
+    composeContextChanged = true
   action follow(url: string)
-    nav = go(nav, url)
+    nav = top(nav).name == "compose" and composeContextChanged and url != "/write" ? go(nav, "/") : go(nav, url)
   action openThread(id: string)
     nav = push(nav, path("thread", id))
   action dismiss
-    nav = back(nav)
+    nav = top(nav).name == "compose" and composeContextChanged ? go(nav, "/") : back(nav)
   action write
+    composeContextChanged = false
     replyTo = ""
     nav = push(nav, "/write")
   action reply(id: string)
+    composeContextChanged = false
     replyTo = id
     nav = push(nav, "/write")
   action edit(value: string)
-    drafts = drafts.filter(d => d.context != replyTo).concat([Draft(context=replyTo, body=value)])
+    drafts = drafts.filter(d => d.context != replyTo or d.mode != mode).concat([Draft(mode=mode, context=replyTo, body=value)])
   action post
-    if draft.trim() != ""
+    if draft.trim() != "" and not pending(experienceChanged) and (replyTo == "" or visiblePosts.filter(p => p.id == replyTo).length == 1)
       let id = `post-${posts.length + 1}`
-      posts = posts.concat([Post(id=id, root=(replyTo == "" ? "" : conversationRoot(posts, replyTo)), parent=replyTo, author="David", handle="david", initial="D", body=draft, stamp="now")])
-      drafts = drafts.filter(d => d.context != replyTo)
+      posts = posts.concat([Post(id=id, root=(replyTo == "" ? "" : conversationRoot(visiblePosts, replyTo)), parent=replyTo, visibility=mode, author="David", handle="david", initial="D", body=draft, stamp="now")])
+      drafts = drafts.filter(d => d.context != replyTo or d.mode != mode)
       // Consume the composer and focus the actual recipient's conversation.
-      let previous = back(nav)
+      let previous = composeContextChanged ? go(nav, "/") : back(nav)
       nav = replyTo == "" ? push(previous, path("thread", id)) : (top(previous).params.id == replyTo ? previous : push(previous, path("thread", replyTo)))
       lastPosted = id
   task revealPosted when lastPosted != "" and top(nav).name == "thread" key=lastPosted
@@ -68,57 +96,62 @@ component App
   action account
     nav = push(nav, "/account")
   view
-    main navigationKey=`${top(nav).id}` navigationBack="back" navigate=follow width="100%" height="100%" color-scheme="dark" font-family="Whyte" background-color="bg.base" color="tx.primary" interactive-widget="resizes-content" display="flex" flex-direction="column"
+    main navigationKey=`${top(nav).id}` navigationBack="back" navigate=follow width="100%" height="100%" color-scheme="dark" font-family="Whyte" background-color="experience.canvas" color="tx.primary" interactive-widget="resizes-content" display="flex" flex-direction="column"
       for entry in stack(nav) key=entry.id
         if entry.name == "home"
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 box-sizing="border-box"
-            scroll id="stream" testId="stream" aria-label="Posts" tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
+            scroll id="stream" testId="stream" aria-label=(mode == "private" ? "Private posts" : "Public posts") tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
               column min-height="100%"
-                ReadingHeader(account=account, compact=compact, measure=measureFeedHeader)
+                ReadingHeader(account=account, compact=compact, measure=measureFeedHeader, mode=mode)
                 column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
                   column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
-                    for item, index in posts.filter(p => p.root == "") key=item.id
+                    for item, index in visiblePosts.filter(p => p.root == "") key=item.id
                       article padding-top=(compact ? spaceMd() : spaceLg()) padding-bottom=(compact ? spaceMd() : spaceLg()) padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                         row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
                           PostAvatar(post=item)
                           column flex=1 flex-basis="12rem" min-width=0 gap=spaceSm()
                             Author(post=item, menuId=`stream-menu-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
                             text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
-                            PostActions(post=item, comments=posts.filter(p => p.parent == item.id).length, comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
-                    text "Sample conversations" color="tx.secondary" class=WhyteXs padding-top=spaceXxl() padding-left=spaceLg()
+                            PostActions(post=item, comments=visiblePosts.filter(p => p.parent == item.id).length, comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
+                    text (mode == "private" ? "Private sample conversations" : "Public sample conversations") color="tx.secondary" class=WhyteXs padding-top=spaceXxl() padding-left=spaceLg()
                     box height="env(safe-area-inset-bottom)" flex-shrink=0
             WriteButton(write=write, compact=compact)
         if entry.name == "thread"
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 box-sizing="border-box"
             scroll id="conversation" testId="conversation" aria-label="Conversation" tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
               column min-height="100%"
-                ThreadHeader(back=dismiss, compact=compact, measure=measureThreadHeader)
+                ThreadHeader(back=dismiss, compact=compact, measure=measureThreadHeader, mode=mode)
                 column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd()) padding-bottom=(compact ? "5rem" : "6rem")
                   column flex-shrink=0 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-bottom-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-bottom-style="solid" border-color="bd.primary" border-bottom-left-radius=(compact ? 0 : radiusFull()) border-bottom-right-radius=(compact ? 0 : radiusFull()) testId="thread-frame"
-                    for focused in posts.filter(p => p.id == entry.params.id) key=focused.id
+                    if visiblePosts.filter(p => p.id == entry.params.id).length == 0
+                      text "Conversation not in this experience." class=WhyteSm color="tx.secondary" padding=spaceXxl() testId="thread-unavailable"
+                    for focused in visiblePosts.filter(p => p.id == entry.params.id) key=focused.id
                       if focused.parent != ""
-                        for parent in posts.filter(p => p.id == focused.parent) key=parent.id
+                        for parent in visiblePosts.filter(p => p.id == focused.parent) key=parent.id
                           button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(threadHeaderHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
                             text `Replying to ${parent.author}` color="tx.secondary" class=WhyteXs
-                      ThreadHero(post=focused, posts=posts, reply=reply, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
-                      for child in posts.filter(p => p.parent == focused.id) key=child.id
-                        ThreadBranch(post=child, posts=posts, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                      ThreadHero(post=focused, posts=visiblePosts, reply=reply, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                      for child in visiblePosts.filter(p => p.parent == focused.id) key=child.id
+                        ThreadBranch(post=child, posts=visiblePosts, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
                   box height="env(safe-area-inset-bottom)" flex-shrink=0
             WriteButton(write=write, compact=compact)
         if entry.name == "compose"
-          column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="bg.base" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"
+          column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="experience.canvas" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"
             row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
-              button "Cancel" id="back" press=dismiss testId="cancel" appearance="none" class=QuietAction min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceMd() padding-right=spaceMd() border-width=0 border-radius=radiusMd() background-color="transparent" font-family="Whyte"
+              Button(controlId="back", label="Cancel", kind="ghost", size="medium", icon=none, disabled=pending(experienceChanged), busy=false, press=dismiss, testId="cancel")
               text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
-              button "Post" press=post testId="post" disabled=(draft.trim() == "") cursor=(draft.trim() == "" ? "default" : "pointer") appearance="none" class=PrimaryAction font-family="Whyte" min-height=minTouchTarget() padding-top=spaceSm() padding-bottom=spaceSm() padding-left=spaceXl() padding-right=spaceXl() border-width=0 border-radius=radiusMd()
+              Button(controlId="", label="Post", kind="primary", size="medium", icon=none, disabled=(draft.trim() == "" or pending(experienceChanged)), busy=false, press=post, testId="post")
+            ExperienceModeControl(mode=mode, change=selectExperience, disabled=false)
+            if failed(experienceChanged)
+              text "Couldn’t switch experiences. Try again." class=WhyteSm color="tx.secondary" role="status"
             if replyTo != ""
-              for recipient in posts.filter(p => p.id == replyTo) key=recipient.id
+              for recipient in visiblePosts.filter(p => p.id == replyTo) key=recipient.id
                 column gap=spaceSm() border-left="1px solid bd.primary" padding-left=spaceMd()
                   text `Replying to ${recipient.author}` color="tx.secondary" class=WhyteXs testId="reply-recipient"
                   text recipient.body class=WhyteSm white-space="pre-wrap" line-clamp=3 testId="reply-context"
-            textarea id="composer" value=draft input=edit placeholder=(replyTo == "" ? "What's on your mind?" : "Continue the conversation…") aria-label=(replyTo == "" ? "Write a post" : "Write a reply") testId="composer" outline="none" rows=8 min-height=224 width="100%" box-sizing="border-box" padding-top=spaceSm() padding-bottom=spaceSm() border-width=0 background-color="transparent" color="tx.primary" font-family="Whyte" class=WhyteSm resize="none"
+            textarea id="composer" disabled=pending(experienceChanged) value=draft input=edit placeholder=(replyTo == "" ? "What's on your mind?" : "Continue the conversation…") aria-label=(replyTo == "" ? "Write a post" : "Write a reply") testId="composer" outline="none" rows=8 min-height=224 width="100%" box-sizing="border-box" padding-top=spaceSm() padding-bottom=spaceSm() border-width=0 background-color="transparent" color="tx.primary" font-family="Whyte" class=WhyteSm resize="none"
         if entry.name == "account"
-          column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 padding=spaceXxl() gap=spaceLg() background-color="bg.base" color="tx.primary"
+          column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 padding=spaceXxl() gap=spaceLg() background-color="experience.canvas" color="tx.primary"
             text "David" role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteLg
             text "Sample account · design preview" color="tx.secondary"
-            button "Done" id="back" press=dismiss testId="account-done" cursor="pointer" min-height=minTouchTarget()
+            Button(controlId="back", label="Done", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=dismiss, testId="account-done")

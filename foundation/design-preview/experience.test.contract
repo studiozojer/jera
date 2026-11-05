@@ -1,0 +1,121 @@
+test "experience switching separates drafts and changes the whole feed"
+  tap "write"
+  clock settle
+  expect state mode == "public"
+  type "composer" "A public draft"
+  tap "experience-private"
+  clock settle
+  expect state mode == "private"
+  expect state currentExperience.revision == 1
+  expect text "composer" == ""
+  type "composer" "A private draft"
+  tap "cancel"
+  clock settle
+  expect tree has "body-seed-35"
+  expect tree missing "body-seed-2"
+  tap "write"
+  clock settle
+  expect text "composer" == "A private draft"
+  tap "experience-public"
+  clock settle
+  expect text "composer" == "A public draft"
+  expect state currentExperience.revision == 2
+  tap "cancel"
+  clock settle
+  expect tree has "body-seed-2"
+  expect tree missing "body-seed-35"
+
+test "new posts stay in the experience selected when writing"
+  tap "write"
+  clock settle
+  tap "experience-private"
+  clock settle
+  type "composer" "A private post ♍︎ ♍️ :virgo:"
+  tap "post"
+  clock settle
+  expect state mode == "private"
+  expect text "thread-body-post-61" == "A private post ♍︎ ♍️ :virgo:"
+  tap "back"
+  clock settle
+  expect tree has "body-post-61"
+  tap "write"
+  clock settle
+  tap "experience-public"
+  clock settle
+  expect text "composer" == ""
+  type "composer" "A public post"
+  tap "post"
+  clock settle
+  tap "back"
+  clock settle
+  expect tree has "body-post-62"
+  expect tree missing "body-post-61"
+  tap "write"
+  clock settle
+  tap "experience-private"
+  clock settle
+  tap "cancel"
+  clock settle
+  expect tree has "body-post-61"
+  expect tree missing "body-post-62"
+
+test "switching from a reply opens a new post and cancels into the selected feed"
+  tap "thread-seed-2"
+  clock settle
+  tap "reply-to-seed-3"
+  clock settle
+  type "composer" "A reply for Kepler in public"
+  tap "experience-private"
+  clock settle
+  expect state replyTo == ""
+  expect tree missing "reply-context"
+  expect text "composer" == ""
+  type "composer" "A separate private thought"
+  tap "cancel"
+  clock settle
+  expect tree has "body-seed-35"
+  expect tree missing "thread-body-seed-2"
+  tap "write"
+  clock settle
+  tap "experience-public"
+  clock settle
+  tap "cancel"
+  clock settle
+  tap "thread-seed-2"
+  clock settle
+  tap "reply-to-seed-3"
+  clock settle
+  expect text "composer" == "A reply for Kepler in public"
+
+test "choosing the current mode keeps the reply context and emits no change"
+  tap "thread-seed-2"
+  clock settle
+  tap "reply-to-seed-3"
+  clock settle
+  type "composer" "Still replying here"
+  tap "experience-public"
+  clock settle
+  expect state currentExperience.revision == 0
+  expect state replyTo == "seed-3"
+  expect text "composer" == "Still replying here"
+  expect tree has "reply-context"
+
+test "posting after leaving a public reply creates a private root with a private return path"
+  tap "thread-seed-2"
+  clock settle
+  tap "reply-to-seed-3"
+  clock settle
+  type "composer" "Keep this public reply draft"
+  tap "experience-private"
+  clock settle
+  expect state replyTo == ""
+  type "composer" "A private root from a changed reply context"
+  tap "post"
+  clock settle
+  expect text "thread-body-post-61" == "A private root from a changed reply context"
+  expect text "thread-experience" == "Private"
+  tap "back"
+  clock settle
+  expect tree has "body-post-61"
+  expect tree missing "thread-body-seed-2"
+  expect tree missing "composer"
