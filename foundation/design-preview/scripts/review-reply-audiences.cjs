@@ -1,0 +1,71 @@
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || path.resolve(__dirname, '../../../tooling/exact2/node_modules/playwright-core'));
+(async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const width of [390, 1280]) {
+      const page = await browser.newPage({ viewport: { width, height: 900 } });
+      const at = id => page.locator(`[data-testid="${id}"]:visible`).last();
+      const choose = async mode => {
+        await at(`experience-${mode}`).click();
+        await page.waitForFunction(mode => document.querySelector(`[data-testid="experience-${mode}"]`)?.getAttribute('aria-checked') === 'true', mode);
+      };
+      await page.goto(process.env.JERA_PREVIEW_URL || 'http://127.0.0.1:3034/');
+      await at('thread-seed-2').click();
+      await at('reply-to-seed-3').click();
+      await at('composer').fill('A private branch for Kepler');
+      const editor = await at('composer').elementHandle();
+      await choose('private');
+      assert(await editor.evaluate(e => e.isConnected));
+      assert.equal(await at('composer').inputValue(), 'A private branch for Kepler');
+      assert((await at('reply-context').innerText()).includes('Some ideas need another season'));
+      await page.goBack();
+      await at('composer').waitFor({ state: 'hidden' });
+      assert(page.url().endsWith('/thread/seed-3'));
+      assert.equal(await at('thread-experience').innerText(), 'Private');
+      await at('public-thread-context').waitFor();
+      await at('thread-reply-entry-seed-3').click();
+      assert.equal(await at('composer').inputValue(), 'A private branch for Kepler');
+      await at('post').click();
+      await at('thread-body-post-61').waitFor();
+      await at('reply-to-post-61').click();
+      await at('reply-private-only').waitFor();
+      assert.equal(await at('experience-public').count(), 0);
+      await at('composer').fill('A private child of that branch');
+      await at('post').click();
+      await at('thread-body-post-62').waitFor();
+      await at('reply').click();
+      assert.equal(await at('experience-public').count(), 0);
+      await at('cancel').click();
+      await at('composer').waitFor({ state: 'hidden' });
+      await at('back').click();
+      await at('thread-body-seed-3').waitFor();
+      await at('reply').click();
+      await choose('public');
+      await at('cancel').click();
+      await at('composer').waitFor({ state: 'hidden' });
+      assert.equal(await at('thread-body-post-61').count(), 0);
+      assert.equal(await at('thread-body-post-62').count(), 0);
+      assert((await at('reply').getAttribute('aria-label')).startsWith('1 reply.'), 'public count excludes private branch');
+      await at('reply').click();
+      await choose('private');
+      await at('cancel').click();
+      await at('composer').waitFor({ state: 'hidden' });
+      await at('back').click();
+      await at('body-post-61').waitFor();
+      const feed = await page.locator('[data-testid^="body-"]:visible').evaluateAll(es => es.map(e => e.dataset.testid));
+      assert.equal(feed[0], 'body-post-61');
+      assert(!feed.includes('body-post-62'), 'private descendants stay under their branch head');
+      assert(!feed.includes('body-seed-2'), 'public roots do not fill the private feed');
+      await page.screenshot({ path: path.resolve(__dirname, `../.exact/reply-audiences-${width}.png`) });
+      await at('thread-seed-35').click();
+      await at('reply').click();
+      await at('reply-private-only').waitFor();
+      assert.equal(await at('experience-public').count(), 0);
+      assert.equal(await at('experience-private').count(), 0);
+      await page.close();
+    }
+    console.log('PASS: retained editor/draft/parent; browser Back; private branch/child; locked private replies; public content/count isolation; newest-first private branch heads; mobile/desktop.');
+  } finally { await browser.close(); }
+})().catch(error => { console.error(error); process.exitCode = 1; });

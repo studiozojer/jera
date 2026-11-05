@@ -33,6 +33,8 @@ component Author
       row gap=spaceMd() align-items="center" flex-wrap="wrap" min-width=0 flex=1 flex-basis="8rem"
         text post.author class=WhyteSm
         text post.stamp color="tx.secondary" class=WhyteXs
+        if post.visibility == "private"
+          text "Private" color="tx.secondary" class=WhyteXs
       // Keep the author line at reading height; the full menu target extends
       // into the surrounding space without adding a blank line below the name.
       box height="1.5rem" display="flex" align-items="center" flex-shrink=0
@@ -67,3 +69,7 @@ shape Draft
   body: string
 
 fn conversationRoot(posts: Post[], id: string): string = match first(posts.filter(p => p.id == id)) { case some(p) => p.root == "" ? p.id : p.root, case none => id }
+
+// A reply can narrow its immediate parent's audience, never widen it. Future
+// audience/group grants must additionally enforce recipient membership in storage.
+fn canReplyInExperience(posts: Post[], parent: string, mode: string): bool = (mode == "public" or mode == "private") and posts.filter(p => p.id == parent and (p.visibility == "public" or mode == "private")).length == 1

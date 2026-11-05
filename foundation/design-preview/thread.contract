@@ -25,12 +25,15 @@ component ThreadHero
     reply: action
     context: string
     clearance: number
+    mode: string
   view
     article id=`thread-${context}-${post.id}` padding=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column" gap=spaceMd() scroll-margin-top=clearance scroll-margin-bottom="6rem"
       row gap=spaceMd() align-items="center"
         PostAvatar(post=post)
         column flex=1 min-width=0
           Author(post=post, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
+      if post.visibility == "public" and mode == "private"
+        text "Public post" class=WhyteXs color="tx.secondary" testId="public-thread-context"
       text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
       PostActions(post=post, comments=posts.filter(p => p.parent == post.id).length, comment=reply(post.id), commentId="reply", commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
 

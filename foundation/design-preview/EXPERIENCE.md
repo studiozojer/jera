@@ -26,9 +26,15 @@ Change records have type `jera.experience.changed`, version 1, previousMode, mod
 
 ## Content and return paths
 
-Post records carry `visibility`. Both the stream and each thread use the selected-mode projection, including reply counts and child previews. The sixty authored records contain 46 public and 14 private records; the private roots are David’s sample posts. New posts inherit the selected mode. Existing posts are never moved when the mode changes.
+Post records carry `visibility`. Public views exclude private records, including reply counts and branch previews. Private conversations may reference public posts and their publicly readable context alongside private replies; a public focused post is marked as such, and private records carry a quiet Private cue. This is a synthetic preview projection, not an ACL. Its public records are assumed publicly readable; the real data module must return only records the authenticated DID is allowed to read.
 
-Draft identity is `{mode, parent/context}`. Switching from a reply starts a New post in the other mode and leaves the original reply draft in its original context. An existing draft in the selected mode is restored; text is never silently transferred. The composer stays mounted during the change, retaining keyboard focus on the selected control. Cancel, browser Back and successful posting normalize a changed composer’s return to the selected-mode feed. An unchanged composer retains its original thread return. A thread outside the projection does not render its content.
+Public feeds show public root posts. Private feeds show private roots and the heads of private branches attached to public parents, with a “Private reply to…” cue. Descendants remain within their branch. Feed creation order is independent of oldest-first reply order. The original sixty fixtures contain 46 public and 14 private records; new posts inherit the selected experience. Existing posts are not moved by context changes.
+
+New-post draft identity remains `{mode, context: ""}`. An unsent reply is keyed by its recipient (`{mode: "reply", context: parentId}`): explicitly changing its audience keeps that recipient, text and mounted editor. Selecting Public is a deliberate change to the eventual reply audience; posting still requires the Post action. The picker is available for public parents. Private parents show a fixed Private indicator, and the selection and posting actions independently enforce `canReplyInExperience`, so hiding the control is not the only guard. Private descendants of public roots also cannot acquire public children.
+
+Cancel and browser Back after a reply audience change return to its parent conversation in the selected experience, with the selected feed below it. Successful posting preserves both immediate parent and original root, reveals the reply, and returns through the selected context. A changed new-post composer still returns to the selected feed. Private content is not rendered on direct public routes. Readable public context within Private does not add public roots to the private feed.
+
+The future live audience model and current module membership implementation are distinguished in `../PERMISSIONS.md`. There is no DID picker, post ACL, group scope, live permission change or implicit grant to the original author in this preview. The global event interface remains unchanged.
 
 ## First presentation seam
 
@@ -40,7 +46,7 @@ The pinned SDK refuses app-axis variation of host Canvas/background roles (`tamb
 
 ## Review
 
-Use Bun 1.4.2. Run `bun test experience.test.ts`, `python3 dao/check.py`, and `bun exact.mjs verify`. Against a separately running preview on port 3034, run `node scripts/review-experience.cjs`; `JERA_PREVIEW_URL` and `PLAYWRIGHT_MODULE` override its defaults. Stop the dev watcher before verify. Direct captures and proof are in ignored `.exact/experience-review/`.
+Use Bun 1.4.2. Run `bun test experience.test.ts`, `python3 dao/check.py`, and `bun exact.mjs verify`. Against a separately running preview on port 3034, run `node scripts/review-experience.cjs` and `node scripts/review-reply-audiences.cjs`; `JERA_PREVIEW_URL` and `PLAYWRIGHT_MODULE` override its defaults. Stop the dev watcher before verify. Direct captures and proof are in ignored `.exact/experience-review/`.
 
 The focused browser review checks actual canvas colors, retained editor identity, keyboard ownership, per-mode drafts, visible feed filtering, browser Back and the posted result. The Contract scenarios cover Cancel/Post return paths and existing writing/threading behavior. The unit tests cover the snapshot/event interface. These are distinct evidence. Geometry findings are retained in the verify report; a wrapper exit code alone does not establish a clean layout or native acceptance.
 

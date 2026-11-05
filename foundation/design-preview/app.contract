@@ -1,5 +1,5 @@
 use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusSm, radiusMd, radiusFull, minTouchTarget from "./dao.contract"
-use Post, Author, PostAvatar, PostActions, Draft, conversationRoot from "./post.contract"
+use Post, Author, PostAvatar, PostActions, Draft, conversationRoot, canReplyInExperience from "./post.contract"
 use samplePosts from "./fixtures.contract"
 use WhyteSm, WhyteXs, WhyteMd, WhyteLg, QuietAction from "./dao.contract"
 use ReadingHeader, ThreadHeader, WriteButton, FeedComposer from "./chrome.contract"
@@ -33,12 +33,22 @@ component App
   derive currentExperience = match experienceChanged { case some(s) => s.revision >= experienceState.revision ? s : experienceState, case none => experienceState }
   derive mode = currentExperience.mode == "private" ? "private" : "public"
   state posts = samplePosts()
-  derive visiblePosts = posts.filter(p => p.visibility == mode)
+  // Public records may supply readable context inside a private conversation.
+  // This projection is synthetic UI policy, not backend access enforcement.
+  derive visiblePosts = posts.filter(p => p.visibility == "public" or mode == "private")
+  state createdOrder: string[] = []
+  derive feedCandidates = posts.filter(p => p.visibility == mode and (p.parent == "" or (mode == "private" and posts.filter(parent => parent.id == p.parent and parent.visibility == "public").length > 0)))
+  // Creation order is preview-local; live feeds will order by storage timestamps.
+  derive feedPosts = sortBy(feedCandidates, p => createdOrder.indexOf(p.id) < 0 ? createdOrder.length : createdOrder.indexOf(p.id))
   state drafts: Draft[] = []
   state replyTo = ""
   state composeContextChanged = false
   state lastPosted = ""
-  derive draft = match first(drafts.filter(d => d.context == replyTo and d.mode == mode)) { case some(d) => d.body, case none => "" }
+  derive privateReply = posts.filter(p => p.id == replyTo and p.visibility == "private").length > 0
+  // An unsent reply belongs to its recipient; the picker changes its audience.
+  // New-post drafts remain distinct for each global experience.
+  derive draftMode = replyTo == "" ? mode : "reply"
+  derive draft = match first(drafts.filter(d => d.context == replyTo and d.mode == draftMode)) { case some(d) => d.body, case none => "" }
   task defaultTheme mount
     after(1, darkTheme)
   action darkTheme
@@ -50,19 +60,17 @@ component App
   action applyExperienceTheme
     setMode("experience", mode)
   action selectExperience(value: string)
-    if value != mode and not pending(experienceChanged)
+    if value != mode and not pending(experienceChanged) and (replyTo == "" or canReplyInExperience(posts, replyTo, value))
       send experienceChanged = changeExperience(value, time.epochAtZero + performanceNow())
   action afterExperienceChange
-    // Keep the composer mounted (and keyboard focus intact). A switch starts
-    // a new post; exit/posting normalize its return to the selected-mode feed.
-    replyTo = ""
+    // Retain recipient, editor and unsent reply text during an audience change.
     composeContextChanged = true
   action follow(url: string)
-    nav = top(nav).name == "compose" and composeContextChanged and url != "/write" ? go(nav, "/") : go(nav, url)
+    nav = top(nav).name == "compose" and composeContextChanged and url != "/write" ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : go(nav, url)
   action openThread(id: string)
     nav = push(nav, path("thread", id))
   action dismiss
-    nav = top(nav).name == "compose" and composeContextChanged ? go(nav, "/") : back(nav)
+    nav = top(nav).name == "compose" and composeContextChanged ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : back(nav)
   action write
     composeContextChanged = false
     replyTo = ""
@@ -72,14 +80,15 @@ component App
     replyTo = id
     nav = push(nav, "/write")
   action edit(value: string)
-    drafts = drafts.filter(d => d.context != replyTo or d.mode != mode).concat([Draft(mode=mode, context=replyTo, body=value)])
+    drafts = drafts.filter(d => d.context != replyTo or d.mode != draftMode).concat([Draft(mode=draftMode, context=replyTo, body=value)])
   action post
-    if draft.trim() != "" and not pending(experienceChanged) and (replyTo == "" or visiblePosts.filter(p => p.id == replyTo).length == 1)
+    if draft.trim() != "" and not pending(experienceChanged) and (replyTo == "" or canReplyInExperience(posts, replyTo, mode))
       let id = `post-${posts.length + 1}`
       let created = Post(id=id, root=(replyTo == "" ? "" : conversationRoot(visiblePosts, replyTo)), parent=replyTo, visibility=mode, author="David", handle="david", initial="D", body=draft, stamp="now")
       // The feed reads newest first; conversations retain oldest-first replies.
       posts = replyTo == "" ? [created].concat(posts) : posts.concat([created])
-      drafts = drafts.filter(d => d.context != replyTo or d.mode != mode)
+      createdOrder = [id].concat(createdOrder)
+      drafts = drafts.filter(d => d.context != replyTo or d.mode != draftMode)
       // Consume the composer and focus the actual recipient's conversation.
       let previous = composeContextChanged ? go(nav, "/") : back(nav)
       nav = replyTo == "" ? push(previous, path("thread", id)) : (top(previous).params.id == replyTo ? previous : push(previous, path("thread", replyTo)))
@@ -108,7 +117,7 @@ component App
                 column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
                   column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
                     FeedComposer(write=write)
-                    for item, index in visiblePosts.filter(p => p.root == "") key=item.id
+                    for item, index in feedPosts key=item.id
                       article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom=spaceMd() padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                         :hover
                           background-color="transparent"
@@ -116,6 +125,9 @@ component App
                           PostAvatar(post=item)
                           column flex=1 flex-basis="12rem" min-width=0 gap="dao.space.xs"
                             Author(post=item, menuId=`stream-menu-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
+                            if item.parent != ""
+                              for parent in visiblePosts.filter(p => p.id == item.parent) key=parent.id
+                                text `Private reply to ${parent.author}` class=WhyteXs color="tx.secondary"
                             text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
                             PostActions(post=item, comments=visiblePosts.filter(p => p.parent == item.id).length, comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
                     text (mode == "private" ? "Private sample conversations" : "Public sample conversations") color="tx.secondary" class=WhyteXs padding-top=spaceXxl() padding-left=spaceLg()
@@ -135,7 +147,7 @@ component App
                         for parent in visiblePosts.filter(p => p.id == focused.parent) key=parent.id
                           button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(threadHeaderHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
                             text `Replying to ${parent.author}` color="tx.secondary" class=WhyteXs
-                      ThreadHero(post=focused, posts=visiblePosts, reply=reply, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                      ThreadHero(post=focused, posts=visiblePosts, reply=reply, mode=mode, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
                       ThreadReplyEntry(post=focused, reply=reply, clearance=(threadHeaderHeight + spaceSm()))
                       for child in visiblePosts.filter(p => p.parent == focused.id) key=child.id
                         ThreadBranch(post=child, posts=visiblePosts, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
@@ -147,7 +159,10 @@ component App
               Button(controlId="back", label="Cancel", kind="ghost", size="medium", icon=none, disabled=pending(experienceChanged), busy=false, press=dismiss, testId="cancel")
               text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
               Button(controlId="", label="Post", kind="primary", size="medium", icon=none, disabled=(draft.trim() == "" or pending(experienceChanged)), busy=false, press=post, testId="post")
-            ExperienceModeControl(mode=mode, change=selectExperience, disabled=false)
+            if privateReply
+              text "Private" class=WhyteXs color="tx.secondary" aria-label="Reply visibility: Private" testId="reply-private-only"
+            else
+              ExperienceModeControl(mode=mode, change=selectExperience, disabled=false)
             if failed(experienceChanged)
               text "Couldn’t switch experiences. Try again." class=WhyteSm color="tx.secondary" role="status"
             if replyTo != ""
