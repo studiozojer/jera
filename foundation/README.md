@@ -2,9 +2,15 @@
 
 **Product status:** existing-account ATproto OAuth and DID-bound Snapback sessions are implemented; password and guest signup are disabled. David reported successful real-account login on the phone on 2026-11-01; relaunch and private-capture acceptance remain separate. Snapback is the accepted authoritative store for private drafts, shared modules and most initial application data; user input will not be published to ATproto during this phase. Lexicons and PDS storage are deferred while the UX develops. Read [the current product contract](PRODUCT.md) before extending it.
 
-The private backend supports the first Exact + Snapback slice: capture an idea into a module, retain its original wording and provenance, queue organizing work, and let an authenticated operator return attributed context. Multiple armillaries coexist. An armillary's identity is its backend endpoint plus its record ID; there is no assumed universal singleton.
+The authenticated app now carries the calibrated feed, focused threads, reply entry and Private/Public composer into real Snapback data. Account → Private audience manages the DIDs that can read and reply to private posts. Posts are server-authoritative; unpublished drafts sync owner-only, with a local recovery/pending-intent journal. See [permissions](PERMISSIONS.md) and [the product contract](PRODUCT.md). Public means signed-in Jera readers, not ATproto publication. New accounts start Private.
 
-The existing Expo application at the repository root remains the historical implementation. New foundation work lives here. The foundation backend is deployed at `https://snapback.jera.ink`. Migration of the Expo screens and an autonomous organizer remain future work.
+The earlier memory backend remains available: capture an idea into a module, retain its original wording and provenance, queue organizing work, and let an authenticated operator return attributed context. Multiple armillaries coexist. An armillary's identity is its backend endpoint plus its record ID; there is no assumed universal singleton.
+
+The existing Expo application at the repository root remains historical. New foundation work lives here. Snapback is deployed at `https://snapback.jera.ink`, currently hosted at `91.98.204.141`; old PDS-host deployment notes are superseded. An autonomous operator remains future work.
+
+## Current mobile delivery
+
+The November 5 release uses the live backend for posts, audiences and owner-only drafts, with local input/retry recovery. See [delivery evidence](MOBILE-PROMOTION.md). A production-trust signed IPA is available at `app/artifacts/jera.ipa`; installation is waiting for the paired iPhone to be unlocked. Native interactive acceptance remains separate from the completed browser/backend review.
 
 ## Pinned dependencies
 
@@ -42,7 +48,7 @@ The raw development server above exercises storage only. Real sign-in uses the d
 bun exact.mjs web
 ```
 
-Enter your existing ATproto handle or DID and choose **Continue with ATproto**. Approve access on your provider’s page and return to Jera. Jera opens in dark mode by default. The signed-in screen keeps the approved SVG wordmark at the top-left on `bg.base`, with your avatar at the top-right. Press the avatar to open an account sheet containing your avatar, name, handle and a full-width **Log out** button. On iOS, Exact presents a content-sized native sheet with an explicit system grabber in compact widths; the daoUI background extends through its safe area. Tapping outside or swiping down dismisses it. Wider presentations use a modal card; the browser switches to a centered content-sized card at 768px. iOS 26 intentionally floats short native sheets with a small outer inset; this is distinct from the corrected mismatched bottom background. David approved this native inset on 2026-11-01. The header stays quiet while a saved session restores. There are no directory queries, periodic refreshes, loading labels, DID display or refresh controls. The earlier workspace/composer UI is removed at David's request; backend records and existing on-device drafts are preserved. No separate Jera account is created. See [authorization architecture and verification](auth/README.md).
+Enter your existing ATproto handle or DID and choose **Continue with ATproto**. Approve access on your provider’s page and return to Jera. Jera opens in dark mode by default. The signed-in screen keeps the approved SVG wordmark at the top-left on `bg.base`, with your avatar at the top-right. Press the avatar to open an account sheet containing your avatar, name, handle and a full-width **Log out** button. On iOS, Exact presents a content-sized native sheet with an explicit system grabber in compact widths; the daoUI background extends through its safe area. Tapping outside or swiping down dismisses it. Wider presentations use a modal card; the browser switches to a centered content-sized card at 768px. iOS 26 intentionally floats short native sheets with a small outer inset; this is distinct from the corrected mismatched bottom background. David approved this native inset on 2026-11-01. The header stays quiet while a saved session restores. There are no directory queries, periodic refreshes, loading labels, DID display or refresh controls. The earlier memory-workspace UI remains outside the social flow; its backend records and existing on-device data are preserved. The signed-in feed now uses real post records, with separate new-post and recipient-keyed reply drafts. No separate Jera account is created. See [authorization architecture and verification](auth/README.md).
 
 Account presentation comes from Bluesky’s public `app.bsky.actor.getProfile` service, queried with the verified session DID without credentials. A cache scoped to that DID preserves the name and handle offline; if the profile or avatar is unavailable, a quiet initial replaces the photo. Public profile data never establishes identity. Profile lookup runs when the signed-in identity changes, without periodic polling.
 
@@ -107,12 +113,15 @@ Verified on 2026-10-31: a locally signed iPhone archive was produced at `app/art
 
 ## Hosted backend
 
-See [operations](ops/README.md) for paths, backups, deployment and restoration. Snapback runs on the Jera PDS VPS as its own unprivileged systemd service, behind Caddy HTTPS. Stjerneborg is the selected operator host; no operator scheduler has been installed there yet. An operator uses `JERA_ORIGIN=https://snapback.jera.ink` and its own account session, with write membership in the modules it organizes. A local coding harness can query the same API later.
+See [operations](ops/README.md) for paths, backups, deployment and restoration. Snapback runs on the current app host as its own unprivileged systemd service, behind Caddy HTTPS. Stjerneborg is the selected operator host; no operator scheduler has been installed there yet. An operator uses `JERA_ORIGIN=https://snapback.jera.ink` and its own account session, with write membership in the modules it organizes. A local coding harness can query the same API later.
 
 ## Data and operator contract
 
 | Record | Meaning |
 | --- | --- |
+| `posts` | Immutable authored posts/replies, parent/root links, visibility and audience |
+| `audiences` / `audienceMembers` | DID-based posted audiences with read or reply access |
+| `socialDrafts` | Owner-only, per-device versioned unpublished drafts and cleared-draft tombstones |
 | `armillaries` | A named shared context owned by a principal |
 | `modules` / `members` | A module's audience; principals have read or write access |
 | `artifacts` | Immutable source text, optional source URL, author and creation time |
@@ -178,7 +187,7 @@ Never enable development doors for a shared or production service. Native build/
 
 - No ATproto publication, Spaces integration, GitHub synchronization or automated AI processing is present. Publication and protocol storage are explicitly deferred; private data lives authoritatively in Snapback. Existing-account ATproto identity is required now. A running organizer remains future work.
 - Existing-account OAuth is implemented and the backend principal is the verified DID. Browser/provider fixtures and real-backend tests pass independently; complete phone authorization remains an explicit acceptance gate. Legacy records are retained without guessed ownership. Cross-backend membership federation remains separate design work.
-- The signed-in app is a quiet header and account sheet while the next interface develops. Directory/capture/organizing operations remain available through the backend API and authenticated CLI. The API exposes cursors; callers must handle incomplete pages.
+- The signed-in app has a real feed, threads, a composer and an account-level Private audience editor. Directory/capture/organizing operations remain available through their separate backend API. Post reads currently page through at most 5,000 records; infinite feed pagination/virtualization remains future work. Reply counts and context joins are computed only from records this viewer can read.
 - Module revocation denies subsequent module reads and writes. Previously downloaded content cannot be made unknown to its reader. Armillary directory membership currently remains after a module grant is removed, so the recipient can still see that armillary's name; module contents remain denied.
 - Claims last five minutes with no heartbeat extension yet. A worker should release work it cannot finish and reclaim only after expiry. Future long-running code work should use a separate job contract; this task is idea organization.
 - Local drafts and Snapback partitions are device storage, not an encrypted vault. The deployed service has nightly snapshots and a tested isolated restore. Password signup is disabled. Auth state is backed up with application state. Remote OAuth revocation is observed during session restore/renewal; see auth/README.md for session custody and offline limitations.

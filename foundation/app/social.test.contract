@@ -1,0 +1,98 @@
+fresh
+epoch now
+
+test "a real stored post and draft survive relaunch"
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "owner.test"
+  clock data
+  tap "login"
+  authorize
+  clock settle
+  tap "feed-write"
+  clock settle
+  type "composer" "A durable thought ♍︎ ♍️ :virgo:"
+  clock settle
+  tap "cancel"
+  clock settle
+  reload
+  clock settle
+  tap "feed-write"
+  clock settle
+  expect text "composer" == "A durable thought ♍︎ ♍️ :virgo:"
+  tap "post"
+  clock settle
+  expect state posts.length == 1
+  expect state posts.0 .body == "A durable thought ♍︎ ♍️ :virgo:"
+  expect state posts.0 .visibility == "private"
+  tap "reply"
+  clock settle
+  expect tree has "reply-private-only"
+  expect tree missing "experience-public"
+  type "composer" "A stored private reply"
+  clock settle
+  tap "post"
+  clock settle
+  expect state posts.length == 2
+  expect state posts.1 .body == "A stored private reply"
+  reload
+  clock settle
+  expect state posts.length == 2
+  expect state posts.0 .body == "A durable thought ♍︎ ♍️ :virgo:"
+
+test "a private reply on a public post keeps its draft and hides in public"
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "owner.test"
+  clock data
+  tap "login"
+  authorize
+  clock settle
+  tap "feed-write"
+  clock settle
+  tap "experience-public"
+  clock settle
+  type "composer" "A real public post"
+  clock settle
+  tap "post"
+  clock settle
+  expect state posts.0 .visibility == "public"
+  tap "reply"
+  clock settle
+  type "composer" "A real private branch"
+  clock settle
+  tap "experience-private"
+  clock settle
+  expect text "composer" == "A real private branch"
+  tap "post"
+  clock settle
+  expect state posts.length == 2
+  expect state posts.1 .visibility == "private"
+  expect state visiblePosts.length == 2
+  tap "reply"
+  clock settle
+  tap "experience-public"
+  clock settle
+  tap "cancel"
+  clock settle
+  expect state visiblePosts.length == 1
+
+test "a private audience grants and revokes DID access through the real store"
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "owner.test"
+  clock data
+  tap "login"
+  authorize
+  clock settle
+  tap "account-avatar"
+  clock settle
+  tap "private-audience"
+  clock settle
+  type "audience-did" "did:plc:bbbbbbbbbbbbbbbbbbbbbbbb"
+  tap "audience-add"
+  clock settle
+  expect tree has "audience-member-did:plc:bbbbbbbbbbbbbbbbbbbbbbbb"
+  reload
+  clock settle
+  expect tree has "audience-member-did:plc:bbbbbbbbbbbbbbbbbbbbbbbb"
+  tap "audience-remove-did:plc:bbbbbbbbbbbbbbbbbbbbbbbb"
+  clock settle
+  expect tree missing "audience-member-did:plc:bbbbbbbbbbbbbbbbbbbbbbbb"

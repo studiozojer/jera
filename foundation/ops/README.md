@@ -1,6 +1,6 @@
 # Jera Snapback operations
 
-`https://snapback.jera.ink` serves Snapback 0.4.33 on the existing Jera PDS VPS. Stjerneborg is the selected operator host. Snapback password accounts are separate from ATproto accounts.
+`https://snapback.jera.ink` serves Snapback 0.4.33 on the current app host at `91.98.204.141` (confirmed from the live endpoint and existing service on 2026-11-05). The earlier PDS-host address is stale. Stjerneborg is the selected operator host. ATproto OAuth supplies verified DID identities; password and guest signup are disabled.
 
 | Item | Location |
 | --- | --- |
@@ -33,6 +33,8 @@ curl --fail https://snapback.jera.ink/auth/config
 systemctl status jera-snapback jera-snapback-backup.timer
 journalctl -u jera-snapback -n 50 --no-pager
 ```
+
+For schema-only changes, stage the schema outside `snapback/` as `/opt/jera-snapback/schema-incoming.q`, copy `install-schema.sh`, then run it with `EXPECTED_SCHEMA_SHA256` set to the inspected current schema hash. It backs up first, takes the maintenance lock, checks compatibility, briefly stops only Snapback for non-destructive adoption, and restores the previous schema source if adoption fails. It does not reinstall auth dependencies or rotate login credentials. Do not use destructive migration flags.
 
 ## Backup and recovery
 

@@ -162,3 +162,120 @@ mutation connect(source: nodes, target: nodes, relation: enum('relates', 'suppor
 
 query currentIdentity():
   return { did: viewer }
+
+-- Social records are independent of memory modules and organizing tasks.
+-- The first private-audience UI is a DID list; audience IDs leave room for
+-- later groups and resource-scoped grants without changing post ownership.
+table audiences:
+  owner: principal
+  name: text 1..80
+  unique owner, name
+  immutable owner, name
+  read <- .owner = viewer or exists audienceMembers[.id, viewer]
+  insert <- .owner = viewer
+  online only
+
+table audienceMembers:
+  audience: audiences
+  principal: principal
+  owner: principal
+  access: enum('read', 'reply')
+  unique audience, principal
+  cap 500 by audience
+  immutable audience, principal, owner
+  read <- .owner = viewer or .principal = viewer
+  insert <- exists audiences[.audience, owner = viewer] and .owner = viewer
+  update <- exists audiences[.audience, owner = viewer]
+  delete <- exists audiences[.audience, owner = viewer]
+  online only
+
+table posts:
+  author: principal
+  intent: text 26..26
+  unique author, intent
+  body: text 1..12000
+  visibility: enum('public', 'private')
+  audience: audiences ?
+  parent: posts ?
+  root: posts ?
+  at: time default now
+  immutable author, intent, body, visibility, audience, parent, root, at
+  read <- .visibility = 'public' or exists audiences[.audience, owner = viewer] or exists audienceMembers[.audience, viewer]
+  insert <- .author = viewer
+  online only
+
+-- Unpublished drafts never share the posted audience. Each device keeps a
+-- versioned private branch so delayed/offline saves cannot overwrite a newer one.
+table socialDrafts:
+  owner: principal
+  deviceKey: text 26..26
+  scope: text 1..200
+  body: text <=12000
+  revision: int 0..9007199254740991
+  at: time default now
+  unique owner, deviceKey, scope
+  immutable owner, deviceKey, scope
+  read <- .owner = viewer
+  insert <- .owner = viewer
+  update <- .owner = viewer
+  online only
+
+query draftForDevice(deviceKey: text 26..26, scope: text 1..200):
+  return socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope]
+query latestDraft(scope: text 1..200):
+  return socialDrafts where .owner = viewer and .scope = scope last 1 by .at
+mutation saveSocialDraft(deviceKey: text 26..26, scope: text 1..200, body: text <=12000, revision: int 0..9007199254740991):
+  existing = socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope]
+  if existing != null and existing.revision >= revision:
+    return existing
+  return upsert socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope] { owner: viewer, deviceKey, scope, body, revision, at: now }
+
+query postsList(c: cursor ?):
+  return posts last 100 by .at after c
+query postById(id: posts):
+  return posts[id]
+query postForIntent(intent: text 26..26):
+  return posts[author = viewer, intent = intent]
+query audienceList():
+  return audiences where .owner = viewer and .name = 'Private' first 1 by .id
+query audienceMembersList(audience: audiences, c: cursor ?):
+  require exists audiences[audience, owner = viewer] else NOT_OWNER
+  return audienceMembers where .audience = audience and .owner = viewer first 100 by .principal after c
+mutation ensureAudience():
+  insert audiences { owner: viewer, name: 'Private' } if absent
+  return audiences[owner = viewer, name = 'Private'] ! else AUDIENCE_UNAVAILABLE
+mutation setAudienceMember(audience: audiences, principal: principal, access: enum('read', 'reply')):
+  require exists audiences[audience, owner = viewer] else NOT_OWNER
+  require principal != viewer else OWNER_MEMBERSHIP
+  return upsert audienceMembers[audience, principal] { owner: viewer, access }
+mutation removeAudienceMember(audience: audiences, principal: principal):
+  require exists audiences[audience, owner = viewer] else NOT_OWNER
+  require principal != viewer else OWNER_MEMBERSHIP
+  delete audienceMembers[audience, principal]
+  return null
+mutation publishPost(intent: text 26..26, body: text 1..12000, visibility: enum('public', 'private'), audience: audiences ?, parent: posts ?, draftDevice: text 26..26 ?, draftRevision: int 0..9007199254740991 ?, draftScope: text 1..200 ?):
+  require trim(body) != '' else EMPTY_POST
+  prior = posts[author = viewer, intent = intent]
+  if prior != null:
+    require prior.body = body and prior.visibility = visibility and prior.audience = audience and prior.parent = parent else INTENT_REUSE
+    return prior
+  root = null
+  scope = audience
+  if parent != null:
+    p = posts[parent] ! else PARENT_UNAVAILABLE
+    root = p.root if p.root != null else p.id
+    if p.visibility = 'private':
+      require visibility = 'private' else CANNOT_WIDEN_AUDIENCE
+      require audience = p.audience else DIFFERENT_AUDIENCE
+      require exists audiences[p.audience, owner = viewer] or exists audienceMembers[p.audience, viewer, access = 'reply'] else REPLY_NOT_ALLOWED
+  if visibility = 'private':
+    require scope != null else AUDIENCE_REQUIRED
+    require exists audiences[scope, owner = viewer] or (parent != null and exists posts[parent, audience = scope] and exists audienceMembers[scope, viewer, access = 'reply']) else AUDIENCE_NOT_OWNED
+  else:
+    require scope = null else PUBLIC_AUDIENCE
+  posted = insert posts { author: viewer, intent, body, visibility, audience: scope, parent, root }
+  if draftDevice != null and draftRevision != null and draftScope != null:
+    draft = socialDrafts[owner = viewer, deviceKey = draftDevice, scope = draftScope]
+    if draft = null or (draft.revision <= draftRevision and draft.body = body):
+      upsert socialDrafts[owner = viewer, deviceKey = draftDevice, scope = draftScope] { owner: viewer, deviceKey: draftDevice, scope: draftScope, body: '', revision: draftRevision + 1, at: now }
+  return posted
