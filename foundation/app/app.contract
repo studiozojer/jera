@@ -436,7 +436,7 @@ component App
             match cloudSynced
               case some(result)
                 if result.principal == account.principal and result.scope == scope and result.state == "pending"
-                  text "Draft saved on this device. Private cloud sync will retry." class=WhyteXs color="tx.secondary" role="status"
+                  text "Draft saved on this device. Sync will retry." class=WhyteXs color="tx.secondary" role="status"
               case none
                 box display="none"
             if pendingDraft and not pending(published)

@@ -29,7 +29,14 @@ export class Drafts {
   async use<T>(work: (vault: Vault) => T | Promise<T>, save = false): Promise<T> {
     const path = await this.path();
     const previous = queues.get(path) ?? Promise.resolve();
-    const next = previous.catch(() => undefined).then(async () => {
+    // Reserve the queue position synchronously, but await in this answer's
+    // async frame. A .then(async work) starts in the settling answer's context
+    // on native Exact, where randomness/native calls may already be retired.
+    let release!: () => void;
+    const next = new Promise<void>(resolve => {release=resolve;});
+    queues.set(path, next);
+    try {
+      await previous.catch(() => undefined);
       const names = await this.fs.readdir('app:/data');
       let vault: Vault = {version:1, principal:this.principal, origin:this.origin, mode:'private', device:newIntent(), drafts:{}};
       const existed=names.includes(path.slice(path.lastIndexOf('/')+1));
@@ -42,9 +49,10 @@ export class Drafts {
       const result = await work(vault);
       if (save || needsDevice || !existed) await this.fs.atomicWriteFile(path, new TextEncoder().encode(JSON.stringify(vault)));
       return result;
-    });
-    queues.set(path, next);
-    try { return await next; } finally { if (queues.get(path) === next) queues.delete(path); }
+    } finally {
+      release();
+      if (queues.get(path) === next) queues.delete(path);
+    }
   }
   get(scope: string) { return this.use(v => v.drafts[scope] ?? emptyDraft()); }
   save(scope: string, body: string, revision: number) {

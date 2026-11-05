@@ -14,3 +14,24 @@ test('typing while a cloud draft is loading cannot be overwritten by its late re
 test('typing after cloud hydration still starts with the current editor revision',async()=>{const {fs}=files();const a=new Drafts(fs,'https://one.test',alice);const req:Request=async(_kind,op)=>op==='draftForDevice'?{data:null}:{data:[{body:'Recovered',revision:90}]};await syncScope(req,a,'root:private');await a.save('root:private','Typed immediately after recovery',1);expect((await a.get('root:private')).body).toBe('Typed immediately after recovery');});
 
 test('publication tombstones an outstanding cloud save without blocking new local typing',async()=>{const {fs}=files();const a=new Drafts(fs,'https://one.test',alice);await a.save('root:public','Earlier text',1);let begin!:()=>void,release!:()=>void;const started=new Promise<void>(r=>{begin=r}),later=new Promise<void>(r=>{release=r});let cloud={revision:0,body:''};const req:Request=async(_kind,op,args)=>{if(op==='saveSocialDraft'){begin();await later;if((args.revision as number)>cloud.revision)cloud={revision:args.revision as number,body:args.body as string};return{state:'sent',result:{...cloud}};}if(op==='publishPost'){cloud={revision:(args.draftRevision as number)+1,body:''};return{state:'sent',result:{id:'post',author:alice,...args}};}throw new Error(op);};const syncing=syncScope(req,a,'root:public');await started;await a.save('root:public','Newer text',2);expect((await publish(req,a,'public','',2)).state).toBe('sent');release();await syncing;expect(cloud.body).toBe('');expect((await a.get('root:public')).body).toBe('');});
+
+
+test('queued draft operations keep FIFO order and a failed writer releases the next reader',async()=>{
+  const {fs}=files();
+  const a=new Drafts(fs,'https://queue.test',alice);
+  let entered!:()=>void,release!:()=>void;
+  const started=new Promise<void>(resolve=>{entered=resolve;});
+  const blocked=new Promise<void>(resolve=>{release=resolve;});
+  const order:string[]=[];
+  const first=a.use(async()=>{order.push('writer');entered();await blocked;throw new Error('interrupted write');},true);
+  const failure=first.catch(error=>error.message);
+  await started;
+  const save=a.save('root:public','Queued text',1);
+  const read=a.get('root:public');
+  release();
+  expect(await failure).toBe('interrupted write');
+  await save;
+  expect((await read).body).toBe('Queued text');
+  expect(order).toEqual(['writer']);
+  expect((await a.get('root:public')).body).toBe('Queued text');
+});
