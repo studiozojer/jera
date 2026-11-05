@@ -270,6 +270,9 @@ theme
   // Native-owned safe-area adaptation belongs to the future resolver/host seam.
   experience.canvas = bg.base
     when experience=private: dao.bg.solid.black
+  // App-owned component lengths from Figma permissions-switch 69:457.
+  experience.switch.gap = 7px
+  experience.switch.radius = 10px
   // Bridge daoUI into the host-owned surface, including sheet safe areas.
   background = bg.base
   Canvas = bg.base
@@ -291,6 +294,8 @@ theme
 
 // Local outline expressions for the post toolbar; use SF Symbols on Apple.
 icons
+  icon.experience-public = icon(svg "icons/experience-public.svg")
+  icon.experience-private = icon(svg "icons/experience-private.svg")
   icon.post-comment = icon(sf "bubble.left", svg "icons/post-comment.svg")
   icon.post-send = icon(sf "paperplane", svg "icons/post-send.svg")
 

@@ -1,30 +1,29 @@
 use Action from "./dao/actions.contract"
-use spaceSm, spaceMd, radiusMd, minTouchTarget from "./dao.contract"
-use WhyteXs from "./dao.contract"
-use WhyteSm from "./dao/foundations.contract"
+use spacingXxxl, layoutMinTouchTarget from "./dao/foundations.contract"
 
 shape ExperienceSnapshot
   principal: string
   mode: string
   revision: number
 
-// Jera-specific controlled composition; its visual expression may evolve without
-// changing the global experience contract or the shared daoUI action behavior.
+// Figma permissions-switch 69:457: one controlled radio group, shared by
+// header and composer. Touch targets grow independently of the glyphs.
 component ExperienceModeControl
   props
+    idPrefix: string
+    label: string
     mode: string
     change: action
     disabled: bool
+    touch: bool
   action navigate(current: string, key: string, event: KeyboardEvent)
     if not disabled and not event.isComposing and (key == "ArrowLeft" or key == "ArrowRight" or key == "Home" or key == "End")
       preventDefault()
-      let next = key == "Home" ? "private" : key == "End" ? "public" : current == "private" ? "public" : "private"
+      let next = key == "Home" ? "public" : key == "End" ? "private" : current == "private" ? "public" : "private"
       change(next)
-      focus(`experience-${next}`)
+      focus(`${idPrefix}-${next}`)
   view
-    row gap=spaceMd() align-items="center" flex-wrap="wrap" testId="experience-control"
-      text "Experience" class=WhyteXs color="tx.secondary"
-      row role="radiogroup" aria-label="Experience" gap=spaceSm() align-items="center" flex-wrap="wrap"
-        for option in ["private", "public"] key=option
-          button id=`experience-${option}` testId=`experience-${option}` role="radio" aria-checked=(mode == option) tabindex=(mode == option ? 0 : -1) disabled=disabled press=change(option) key=navigate(option) appearance="none" class=Action min-height=minTouchTarget() cursor=(disabled ? "default" : "pointer") padding="8px 12px" border="1px solid bd.primary" border-radius=radiusMd() background-color=(mode == option ? "bg.field" : "transparent") color=(mode == option ? "tx.primary" : "tx.secondary")
-            text (option == "private" ? "Private" : "Public") class=WhyteSm
+    row role="radiogroup" aria-label=label testId=`${idPrefix}-control` align-self="flex-start" align-items="center" gap="experience.switch.gap" padding="dao.space.xs" border-radius="experience.switch.radius" background-color="dao.bg.disabled" flex-shrink=0
+      for option in ["public", "private"] key=option
+        button id=`${idPrefix}-${option}` testId=`${idPrefix}-${option}` role="radio" aria-label=(option == "public" ? "Public" : "Private") title=(option == "public" ? "Public" : "Private") aria-checked=(mode == option) tabindex=(mode == option ? 0 : -1) disabled=disabled press=change(option) key=navigate(option) appearance="none" class=Action width=(touch ? layoutMinTouchTarget() : spacingXxxl()) height=(touch ? layoutMinTouchTarget() : spacingXxxl()) min-width=(touch ? layoutMinTouchTarget() : spacingXxxl()) min-height=(touch ? layoutMinTouchTarget() : spacingXxxl()) padding="dao.space.xs" border-width=0 border-radius="dao.radius.sm" background-color=(mode == option ? "dao.bg.primary" : "transparent") color=(disabled ? "dao.ic.disabled" : mode == option ? "dao.ic.primary" : "dao.ic.tertiary") display="flex" align-items="center" justify-content="center" cursor=(disabled ? "default" : "pointer")
+          image (option == "public" ? "symbol:icon.experience-public" : "symbol:icon.experience-private") font-size=(option == "public" ? "22px" : "21px") aria-hidden=true

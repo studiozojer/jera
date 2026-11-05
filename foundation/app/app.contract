@@ -219,7 +219,9 @@ component App
   action refreshPosts
     refresh timeline
   action selectExperience(value: string)
-    if value != mode and not pending(experienceChanged) and not pending(published) and not pendingDraft and (replyTo == "" or canReplyInExperience(posts, replyTo, value))
+    if value != mode and not pending(experienceChanged) and not pending(published) and not pendingDraft and (top(nav).name != "compose" or replyTo == "" or canReplyInExperience(posts, replyTo, value))
+      if top(nav).name != "compose"
+        replyTo = ""
       send experienceChanged = changeExperience(account.principal, value, time.epochAtZero + performanceNow())
   action afterExperienceChange
     composeContextChanged = true
@@ -332,7 +334,7 @@ component App
             if account.principal != ""
               scroll id="stream" testId="stream" aria-label=(mode == "private" ? "Private posts" : "Public posts") tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
                 column min-height="100%"
-                  ReadingHeader(account=openAccount, avatar=profileAvatar, name=profileName, compact=compact, measure=measureFeedHeader, mode=mode)
+                  ReadingHeader(account=openAccount, avatar=profileAvatar, name=profileName, compact=compact, measure=measureFeedHeader, mode=mode, changeExperience=selectExperience, switchDisabled=(pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
                   column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
                     column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
                       FeedComposer(write=write, avatar=profileAvatar, name=profileName)
@@ -426,7 +428,7 @@ component App
             if privateReply
               text "Private" class=WhyteXs color="tx.secondary" aria-label="Reply visibility: Private" testId="reply-private-only"
             else
-              ExperienceModeControl(mode=mode, change=selectExperience, disabled=(pending(published) or pendingDraft))
+              ExperienceModeControl(idPrefix="experience", label="Post visibility", mode=mode, change=selectExperience, disabled=(pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
             if failed(savedDraft)
               text "Couldn’t restore this draft. Existing data was kept." class=WhyteSm color="tx.secondary" role="status" testId="draft-load-error"
               Button(controlId="", label="Try again", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=retryDraft, testId="retry-draft-load")
