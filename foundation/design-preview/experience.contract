@@ -1,6 +1,7 @@
 use Action from "./dao/actions.contract"
 use spaceSm, spaceMd, radiusMd, minTouchTarget from "./dao.contract"
-use WhyteSm, WhyteXs from "./dao.contract"
+use WhyteXs from "./dao.contract"
+use WhyteSm from "./dao/foundations.contract"
 
 shape ExperienceSnapshot
   mode: string

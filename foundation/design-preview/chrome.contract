@@ -1,6 +1,7 @@
 use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusMd, radiusXl, radiusFull, iconSize, minTouchTarget from "./dao.contract"
 use JeraWordmark from "./brand.contract"
-use WhyteSm, WhyteXs, WhyteMd, QuietAction from "./dao.contract"
+use WhyteXs, WhyteMd, QuietAction from "./dao.contract"
+use WhyteSm from "./dao/foundations.contract"
 use IconButton, Action from "./dao/actions.contract"
 use Avatar from "./dao/reading.contract"
 

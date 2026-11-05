@@ -4,7 +4,7 @@ Jera’s standing north star is that the lexicon being interacted with influence
 
 ## Control and state
 
-`ExperienceModeControl` in `experience.contract` is a controlled Jera composition using the canonical daoUI Action treatment. It currently sits below the composer heading and presents explicit Private/Public choices with radio semantics, roving Tab focus, Arrow keys, Home and End. Its position and visual expression are candidates for further design. Its contract stays `mode`, `change`, `disabled` so another representation can replace it without rewriting app state.
+`ExperienceModeControl` in `experience.contract` is a controlled Jera composition using the canonical daoUI Action treatment. It currently sits below the composer heading and presents explicit Private/Public choices with radio semantics, roving Tab focus, Arrow keys, Home and End. Control labels use the canonical unpadded Whyte/sm style: the older Jera reading adapter adds right-side font-ink clearance, which produced asymmetric label spacing when reused inside a button. The control retains its own balanced insets and 44px targets. Its position and visual expression are candidates for further design. Its contract stays `mode`, `change`, `disabled` so another representation can replace it without rewriting app state.
 
 `experience.ts` owns one app-local experience store. `app.ts` bridges its snapshot and change operation into Exact resources/mutations. The view projects the latest revision from the source response; it does not own another independently mutable mode. Selection changes the entire app context, not just the next post’s audience. The default is Public, retaining the earlier preview’s starting feed. Context, posts and drafts reset on reload with this synthetic preview.
 
