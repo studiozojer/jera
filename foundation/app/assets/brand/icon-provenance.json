@@ -1,0 +1,11 @@
+{
+  "source": "Selected Icon Composer project; black solid default fill; artwork/shadow/translucency unchanged.",
+  "renderer": "Apple ictool; iOS Dark; scale1;1024px web icon and64px favicon.",
+  "originalDark1024Sha256": "68c150caa8fb4774b5285b11904c5389f8281cf2ce9cd1dc2e49dd9c8cfa3951",
+  "sha256": {
+    "assets/brand/jeraappicon.icon/icon.json": "c84bcbefdde2ef613ac7a30987d72a86949779b33f0ffe14d702acaf83c338ea",
+    "assets/brand/jeraappicon.icon/Assets/Image4.png": "78088df5054520d282dabb9157882d0efb8b204b01e3f37a9226ffc2983fa316",
+    "assets/brand/jera-appicon-dark.png": "68c150caa8fb4774b5285b11904c5389f8281cf2ce9cd1dc2e49dd9c8cfa3951",
+    "assets/brand/jera-favicon-dark-v4.png": "5e308d6980f157a9727a9ee5db9b4f16667a92b686203b6bf47ef2c02c916235"
+  }
+}
