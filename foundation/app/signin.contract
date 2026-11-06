@@ -43,7 +43,7 @@ component SignInFAQ
       column gap=12 border-left-width=3 border-left-style="solid" border-left-color="tx.secondary" padding-left=16
         text "What is an ‘everything account’?" role="heading" aria-level=3
         text "Jera is built on ATproto, a network of apps that can talk to each other over the same social protocol. You can bring the same account to apps across the network." color="tx.secondary" line-height=1.55
-        text "For now, your ideas stay private in Jera. Nothing you enter here is published to the network." color="tx.secondary" line-height=1.55
+        text "Your posts stay in Jera. You choose Public or Private; nothing is published to ATproto." color="tx.secondary" line-height=1.55
         text color="tx.secondary" line-height=1.55 testId="everything-account-paragraph"
           text "Here’s a great article by Anuj Ahooja: "
           text "The Everything Account" href="https://augment.ink/the-everything-account" color="tx.link" text-decoration="underline"

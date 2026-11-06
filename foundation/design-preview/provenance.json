@@ -1,0 +1,88 @@
+{
+  "kind": "Exact composition prototype; not a shared cross-platform component package",
+  "sources": {
+    "daoUI": {
+      "revision": "85fb2acb3cdba5f7cb88ef42eeff59b93d1af332",
+      "color": "tokens.json via the existing Jera app.tamber mapping",
+      "typography": "type.json; named family/size styles in dao.contract",
+      "composition": "rn/reading/README.md guidance, adapted to Exact rather than copied React Native source",
+      "layout": {
+        "path": "Sources/DaoUI/DesignTokens.swift",
+        "sha256": "e42cf00081d3fc560a3064d3b2bb0422e6bacbf38de6ca34673d530912630c23",
+        "adapter": "named spacing, radius and touch-target functions in dao.contract"
+      }
+    },
+    "jera": {
+      "revision": "b31f385",
+      "files": {
+        "brand.contract": "d24d0f6b4ea895a205f60be1b7330c97778252db8632ed01863755715c51a856",
+        "assets/fonts/ABCWhyteEdu-Book.otf": "427e310b6116e2cb00e3c84f7e7157ee64a723b4da88af6c226b4a4ae06e44d0",
+        "assets/fonts/ABCWhyteInktrap-Regular.otf": "6066690c00eac7d8dd8651ca2286436c64e3bb8eae4529366ca9a640ae245030"
+      }
+    },
+    "threads_reference": {
+      "source": "David’s attached screenshot and message, 2026-11-01; retained in composed commons projects/jera/sources/2026-11-01-threads-composition-reference.md",
+      "image_sha256": "1101c479d66a3607bb4e38f24cd19f4ed390898909662fe4f10b1aee40d1c13c",
+      "scope": "Composition reference; no Threads assets or source code copied into the application"
+    },
+    "post_icons": {
+      "source": "Original local outline geometry in assets/icons; shared Exact roles for heart, repeat, ellipsis and copy",
+      "mapping": "app.tamber icon.post-comment and icon.post-send, with bubble.left and paperplane SF mappings for Apple",
+      "files": {
+        "assets/icons/post-comment.svg": "2213df19c722a5ca1c942825ad1af843506d2eb6ccff6214997a2e36808944fa",
+        "assets/icons/post-send.svg": "bd9d0f483ced8c7f774d831b46ac6e2c3c785446fb0ede72c8ab022aede6b456"
+      }
+    },
+    "threads_mobile_reference": {
+      "source": "David’s attached screenshot and message, 2026-11-01; retained in composed commons projects/jera/sources/2026-11-01-mobile-preview-reference.md",
+      "image_sha256": "83dcef70b66a757f174dde3639025c346ad3ee5008b684b49d944bfa5c4cffe8",
+      "scope": "Mobile sizing and reading hierarchy; no new destinations or device delivery in this pass"
+    },
+    "floating_write_feedback": {
+      "source": "David’s correction and screenshot, 2026-11-01; retained in composed commons projects/jera/sources/2026-11-01-floating-write-feedback.md",
+      "image_sha256": "3186a21c5b4bc116445395a1affc238d256354bac9f8c13e21e11d471cf576dd",
+      "scope": "Supersedes earlier bottom-left placement; the button floats over the scroller instead of occupying a bottom row"
+    },
+    "stationary_desktop_frame_reference": {
+      "source": "David’s message and Threads reference, 2026-11-01; retained in composed commons projects/jera/sources/2026-11-01-stationary-desktop-frame-reference.md",
+      "image_sha256": "5fd52da13a954cd14358fc236126384376182551c352b029412c5c576c0f1f7d",
+      "scope": "A stationary rounded desktop boundary around scrolling content; no claim about Threads implementation internals"
+    },
+    "threads_scroll_css_inspection": {
+      "source": "Public frontend inspection, recorded in composed commons projects/jera/sources/2026-11-02-threads-scroll-css-inspection.md; user approval in 2026-11-02-page-scroll-direction.md",
+      "page": "https://www.threads.com/",
+      "scope": "Adapts scroll ownership and sticky decoration; no Meta source/assets copied into application code"
+    },
+    "threads_threading_reference": {
+      "source": "David’s attached screenshot and message, 2026-11-02; retained in composed commons projects/jera/sources/2026-11-02-threading-reference.md",
+      "image_sha256": "69fd920e0e1d3376fa82af331c6a485448ba8f4aa2636dcf29497bdeb1766cf2",
+      "scope": "Focused post, shallow connected reply previews and deeper conversation disclosure; original Jera layout using daoUI tokens, with no Meta code/assets in the application"
+    },
+    "daoUIExact": {
+      "revision": "804b73aa834ce66ceed1fe582c94b1fce260a243",
+      "consumerCheckpoint": "Jera 64e209d",
+      "receipt": "dao/provenance.json",
+      "verification": "python3 dao/check.py checks 106 committed files and Tamber block hashes; sourceDirty=false",
+      "scope": "canonical Exact actions, menus, foundations and generated roles; app-owned context, projection and routing remain in Jera"
+    },
+    "parallel_experiences": {
+      "source": "David’s 2026-11-04 request, retained in the composed commons projects/jera/sources/2026-11-04-parallel-experiences-dialogue.md",
+      "review": "Albers proposal and rendered review, projects/jera/reviews/2026-11-04-albers-parallel-experiences.md",
+      "northStar": "The lexicon being interacted with influences the UI. Private/public are parallel experiences with recognizable shared structure. Fractal architecture is a useful conditional lens."
+    },
+    "reply_audiences": {
+      "source": "David’s 2026-11-05 direction, retained in composed commons projects/jera/sources/2026-11-05-reply-audiences-dialogue.md",
+      "stratum": "projects/jera/strata/010-reply-audiences.爻",
+      "scope": "Synthetic reply visibility rules and future DID-audience direction; no live post permission implementation"
+    }
+  },
+  "local_expression": "Jera retains page-wide scrolling, destination-specific sticky headers, its shared desktop corner cap, natural finite thread endings and mobile edge-to-edge reading. Body text uses Whyte/sm in both feed and focused threads. Canonical Exact Button/IconButton/Menu families now carry post and composer actions while Jera owns their data and routing. ExperienceModeControl is an app-owned controlled Private/Public radio composition, with canonical Action behavior and minimum 44px targets. One app-local authority exposes current context and ordered, versioned, content-free change events. Mode selects the feed and new-post audience. Public parents permit Public or Private replies; private parents have a fixed Private cue, and selection/posting actions guard against widening their audience. Explicit reply audience changes preserve recipient, editor and unsent text, returning to that parent in the selected experience. New-post drafts remain per-mode; reply drafts belong to their parent. Private branch heads appear newest-first in the private feed. Public projections exclude private content and counts; public conversation context remains readable inside Private with explicit public/private cues. experience.canvas aliases existing bg.base in Public and canonical dao.bg.solid.black in Private (#1A1714 versus #090604 in the dark preview). All authored canvas/mask/modal/surface-button grounds follow that token; the SDK’s fixed host Canvas/background aliases remain unchanged. Explicit comments reserve a future lexicon/context presentation resolver without equating privacy with lexicon identity. Original local comment/send outlines and approved gold primary action remain. Browser evidence does not establish native behavior, access permissions or protocol publication.",
+  "limits": [
+    "Synthetic sample accounts, posts, visibility labels and reply authors",
+    "No login, network transport, backend writes or live model replies in this preview",
+    "App-local experience context, posts and per-mode root drafts and recipient-keyed reply drafts reset on reload",
+    "Public does not publish to ATproto; mode filtering is not backend permission enforcement",
+    "Private canvas changes authored surfaces; native-owned host/safe-area paint remains unverified",
+    "Geometry findings remain unsuppressed; browser evidence does not establish native keyboard, sheet, assistive-technology or privacy acceptance"
+  ]
+}

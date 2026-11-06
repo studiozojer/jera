@@ -1,0 +1,27 @@
+# Posted audiences and private drafts
+
+The authenticated Jera app uses the existing Snapback backend and verified ATproto DID sessions. Public posts are readable by signed-in Jera accounts. They are not published to ATproto. Private posts reference an audience; the first account UI is a list of DIDs allowed to read and reply. New accounts start in Private, with only their owner until members are added.
+
+## Current post rules
+
+`audiences` stores owner/name and an opaque audience ID. `audienceMembers` grants a principal either `read` or `reply` access. Both may read; reply access additionally permits contributing to that private audience. Neither permits changing someone else’s content or managing membership. Only the owner may add/remove members; owner access cannot be removed. The initial UI adds read-and-reply members and can remove them; the API also supports read-only grants.
+
+Public parents permit public replies or a private branch using the replying author’s private audience. Private parents permit only private replies in the same audience. Their descendants keep that audience, so they cannot widen access. The original author of a public post does not automatically see someone else’s private branch. Removing a member affects existing posts and descendants as well as new posts, including replies authored by that member. Previously downloaded content cannot be made unknown to its reader; post queries currently require online server checks, and visible foreground data refreshes periodically.
+
+The server assigns author identity from the authenticated viewer, not a client-supplied author. Parent/root, audience, visibility and publication identity are immutable. The body can only transition to an empty, deleted tombstone through author-owned deletion; it cannot be edited or restored. An author can remove their own private reply after losing read access, without obtaining hidden content. Deletion keeps other authors’ replies and the original audience boundary; see `DELETION.md`. A stable posting intent prevents duplicate records after ambiguous transport failures. Counts and branch previews use only records this viewer is allowed to read; public experience projections additionally omit private records. A private experience may show publicly readable conversation context.
+
+## Unpublished drafts
+
+Drafts are owner-only `socialDrafts` records. Posted audiences never grant access to unpublished text. Each device has a branch keyed by owner/device/context with monotonic cloud versions. The local journal is scoped to backend origin and DID and persists input independently of networking. A fresh device can recover the latest cloud branch for its context. This is not collaborative draft merging.
+
+A cloud response cannot replace text entered while it was loading. Publication atomically clears the corresponding cloud branch at a revision beyond outstanding saves, so a delayed request cannot resurrect a posted draft. The local journal retains the exact intent/bytes/audience after an unknown result, blocks editing that pending intent and retries it safely. A confirmed current publication marks the local draft posted while retaining its text. Opening the next writing context rechecks the exact intent and retires that cache only after positive publication evidence; missing/unavailable confirmation preserves it. Refusal keeps its text. The server’s active cloud-branch tombstone remains atomic with publication. See DRAFT-LIFECYCLE.md. Sync runs after an editing pause and periodically while signed in and foregrounded; local edits survive offline and resume syncing later. Closing the app does not promise an OS background sync job.
+
+## Modular extension points
+
+Audience identity, membership, actions and resource matching remain separate concerns. The initial post stores an audience reference rather than embedding a DID-list editor or a scope language in every component. Audience names/IDs can support later groups. Read/reply, edit-own-content and manage-audience are distinct capabilities; the implementation does not treat interaction as permission to edit everyone’s posts. Tags, lexicon selectors and graduated scope policies are future work, not shipped UI or an implemented generic policy engine.
+
+Existing memory modules retain their separate `members` read/write rules and owner-only `setMember`/`removeMember` operations. Social posting does not create an armillary, module, artifact or organizing task. A verified operator account may use the same post API and audience grants, but no scheduler or automatic model response is installed by this change.
+
+## Evidence
+
+The real-store integration test covers authenticated public reads, private audience isolation, read-only restrictions, private-branch inheritance, wrong-audience rejection, revocation of parent and descendants, intent replay, Unicode, private draft isolation, monotonic saves, publication tombstones and server restart. Adapter tests exercise account/origin isolation, late saves, lost post responses, corrupt-file preservation, cloud recovery and typing/publication races. Normal browser review uses independent device contexts and real disposable storage with a simulated OAuth provider; it verifies cross-device draft recovery, DID sharing and revocation. Native interactive login, typing and actual phone post acceptance remain separate evidence from these browser/backend checks.

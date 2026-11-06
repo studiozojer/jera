@@ -1,0 +1,190 @@
+use WhyteSm, WhyteXs, WhyteMd, WhyteLg from "./foundations.contract"
+use Action from "./actions.contract"
+
+component Text
+  props
+    value: string
+    muted: bool
+  view
+    text value class=WhyteSm color=(muted ? "dao.tx.secondary" : "dao.tx.primary")
+
+component Glyph
+  props
+    source: string
+    tint: option<string>
+    size: string
+    label: string
+  view
+    image source font-size=size aria-label=label aria-hidden=(label == "") color=(match tint { case some(role) => role, case none => "dao.ic.primary" })
+
+component Avatar
+  props
+    initial: string
+    large: bool
+  view
+    box aria-hidden=true width=(large ? "4rem" : "2.25rem") height=(large ? "4rem" : "2.25rem") flex-shrink=0 display="flex" align-items="center" justify-content="center" border-radius="dao.radius.md" background-color="dao.bg.primary" color="dao.tx.primary"
+      text initial class=WhyteSm
+
+component Badge
+  props
+    label: string
+  view
+    text label class=WhyteXs padding-top="0.125rem" padding-bottom="0.125rem" padding-left="dao.space.sm" padding-right="dao.space.sm" border-radius="dao.radius.xs" color="dao.tx.primary" background-color="dao.bg.primary"
+
+component AuthorRow
+  props
+    name: string
+    metadata: string
+    initial: string
+  slot
+  view
+    row gap="dao.space.md" align-items="flex-start" flex-wrap="wrap" min-width=0
+      Avatar(initial=initial, large=false)
+      column flex=1 flex-basis="8rem" min-width=0
+        text name class=WhyteSm
+        text metadata class=WhyteXs color="dao.tx.secondary"
+      children
+
+component Toolbar
+  slot
+  view
+    row gap="dao.space.sm" align-items="center" flex-wrap="wrap" min-width=0
+      children
+
+component ReadingItem
+  props
+    cards: bool
+  slot
+  view
+    article display="flex" flex-direction="column" gap="dao.space.md" padding-top="dao.space.lg" padding-right="dao.space.lg" padding-bottom="dao.space.lg" padding-left="dao.space.lg" min-width=0 border-bottom="0.5px solid dao.bd.secondary" border-radius=(cards ? 8 : 0) background-color=(cards ? "dao.bg.solid.card" : "transparent")
+      children
+
+component Card
+  slot
+  view
+    column min-width=0 gap="dao.space.md" padding-top="dao.space.lg" padding-right="dao.space.lg" padding-bottom="dao.space.lg" padding-left="dao.space.lg" border="1px solid dao.bd.card" border-radius="dao.radius.md" background-color="dao.bg.solid.card"
+      children
+
+component ActionCard
+  props
+    label: string
+    disabled: bool
+    press: action
+    testId: string
+  slot
+  view
+    button appearance="none" class=Action press=press disabled=disabled aria-label=label testId=testId min-height="2.75rem" text-align="start" padding-top="dao.space.lg" padding-right="dao.space.lg" padding-bottom="dao.space.lg" padding-left="dao.space.lg" border="1px solid dao.bd.card" border-radius="dao.radius.md" background-color="dao.bg.solid.card" color=(disabled ? "dao.tx.disabled" : "dao.tx.primary") display="flex" flex-direction="column" align-items="stretch" gap="dao.space.sm" cursor=(disabled ? "default" : "pointer")
+      :hover
+        background-color="dao.bg.solid.card-hover"
+      :active
+        background-color="dao.bg.solid.card-pressed"
+      :disabled
+        background-color="dao.bg.solid.card"
+      children
+
+component Row
+  props
+    label: string
+    value: string
+  slot
+  view
+    row gap="dao.space.md" align-items="center" flex-wrap="wrap" min-width=0 padding="12px 0" border-bottom="0.5px solid dao.bd.secondary"
+      text label class=WhyteSm flex=1
+      if value != ""
+        text value class=WhyteXs color="dao.tx.secondary"
+      children
+
+component Header
+  props
+    title: string
+    context: string
+  slot
+  view
+    header display="flex" flex-direction="row" gap="dao.space.md" flex-wrap="wrap" align-items="center" padding-top="dao.space.md" padding-right="dao.space.lg" padding-bottom="dao.space.md" padding-left="dao.space.lg"
+      column flex=1 min-width=0 flex-basis="10rem"
+        text title role="heading" aria-level=1 class=WhyteLg
+        if context != ""
+          text context class=WhyteXs color="dao.tx.secondary"
+      children
+
+component SheetHeader
+  props
+    title: string
+    context: string
+  view
+    column gap="dao.space.xxs" padding-top="dao.space.xl" padding-right="dao.space.lg" padding-bottom="dao.space.md" padding-left="dao.space.lg"
+      text title role="heading" aria-level=2 class=WhyteMd
+      if context != ""
+        text context class=WhyteXs color="dao.tx.secondary"
+
+component EmptyState
+  props
+    title: string
+    message: string
+  slot
+  view
+    column gap="dao.space.md" padding-top="dao.space.xxl" padding-right="dao.space.xxl" padding-bottom="dao.space.xxl" padding-left="dao.space.xxl" align-items="center" min-width=0
+      text title role="heading" aria-level=2 class=WhyteMd
+      text message class=WhyteSm color="dao.tx.secondary"
+      children
+
+component ListDetailLayout
+  props
+    narrow: bool
+  slot
+  view
+    box display="flex" flex-direction=(narrow ? "column" : "row") gap="dao.space.lg" min-width=0 align-items="stretch"
+      children
+
+component ListCard
+  props
+    label: string
+  slot
+  view
+    section aria-label=label display="flex" flex-direction="column" flex=1 min-width=0 gap="dao.space.sm" padding-top="dao.space.lg" padding-right="dao.space.lg" padding-bottom="dao.space.lg" padding-left="dao.space.lg" border="1px solid dao.bd.card" border-radius="dao.radius.md" background-color="dao.bg.solid.card"
+      children
+
+component ListControls
+  slot
+  view
+    column gap="dao.space.sm" min-width=0
+      children
+
+component ListCaption
+  props
+    label: string
+  slot
+  view
+    row flex-wrap="wrap" gap="dao.space.sm" align-items="center"
+      text label class=WhyteXs color="dao.tx.secondary" flex=1
+      children
+
+component ListBody
+  props
+    label: string
+  slot
+  view
+    column role="list" aria-label=label min-width=0 gap="dao.space.none"
+      children
+
+component ListRow
+  props
+    label: string
+    metadata: string
+    preview: string
+    selected: bool
+    disabled: bool
+    press: action
+    testId: string
+  view
+    column role="listitem" min-width=0
+      button appearance="none" class=Action press=press disabled=disabled aria-pressed=selected aria-label=label testId=testId display="flex" flex-direction="column" align-items="stretch" gap="dao.space.xs" min-width=0 min-height="2.75rem" padding-top="dao.space.md" padding-right="dao.space.md" padding-bottom="dao.space.md" padding-left="dao.space.md" text-align="start" color=(disabled ? "dao.tx.disabled" : "dao.tx.primary") background-color=(selected ? "dao.bg.accent" : "transparent") border-bottom="0.5px solid dao.bd.secondary" cursor=(disabled ? "default" : "pointer")
+        :hover
+          background-color="dao.bg.hover"
+        :active
+          background-color="dao.bg.pressed"
+        :disabled
+          background-color="transparent"
+        text label class=WhyteSm
+        text metadata class=WhyteXs color="dao.tx.secondary"
+        text preview class=WhyteSm

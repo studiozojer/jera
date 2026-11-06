@@ -1,5 +1,13 @@
+use ExperienceSnapshot, ExperienceModeControl from "./experience.contract"
 use JeraWordmark from "./brand.contract"
 use AccountAvatar, AccountRow, LoginButton, SignInFAQ from "./signin.contract"
+use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, radiusMd, radiusFull, minTouchTarget from "./dao.contract"
+use WhyteSm, WhyteXs, WhyteMd, QuietAction from "./dao.contract"
+use Button, Action from "./dao/actions.contract"
+use Confirmation from "./dao/overlays.contract"
+use Post, Author, PostAvatar, PostActions, canReplyInExperience from "./post.contract"
+use ReadingHeader, ThreadHeader, WriteButton, FeedComposer from "./chrome.contract"
+use ThreadHero, ThreadBranch, ThreadReplyEntry from "./thread.contract"
 
 font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
 font "Whyte Inktrap" = "assets/fonts/ABCWhyteInktrap-Regular.otf"
@@ -8,12 +16,16 @@ font "Fraktion Mono" = "assets/fonts/PPFraktionMono-Regular.otf"
 routes nav
   home "/"
     account "/account"
+    thread "/thread/:id"
+    compose "/write"
+    audience "/audience"
 
 shape Viewport
   pointer: string
   width: number
 shape Page
   navigationType: string
+  visibilityState: string
 shape Profile
   principal: string
   name: string
@@ -40,6 +52,46 @@ shape AccountSuggestions
 shape Ack
   state: string
   id: string
+shape Timeline
+  available: bool
+  principal: string
+  posts: Post[]
+shape Published
+  state: string
+  id: string
+  parent: string
+  principal: string
+  visibility: string
+  message: string
+shape SavedDraft
+  principal: string
+  scope: string
+  body: string
+  revision: number
+  pendingMode: string
+shape OpenedDraft
+  principal: string
+  scope: string
+  body: string
+  revision: number
+  pendingMode: string
+  context: string
+shape CloudDraft
+  context: string
+  principal: string
+  scope: string
+  body: string
+  revision: number
+  priorRevision: number
+  state: string
+shape AudienceMember
+  principal: string
+  access: string
+shape Audience
+  available: bool
+  principal: string
+  id: string
+  members: AudienceMember[]
 
 style ManagementButton
   background-color = "bg.card"
@@ -110,8 +162,181 @@ component App
   derive profileHandle = profileReady ? profile.handle : ""
   mutation signed as shape Ack refreshes account then afterAuth
   mutation signedOut as shape Ack refreshes account then afterLogout
+  derive compact = viewport.width < 704
+  state feedHeaderHeight = 0
+  state threadHeaderHeight = 0
+  resource experienceState = experienceSnapshot(account.principal) as shape ExperienceSnapshot else empty()
+  mutation experienceChanged as shape ExperienceSnapshot refreshes experienceState then afterExperienceChange
+  derive currentExperience = match experienceChanged { case some(s) => s.principal == account.principal and s.revision >= experienceState.revision ? s : experienceState, case none => experienceState }
+  derive mode = currentExperience.principal == account.principal and currentExperience.mode == "public" ? "public" : "private"
+  task experienceTheme when currentExperience.principal == account.principal key=`${account.principal}-${mode}`
+    after(1, applyExperienceTheme)
+  action applyExperienceTheme
+    setMode("experience", account.principal == "" ? "public" : mode)
+  state dataNow = 0
+  task initializeDataClock mount
+    after(1, sampleDataClock)
+  task updateDataClock when account.principal != "" and page.visibilityState == "visible"
+    every(10000, sampleDataClock)
+  action sampleDataClock
+    dataNow = time.epochAtZero + performanceNow()
+  resource timeline = loadPosts(account.principal, page.navigationType != "", dataNow) as shape Timeline else empty()
+  derive posts = timeline.principal == account.principal ? timeline.posts : []
+  derive visiblePosts = posts.filter(p => p.visibility == "public" or mode == "private")
+  derive feedPosts = sortBy(posts.filter(p => not p.deleted and p.visibility == mode and (p.parent == "" or (mode == "private" and p.parentPublic))), p => p.at, "desc")
+  state replyTo = ""
+  state composeContextChanged = false
+  state lastPosted = ""
+  derive privateReply = posts.filter(p => p.id == replyTo and p.visibility == "private").length > 0
+  derive scope = replyTo == "" ? `root:${mode}` : `reply:${replyTo}`
+  derive editorKey = `${account.principal}|${scope}|${mode}|${top(nav).id}`
+  state editorContext = ""
+  state editorText = ""
+  state editRevision = 0
+  state editorPendingMode = ""
+  derive draft = editorContext == editorKey ? editorText : ""
+  derive draftReady = editorContext == editorKey and account.principal != ""
+  derive pendingDraft = top(nav).name == "compose" and draftReady and editorPendingMode != ""
+  mutation openedDraft as shape OpenedDraft then afterDraftOpen
+  // The route identifies a writing session. Its preparation is an explicit
+  // command; a retained resource answer must never initialize a new editor.
+  task prepareComposer when top(nav).name == "compose" and account.principal != "" and editorContext != editorKey and not pending(draftSaved) key=editorKey
+    after(1, prepareComposer)
+  action prepareComposer
+    send openedDraft = prepareDraft(account.principal, mode, replyTo, editorKey, time.epochAtZero + performanceNow(), page.navigationType != "")
+  action afterDraftOpen
+    match openedDraft
+      case some(result)
+        if result.principal == account.principal and result.scope == scope and result.context == editorKey and top(nav).name == "compose"
+          editorText = result.body
+          editRevision = result.revision
+          editorPendingMode = result.pendingMode
+          editorContext = result.context
+          if result.pendingMode != "" and result.pendingMode != mode
+            send experienceChanged = changeExperience(account.principal, result.pendingMode, time.epochAtZero + performanceNow())
+      case none
+        editorContext = editorContext
+  mutation draftSaved as shape SavedDraft queue
+  mutation cloudSynced as shape CloudDraft then afterCloudSync
+  mutation draftsSynced as shape Ack
+  task syncEditingDraft when top(nav).name == "compose" and account.principal != "" and editorContext == editorKey and draftReady and not pending(draftSaved) and not pending(published) and not pendingDraft key=`${editorKey}|${editRevision}`
+    after(800, syncCurrentDraft)
+  action syncCurrentDraft
+    send cloudSynced = syncDraft(account.principal, mode, replyTo, editorKey, time.epochAtZero + performanceNow(), page.navigationType != "")
+  action afterCloudSync
+    match cloudSynced
+      case some(result)
+        if result.principal == account.principal and result.scope == scope and result.context == editorKey and editorContext == editorKey and editRevision == result.priorRevision and result.body != editorText
+          editorText = result.body
+          editRevision = result.revision
+      case none
+        editorContext = editorContext
+  task syncPrivateDrafts when account.principal != "" and page.visibilityState == "visible" and not pending(draftsSynced)
+    every(15000, syncSavedDrafts)
+  action syncSavedDrafts
+    send draftsSynced = syncAllDrafts(account.principal, time.epochAtZero + performanceNow(), page.navigationType != "")
+  mutation published as shape Published refreshes timeline then afterPost
+  action refreshPosts
+    refresh timeline
+  state deleteTarget = ""
+  state deleteActor = ""
+  state deleteErrorShown = false
+  mutation deletedPost as shape Ack refreshes timeline
+  task deleteFailed when account.principal != "" and failed(deletedPost) and not deleteErrorShown
+    after(1, showDeleteError)
+  action showDeleteError
+    deleteErrorShown = true
+    showModal("delete-post-error")
+  action requestDelete(id: string)
+    if posts.filter(p => p.id == id and p.canDelete).length == 1 and not pending(deletedPost)
+      deleteTarget = id
+      deleteActor = account.principal
+      showModal("delete-post-confirmation")
+  action cancelDelete
+    deleteTarget = ""
+    deleteActor = ""
+  action confirmDelete
+    if deleteTarget != "" and deleteActor == account.principal and not pending(deletedPost)
+      deleteErrorShown = false
+      send deletedPost = deletePost(deleteActor, deleteTarget, time.epochAtZero + performanceNow(), page.navigationType != "")
+    deleteTarget = ""
+    deleteActor = ""
+  action selectExperience(value: string)
+    if value != mode and not pending(experienceChanged) and not pending(published) and not pendingDraft and (top(nav).name != "compose" or replyTo == "" or canReplyInExperience(posts, replyTo, value))
+      if top(nav).name != "compose"
+        replyTo = ""
+      send experienceChanged = changeExperience(account.principal, value, time.epochAtZero + performanceNow())
+  action afterExperienceChange
+    composeContextChanged = true
   action follow(url: string)
-    nav = go(nav, url)
+    nav = top(nav).name == "compose" and composeContextChanged and url != "/write" ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : go(nav, url)
+  action openThread(id: string)
+    nav = push(nav, path("thread", id))
+  action dismiss
+    nav = top(nav).name == "compose" and composeContextChanged ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : back(nav)
+  action write
+    composeContextChanged = false
+    replyTo = ""
+    nav = push(nav, "/write")
+  action reply(id: string)
+    composeContextChanged = false
+    replyTo = id
+    nav = push(nav, "/write")
+  action edit(value: string)
+    if top(nav).name == "compose" and draftReady and not pending(published) and not pendingDraft
+      let revision = editRevision + 1
+      editorText = value
+      editRevision = revision
+      send draftSaved = saveDraft(account.principal, mode, replyTo, value, revision)
+  action saveCurrentDraft
+    let revision = editRevision + 1
+    editRevision = revision
+    send draftSaved = saveDraft(account.principal, mode, replyTo, editorText, revision)
+  action retryDraft
+    send openedDraft = prepareDraft(account.principal, mode, replyTo, editorKey, time.epochAtZero + performanceNow(), page.navigationType != "")
+  action post
+    if draft.trim() != "" and not pending(published) and not pending(experienceChanged) and editorContext == editorKey and (replyTo == "" or canReplyInExperience(posts, replyTo, mode))
+      send published = publishPost(account.principal, mode, replyTo, draft, editRevision, time.epochAtZero + performanceNow(), page.navigationType != "")
+  action afterPost
+    match published
+      case some(result)
+        if (result.state == "sent" or result.state == "deleted") and result.principal == account.principal
+          let previous = composeContextChanged ? go(nav, "/") : back(nav)
+          nav = result.state == "deleted" ? go(previous, "/") : result.parent == "" ? push(previous, path("thread", result.id)) : (top(previous).params.id == result.parent ? previous : push(previous, path("thread", result.parent)))
+          lastPosted = result.id
+        if result.principal == account.principal and result.state == "pending"
+          editorPendingMode = result.visibility
+        if result.principal == account.principal and result.state == "failed"
+          editorPendingMode = ""
+      case none
+        lastPosted = ""
+  task revealPosted when lastPosted != "" and top(nav).name == "thread" and posts.filter(p => p.id == lastPosted).length > 0 key=lastPosted
+    after(1, revealPost)
+  action revealPost
+    scrollIntoView(`thread-${top(nav).id}-${lastPosted}`, block="nearest")
+    lastPosted = ""
+  action measureFeedHeader(w: number, h: number)
+    if h > 0
+      feedHeaderHeight = h + (compact ? 0 : spaceSm())
+  action measureThreadHeader(w: number, h: number)
+    if h > 0
+      threadHeaderHeight = h + (compact ? 0 : spaceSm())
+  state audienceDid = ""
+  resource audience = loadAudience(account.principal, page.navigationType != "", dataNow) as shape Audience else empty()
+  mutation audienceGranted as shape Ack refreshes audience, timeline then afterAudienceGrant
+  mutation audienceRevoked as shape Ack refreshes audience, timeline
+  action openAudience
+    nav = push(back(nav), "/audience")
+  action editAudienceDid(value: string)
+    audienceDid = value
+  action addAudienceMember
+    if audienceDid.trim() != "" and not pending(audienceGranted)
+      send audienceGranted = grantAudience(account.principal, audienceDid, time.epochAtZero + performanceNow(), page.navigationType != "")
+  action afterAudienceGrant
+    audienceDid = ""
+  action removeAudienceMember(did: string)
+    if audience.principal == account.principal and not pending(audienceRevoked)
+      send audienceRevoked = revokeAudience(account.principal, audience.id, did, time.epochAtZero + performanceNow(), page.navigationType != "")
   action openAccount
     nav = push(nav, "/account")
   action closeAccount
@@ -120,6 +345,15 @@ component App
     send signedOut = logout(time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterLogout
     nav = go(nav, "/")
+    close("delete-post-confirmation")
+    close("delete-post-error")
+    deleteErrorShown = true
+    deleteTarget = ""
+    deleteActor = ""
+    replyTo = ""
+    lastPosted = ""
+    editorText = ""
+    editorContext = ""
     handle = ""
     selectedHandle = ""
     accountQuery = ""
@@ -141,17 +375,43 @@ component App
       hidePopover("account-suggestions")
       send signed = login(handle, time.epochAtZero + performanceNow())
   view
-    main color-scheme="dark" status-bar-style="light-content" navigationKey=`${top(nav).id}` navigate=follow width="100%" height="100%" font-family="Whyte" background-color="bg.base" color="tx.primary"
+    main status-bar-style="light-content" navigationKey=`${top(nav).id}` navigationBack="back" navigate=follow width="100%" height="100%" color-scheme="dark" font-family="Whyte" background-color=(account.principal == "" ? "bg.base" : "experience.canvas") color="tx.primary" interactive-widget="resizes-content" display="flex" flex-direction="column"
       for entry in stack(nav) key=entry.id
         if entry.name == "home"
-          column navigationKey=`${entry.id}` navigationBar="none" navigationSplit="none" position="absolute" inset=0
-            header appearance="none" border-width=0 padding="32px" display="flex" align-items="center" justify-content="space-between" gap=16
-              box role="heading" aria-level=1
-                JeraWordmark()
-              if account.principal != ""
-                button id="account-menu" press=openAccount aria-label="Your account" aria-haspopup="dialog" testId="account-avatar" appearance="none" cursor="pointer" padding=0 min-width=44 min-height=44 border-width=0 background-color="transparent" border-radius=8 display="flex" align-items="center" justify-content="center"
-                  for owner in [account.principal] key=owner
-                    AccountAvatar(src=profileAvatar, label=profileName, size="2.5rem", radius=8)
+          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 box-sizing="border-box"
+            if account.principal == ""
+              header appearance="none" border-width=0 padding="32px"
+                JeraWordmark(scale=2)
+            if account.principal != ""
+              scroll id="stream" testId="stream" aria-label=(mode == "private" ? "Private posts" : "Public posts") tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
+                column min-height="100%"
+                  ReadingHeader(account=openAccount, avatar=profileAvatar, name=profileName, compact=compact, measure=measureFeedHeader, mode=mode, changeExperience=selectExperience, switchDisabled=(pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
+                  column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
+                    column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
+                      FeedComposer(write=write, avatar=profileAvatar, name=profileName)
+                      for item, index in feedPosts key=item.id
+                        article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom="dao.space.xs" padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
+                          :hover
+                            background-color="transparent"
+                          row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
+                            PostAvatar(post=item)
+                            column flex=1 flex-basis="12rem" min-width=0 gap="dao.space.xs"
+                              // Clear the menu's full touch target without widening action gaps.
+                              column gap=spaceSm()
+                                Author(post=item, remove=requestDelete, menuId=`stream-menu-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
+                                column gap="dao.space.xs"
+                                  if item.parent != ""
+                                    text `Private reply to ${item.parentAuthor}` class=WhyteXs color="tx.secondary"
+                                  text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
+                              PostActions(post=item, comments=(mode == "public" ? item.publicReplies : item.readableReplies), comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
+                      if feedPosts.length == 0 and timeline.available and not pending(timeline) and not failed(timeline)
+                        text "Nothing here yet." color="tx.secondary" class=WhyteSm padding=spaceXxl()
+                      if failed(timeline) or (timeline.principal == account.principal and not timeline.available and not pending(timeline))
+                        column padding=spaceLg() gap=spaceSm()
+                          text "Couldn’t load posts." color="tx.secondary" class=WhyteSm
+                          Button(controlId="", label="Try again", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(timeline), press=refreshPosts, testId="retry-posts")
+                      box height="env(safe-area-inset-bottom)" flex-shrink=0
+              WriteButton(write=write, compact=compact)
             if account.principal == "" and not pending(account)
               scroll flex=1 min-height=0
                 column padding="48px 24px 24px" gap=16 max-width="44rem" margin="0 auto" width="100%" box-sizing="border-box"
@@ -188,6 +448,71 @@ component App
                           else
                             text "No matching account found. You can still enter your full handle or DID." padding=12 font="-exact-footnote" color="tx.secondary" testId="suggestions-empty"
                     SignInFAQ()
+        if entry.name == "thread" and account.principal != ""
+          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 box-sizing="border-box"
+            scroll id="conversation" testId="conversation" aria-label="Conversation" tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
+              column min-height="100%"
+                ThreadHeader(back=dismiss, compact=compact, measure=measureThreadHeader, mode=mode)
+                column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd()) padding-bottom=(compact ? "5rem" : "6rem")
+                  column flex-shrink=0 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-bottom-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-bottom-style="solid" border-color="bd.primary" border-bottom-left-radius=(compact ? 0 : radiusFull()) border-bottom-right-radius=(compact ? 0 : radiusFull()) testId="thread-frame"
+                    if visiblePosts.filter(p => p.id == entry.params.id).length == 0 and timeline.available and not pending(timeline) and not failed(timeline)
+                      text "Conversation unavailable." class=WhyteSm color="tx.secondary" padding=spaceXxl() testId="thread-unavailable"
+                    if failed(timeline) or (timeline.principal == account.principal and not timeline.available and not pending(timeline))
+                      Button(controlId="", label="Try loading again", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(timeline), press=refreshPosts, testId="retry-thread")
+                    for focused in visiblePosts.filter(p => p.id == entry.params.id) key=focused.id
+                      if focused.parent != ""
+                        for parent in visiblePosts.filter(p => p.id == focused.parent) key=parent.id
+                          button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(threadHeaderHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
+                            text `Replying to ${parent.author}` color="tx.secondary" class=WhyteXs
+                      ThreadHero(remove=requestDelete, post=focused, posts=visiblePosts, reply=reply, mode=mode, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                      if not focused.deleted
+                        ThreadReplyEntry(post=focused, reply=reply, avatar=profileAvatar, name=profileName, clearance=(threadHeaderHeight + spaceSm()))
+                      for child in visiblePosts.filter(p => p.parent == focused.id) key=child.id
+                        ThreadBranch(remove=requestDelete, post=child, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                  box height="env(safe-area-inset-bottom)" flex-shrink=0
+            WriteButton(write=write, compact=compact)
+        if entry.name == "compose" and account.principal != ""
+          column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="experience.canvas" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"
+            row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
+              Button(controlId="back", label="Cancel", kind="ghost", size="medium", icon=none, disabled=pending(published), busy=false, press=dismiss, testId="cancel")
+              text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
+              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(draft.trim() == "" or pending(experienceChanged) or not draftReady), busy=pending(published), press=post, testId="post")
+            if privateReply
+              text "Private" class=WhyteXs color="tx.secondary" aria-label="Reply visibility: Private" testId="reply-private-only"
+            else
+              ExperienceModeControl(idPrefix="experience", label="Post visibility", mode=mode, change=selectExperience, disabled=(not draftReady or pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
+            if not draftReady and not failed(openedDraft)
+              text "Opening draft…" class=WhyteXs color="tx.secondary" role="status" testId="draft-opening"
+            if failed(openedDraft)
+              text "Couldn’t restore this draft. Existing data was kept." class=WhyteSm color="tx.secondary" role="status" testId="draft-load-error"
+              Button(controlId="", label="Try again", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=retryDraft, testId="retry-draft-load")
+            if failed(draftSaved)
+              text "Couldn’t save your draft. Try again before posting." class=WhyteSm color="tx.secondary" role="status" testId="draft-save-error"
+              Button(controlId="", label="Save draft", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(draftSaved), press=saveCurrentDraft, testId="retry-draft-save")
+            match cloudSynced
+              case some(result)
+                if result.principal == account.principal and result.scope == scope and result.context == editorKey and result.state == "pending"
+                  text "Draft saved on this device. Sync will retry." class=WhyteXs color="tx.secondary" role="status"
+              case none
+                box display="none"
+            if pendingDraft and not pending(published)
+              text "Couldn’t confirm this post yet. Retry safely with the same saved draft." class=WhyteSm color="tx.secondary" role="status" testId="post-pending"
+            if failed(published)
+              text "Couldn’t post. Your draft is kept." class=WhyteSm color="tx.secondary" role="status" testId="post-error"
+            match published
+              case some(result)
+                if result.principal == account.principal and result.state == "failed"
+                  text result.message class=WhyteSm color="tx.secondary" role="status"
+              case none
+                box display="none"
+            if failed(experienceChanged)
+              text "Couldn’t switch experiences. Try again." class=WhyteSm color="tx.secondary" role="status"
+            if replyTo != ""
+              for recipient in visiblePosts.filter(p => p.id == replyTo) key=recipient.id
+                column gap=spaceSm() border-left="1px solid bd.primary" padding-left=spaceMd()
+                  text `Replying to ${recipient.author}` color="tx.secondary" class=WhyteXs testId="reply-recipient"
+                  text recipient.body class=WhyteSm white-space="pre-wrap" line-clamp=3 testId="reply-context"
+            textarea id="composer" maxlength=12000 disabled=(pending(experienceChanged) or pending(published) or pendingDraft or not draftReady) value=draft input=edit placeholder=(replyTo == "" ? "What's on your mind?" : "Continue the conversation…") aria-label=(replyTo == "" ? "Write a post" : "Write a reply") testId="composer" outline="none" rows=8 min-height=224 width="100%" box-sizing="border-box" padding-top=spaceSm() padding-bottom=spaceSm() border-width=0 background-color="transparent" color="tx.primary" font-family="Whyte" class=WhyteSm resize="none"
         if entry.name == "account"
           // UIKit owns the sheet, including its safe area and interactive dismissal.
           // Web uses the dao-panel adapter for the same compact/regular presentation.
@@ -201,6 +526,40 @@ component App
                   text profileName role="heading" aria-level=2 font-size="1.25rem" font-weight=400 max-width="100%" overflow="hidden" text-overflow="ellipsis" testId="profile-name"
                   if profileHandle != ""
                     text `@${profileHandle}` color="tx.secondary" max-width="100%" white-space="nowrap" overflow="hidden" text-overflow="ellipsis" testId="profile-handle"
+              Button(controlId="", label="Private audience", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=openAudience, testId="private-audience")
               button "Log out" press=logout disabled=pending(signedOut) aria-busy=pending(signedOut) testId="logout" appearance="none" class=ManagementButton width="100%" box-sizing="border-box" min-height=52 padding="14px 16px" border-width=0 border-radius=8 color="tx.primary" font-family="Whyte" font-size="1.125rem"
               if failed(signedOut)
                 text "Could not log out. Please try again." role="status" color="tx.secondary"
+        if entry.name == "audience" and account.principal != ""
+          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 background-color="experience.canvas"
+            row padding=spaceLg() gap=spaceMd() align-items="center" flex-wrap="wrap"
+              Button(controlId="back", label="Back", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=dismiss, testId="audience-back")
+              text "Private audience" class=WhyteMd role="heading" aria-level=1 min-width=0 flex=1 flex-basis="8rem"
+            scroll flex=1 min-height=0
+              column padding=spaceLg() gap=spaceLg() width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box"
+                text "Choose who can read and reply to your private posts. Changes apply to existing posts too." class=WhyteSm color="tx.secondary"
+                row gap=spaceSm() align-items="center" flex-wrap="wrap"
+                  input value=audienceDid input=editAudienceDid submit=addAudienceMember placeholder="did:plc:… or did:web:…" aria-label="DID to add" testId="audience-did" autocomplete="off" autocapitalize="none" spellcheck=false flex=1 min-width=0 min-height=minTouchTarget() padding=spaceMd() border="1px solid bd.primary" border-radius=radiusMd() background-color="bg.field" color="tx.primary"
+                  Button(controlId="", label="Add", kind="secondary", size="medium", icon=none, disabled=(audienceDid.trim() == ""), busy=pending(audienceGranted), press=addAudienceMember, testId="audience-add")
+                if failed(audienceGranted)
+                  text (match failure(audienceGranted) { case some(f) => f.message, case none => "Couldn’t add this DID." }) role="status" class=WhyteSm color="tx.secondary" testId="audience-error"
+                if failed(audienceRevoked)
+                  text "Couldn’t remove this DID. Try again." role="status" class=WhyteSm color="tx.secondary"
+                if not audience.available and not pending(audience)
+                  text "Couldn’t load your private audience." class=WhyteSm color="tx.secondary" role="status"
+                if audience.principal == account.principal
+                  for member in audience.members key=member.principal
+                    row gap=spaceMd() align-items="center" flex-wrap="wrap" border-bottom="1px solid bd.primary" padding-bottom=spaceMd()
+                      column flex=1 min-width=0 gap=spaceSm()
+                        text member.principal class=WhyteSm overflow-wrap="anywhere" testId=`audience-member-${member.principal}`
+                        text (member.access == "reply" ? "Can read and reply" : "Read only") class=WhyteXs color="tx.secondary"
+                      Button(controlId="", label="Remove", kind="ghost", size="medium", icon=none, disabled=pending(audienceRevoked), busy=false, press=removeAudienceMember(member.principal), testId=`audience-remove-${member.principal}`)
+                  if audience.members.length == 0 and audience.available and not pending(audience)
+                    text "Only you can see your private posts." class=WhyteSm color="tx.secondary"
+      if account.principal != ""
+        Confirmation(id="delete-post-confirmation", question="Delete post?", message="This can’t be undone. Replies from others will stay.", confirmLabel="Delete", confirm=confirmDelete, cancel=cancelDelete, testId="confirm-delete-post")
+        if failed(deletedPost)
+          dialog id="delete-post-error" role="alertdialog" aria-label="Couldn’t delete post" cancel=cancelDelete
+            text "Couldn’t confirm deletion. Check your connection and try again from the post menu."
+            button commandfor="delete-post-error" command="close" testId="delete-error-close"
+              text "OK"

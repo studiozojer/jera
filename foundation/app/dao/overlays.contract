@@ -1,0 +1,123 @@
+use WhyteSm from "./foundations.contract"
+use Action from "./actions.contract"
+use SheetHeader from "./reading.contract"
+
+component MenuTrigger
+  params
+    glyphSize: length = "1.25rem" control="token" group="Shape" priority=2 label="Menu glyph size"
+  props
+    label: string
+    menuId: string
+    symbol: string
+    expanded: bool
+    disabled: bool
+    press: action
+    testId: string
+    clearance: number
+  view
+    button appearance="none" id=`${menuId}-trigger` class=Action press=press aria-label=label aria-haspopup="menu" aria-expanded=expanded aria-controls=menuId disabled=disabled testId=testId min-width="2.75rem" min-height="2.75rem" scroll-margin-top=clearance padding="dao.space.sm" background-color="transparent" color=(disabled ? "dao.ic.disabled" : "dao.ic.secondary") cursor=(disabled ? "default" : "pointer")
+      :hover
+        background-color="dao.bg.hover"
+      :active
+        background-color="dao.bg.pressed"
+      :disabled
+        background-color="transparent"
+      image symbol font-size="param.glyphSize" aria-hidden=true
+
+component Menu
+  props
+    id: string
+    label: string
+    symbol: string
+    disabled: bool
+    testId: string
+    clearance: number
+  state expanded = false
+  action present
+    togglePopover(id, source=`${id}-trigger`)
+  action visibility(e: ToggleEvent)
+    expanded = e.newState == "open"
+  slot
+  view
+    row min-width=0 align-items="center"
+      MenuTrigger(label=label, menuId=id, symbol=symbol, expanded=expanded, disabled=disabled, press=present, testId=testId, clearance=clearance)
+      column id=id testId=id popover="auto" role="menu" aria-label=label toggle=visibility padding="dao.space.sm" gap="dao.space.xs" border="1px solid dao.bd.primary" border-radius="dao.radius.md" background-color="dao.bg.solid.card" color="dao.tx.primary"
+        children
+
+component MenuItem
+  props
+    label: string
+    menuId: string
+    destructive: bool
+    disabled: bool
+    press: action
+    testId: string
+  view
+    // Native menu projection carries arrow keys and activation on supported hosts.
+    button role="menuitem" press=press disabled=disabled popovertarget=menuId popovertargetaction="hide" aria-label=label testId=testId min-height="2.75rem" cursor=(disabled ? "default" : "pointer") color=(destructive ? "dao.tx.error" : "dao.tx.primary")
+      text label
+
+component DialogTrigger
+  props
+    label: string
+    dialogId: string
+    disabled: bool
+    testId: string
+  action openDialog
+    showModal(dialogId)
+  view
+    button appearance="none" class=Action press=openDialog aria-haspopup="dialog" aria-controls=dialogId disabled=disabled testId=testId min-height="2.75rem" padding-top="dao.space.sm" padding-right="dao.space.lg" padding-bottom="dao.space.sm" padding-left="dao.space.lg" background-color="dao.bg.solid.card" color="dao.tx.primary" cursor=(disabled ? "default" : "pointer")
+      :hover
+        background-color="dao.bg.hover"
+      :active
+        background-color="dao.bg.pressed"
+      :disabled
+        background-color="dao.bg.solid.card"
+      text label
+
+component Dialog
+  props
+    id: string
+    title: string
+    context: string
+    cancel: action
+  slot
+  view
+    dialog id=id testId=id aria-label=title cancel=cancel closedby="closerequest" width="100%" max-width="36rem" box-sizing="border-box" background-color="dao.bg.solid.card" color="dao.tx.primary" border="1px solid dao.bd.primary" border-radius="dao.radius.xl"
+      SheetHeader(title=title, context=context)
+      column padding="0 16px 16px" gap="dao.space.md" min-width=0
+        children
+
+component DialogClose
+  props
+    label: string
+    dialogId: string
+    press: action
+    testId: string
+  view
+    button appearance="none" class=Action commandfor=dialogId command="close" press=press testId=testId min-height="2.75rem" padding-top="dao.space.sm" padding-right="dao.space.lg" padding-bottom="dao.space.sm" padding-left="dao.space.lg" background-color="dao.bg.solid.button" color="dao.tx.button"
+      text label
+
+component Confirmation
+  props
+    id: string
+    question: string
+    message: string
+    confirmLabel: string
+    confirm: action
+    cancel: action
+    testId: string
+  view
+    dialog id=id role="alertdialog" aria-label=question cancel=cancel
+      text message
+      button press=confirm destructive=true commandfor=id command="close" testId=testId
+        text confirmLabel
+      button press=cancel commandfor=id command="close" testId=`${testId}-cancel`
+        text "Cancel"
+
+component Status
+  props
+    message: string
+    error: bool
+  view
+    text message role=(error ? "alert" : "status") class=WhyteSm color=(error ? "dao.tx.error" : "dao.tx.secondary")

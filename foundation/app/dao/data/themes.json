@@ -1,0 +1,17 @@
+{
+  "$comment": "A theme rebinds role names onto tokens that already exist. It cannot introduce an off-system colour - only re-aim at one already in the catalog.",
+  "themes": {
+    "default": {
+      "tx.accent": "tx/accent",
+      "bd.accent": "bd/accent",
+      "bg.solidAccent": "primitive/blue-400",
+      "tx.control.accent": "tx/control/accent"
+    },
+    "zhouyi": {
+      "tx.accent": "tx/hue/gold",
+      "bd.accent": "bd/hue/gold",
+      "bg.solidAccent": "primitive/hue/gold",
+      "tx.control.accent": "tx/control/gold"
+    }
+  }
+}

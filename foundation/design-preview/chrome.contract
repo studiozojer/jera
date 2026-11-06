@@ -1,0 +1,85 @@
+use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, spaceXxxl, radiusMd, radiusXl, radiusFull, iconSize, minTouchTarget from "./dao.contract"
+use JeraWordmark from "./brand.contract"
+use WhyteXs, WhyteMd, QuietAction from "./dao.contract"
+use WhyteSm from "./dao/foundations.contract"
+use IconButton, Action from "./dao/actions.contract"
+use Avatar from "./dao/reading.contract"
+
+// Both entries share the existing composer route, experience and retained draft.
+component FeedComposer
+  props
+    write: action
+  view
+    row testId="feed-composer" align-items="center" gap=spaceMd() flex-wrap="wrap" padding=spaceLg() border-bottom="1px solid bd.primary"
+      button press=write testId="feed-write" aria-label="Write a post" appearance="none" class=Action flex=1 flex-basis="12rem" min-width=0 min-height=minTouchTarget() padding=0 background-color="transparent" color="tx.secondary" display="flex" align-items="center" gap=spaceMd() flex-wrap="wrap" text-align="left"
+        :hover
+          background-color="transparent"
+        Avatar(initial="D", large=false)
+        text "What's new?" class=WhyteSm min-width=0 max-width="100%" box-sizing="border-box"
+      button press=write testId="feed-write-post" aria-label="Open post composer" appearance="none" class=Action min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border="1px solid bd.primary" border-radius=radiusMd() background-color="transparent" color="tx.primary"
+        text "Post" class=WhyteSm
+
+component Chrome
+  props
+    mode: string
+    account: action
+    compact: bool
+  view
+    box role="banner" padding-top=`calc(${compact ? spaceMd() : spaceXl()}px + env(safe-area-inset-top))` padding-bottom=(compact ? spaceMd() : spaceXl()) padding-left=(compact ? spaceLg() : spaceXxl()) padding-right=(compact ? spaceLg() : spaceXxl()) border-bottom-width=(compact ? 1 : 0) border-bottom-style="solid" border-bottom-color="bd.primary" width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" display="flex" align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
+      row gap=spaceMd() align-items="center" flex-wrap="wrap"
+        JeraWordmark(scale=(compact ? 1.6 : 2))
+        text (mode == "private" ? "Private · Preview" : "Public · Preview") color="tx.secondary" class=WhyteXs
+      row gap=spaceMd() align-items="center" flex-wrap="wrap"
+        button press=account aria-label="Your account" testId="account" appearance="none" class=QuietAction width="2.75rem" height="2.75rem" padding=0 border-width=0 border-radius=radiusMd() background-color="bg.field" color="tx.primary"
+          text "D"
+
+component WriteButton
+  props
+    write: action
+    compact: bool
+  view
+    box position="absolute" right=(compact ? spaceLg() : spaceXxl()) bottom=`calc(${compact ? spaceLg() : spaceXxl()}px + env(safe-area-inset-bottom))` z-index=10
+      IconButton(controlId="", kind="surface", label="Write a post", symbol="symbol:add", glyphSize="24px", targetSize=(compact ? "48px" : "64px"), selected=none, disabled=false, press=write, testId="write", clearance=0)
+
+
+// The page scrolls behind this sticky header. The cap only paints the
+// stationary outline/corners; it never owns scrolling or pointer input.
+component ReadingHeader
+  props
+    mode: string
+    account: action
+    compact: bool
+    measure: action
+  view
+    column resize=measure position="sticky" top=0 z-index=2 background-color="experience.canvas" padding-bottom=(compact ? 0 : spaceSm()) testId="reading-header"
+      Chrome(account=account, compact=compact, mode=mode)
+      if not compact
+        ReadingCap()
+
+component ThreadHeader
+  props
+    mode: string
+    back: action
+    compact: bool
+    measure: action
+  view
+    column resize=measure position="sticky" top=0 z-index=2 background-color="experience.canvas" padding-bottom=(compact ? 0 : spaceSm()) testId="reading-header"
+      row role="banner" padding-top=`calc(${compact ? spaceMd() : spaceXl()}px + env(safe-area-inset-top))` padding-bottom=(compact ? spaceMd() : spaceXl()) padding-left=(compact ? spaceLg() : spaceXxl()) padding-right=(compact ? spaceLg() : spaceXxl()) border-bottom-width=(compact ? 1 : 0) border-bottom-style="solid" border-bottom-color="bd.primary" width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" align-items="center" gap=spaceMd() flex-wrap="wrap" testId="thread-header"
+        IconButton(controlId="back", kind="ghost", label="Back", symbol="symbol:back", glyphSize="1.25rem", targetSize="2.75rem", selected=none, disabled=false, press=back, testId="back", clearance=0)
+        text "Thread" role="heading" aria-level=1 class=WhyteMd
+        text (mode == "private" ? "Private" : "Public") class=WhyteXs color="tx.secondary" margin-left="auto" testId="thread-experience"
+      if not compact
+        ReadingCap()
+
+component ReadingCap
+  view
+    box position="absolute" top="100%" width="100%" height=radiusFull() pointer-events="none" aria-hidden=true testId="reading-cap"
+      box width="100%" max-width="44rem" margin="0 auto" height=radiusFull() padding-left=spaceMd() padding-right=spaceMd() box-sizing="border-box"
+        box position="relative" width="100%" height=radiusFull()
+          box position="absolute" left=radiusFull() right=radiusFull() top=0 height=1 background-color="bd.primary"
+          svg position="absolute" left=0 top=0 width=radiusFull() height=radiusFull() viewBox="0 0 32 32"
+            path d="M0 0H32A32 32 0 0 0 0 32Z" fill="experience.canvas"
+            path d="M0.5 32A31.5 31.5 0 0 1 32 0.5" fill="none" stroke="bd.primary" stroke-width=1
+          svg position="absolute" right=0 top=0 width=radiusFull() height=radiusFull() viewBox="0 0 32 32"
+            path d="M0 0H32V32A32 32 0 0 0 0 0Z" fill="experience.canvas"
+            path d="M0 0.5A31.5 31.5 0 0 1 31.5 32" fill="none" stroke="bd.primary" stroke-width=1

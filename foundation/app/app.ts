@@ -2,6 +2,8 @@ import type { Answer, Sources, Store, Storage, NativeModule } from './app.contra
 import { Snapback, refused } from './snapback4/snapback.ts';
 import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile } from './account-profile.ts';
+import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
+import { accountExperience } from './experience-store.ts';
 
 const origin = 'http://127.0.0.1:4417';
 export const appId = 'studio.zojer.jera.exact';
@@ -41,7 +43,148 @@ async function using<T>(store: Store, storage: Storage, native: NativeModule | n
   const db = await Snapback.open({ app: appId, name: sessionKey, origin, storage, native, device: browser ? 'web' : 'native', auth: { store, key: sessionKey, now } });
   try { return await fn(db); } finally { await db.close(); }
 }
+function isActor(store: Store, principal: string) {
+  try { return Boolean(principal) && JSON.parse(store.get(sessionKey)||'{}').principal === principal; } catch {return false;}
+}
+function actor(store: Store, principal: string) {
+  if (!isActor(store,principal)) reject('E_STALE', 'Sign in again before using this account.');
+}
+function draftsFor(store: Store, storage: Storage, principal: string) {
+  actor(store, principal); return new Drafts(storage.fs, origin, principal);
+}
+async function experienceFor(store: Store, storage: Storage, principal: string) {
+  const drafts=draftsFor(store,storage,principal);
+  const initial=await drafts.mode();
+  return accountExperience(principal,initial);
+}
+function transport(db: Snapback, store: Store, principal: string): Request {
+  actor(store, principal);
+  const raw=store.get(sessionKey), token=db.session?.token;
+  if (!token || db.session?.principal !== principal) reject('E_AUTH','Sign in before reading or posting.');
+  const check=()=>{if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed while the request was in flight.');};
+  return async (kind,operation,args,id) => {
+    check();
+    const response=await fetch(`${origin}/${kind}/${encodeURIComponent(operation)}`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify(kind==='m'?{id:id||newIntent(),args}:{args}),exactTimeout:15000});
+    const result=await response.json(); check();
+    if(!response.ok || result.denied) throw refused(result.denied || {code:'E_NETWORK',message:'Could not reach Jera. Your draft is kept.'});
+    return result;
+  };
+}
+const profileCache=new Map<string,{at:number; profile:Awaited<ReturnType<typeof loadAccountProfile>>}>();
+async function postProfile(principal:string,storage:Storage,now:number){
+  const cached=profileCache.get(principal);
+  if(cached && now-cached.at<300000)return cached.profile;
+  const profile=await loadAccountProfile(principal,storage);
+  if(profileCache.size>256)profileCache.clear();
+  profileCache.set(principal,{at:now,profile});return profile;
+}
+function draftEnvelope(principal:string,scope:string,draft:Awaited<ReturnType<Drafts['get']>>){return{principal,scope,body:draft.body,revision:draft.revision,pendingMode:draft.sealed?.visibility||''};}
 const sources: Sources = {
+  experienceSnapshot: async ([principal],store,storage) => {
+    if(!isActor(store,principal))return {principal:'',mode:'private',revision:0};
+    try {const state=(await experienceFor(store,storage,principal)).getSnapshot();return isActor(store,principal)?{principal,...state}:{principal:'',mode:'private',revision:0};}
+    catch {return {principal:'',mode:'private',revision:0};}
+  },
+  changeExperience: async ([principal,mode,now],store,storage) => {
+    if(mode!=='public' && mode!=='private')reject('E_INPUT','Unknown experience.');
+    const context=await experienceFor(store,storage,principal);
+    await draftsFor(store,storage,principal).setMode(mode);
+    actor(store,principal); return {principal,...context.change(mode,now)};
+  },
+  prepareDraft: async ([principal,mode,parent,context,now,browser],store,storage,native) => {
+    const local=draftsFor(store,storage,principal);
+    // No transport is opened for an ordinary unposted draft. An unavailable
+    // publication lookup preserves the sealed draft, including while offline.
+    const draft=await beginDraft((kind,operation,args,id)=>using(store,storage,native,now,browser,db=>transport(db,store,principal)(kind,operation,args,id)),local,mode==='public'?'public':'private',parent);
+    actor(store,principal);
+    return {...draftEnvelope(principal,draftScope(mode==='public'?'public':'private',parent),draft),context};
+  },
+  syncDraft: async ([principal,mode,parent,context,now,browser],store,storage,native) => {
+    const scope=draftScope(mode==='public'?'public':'private',parent);
+    if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,priorRevision:0,state:'pending',context};
+    const local=draftsFor(store,storage,principal);
+    try {
+      const synced=await using(store,storage,native,now,browser,db=>syncScope(transport(db,store,principal),local,scope));
+      return {principal,scope,body:synced.draft.body,revision:synced.draft.revision,priorRevision:synced.priorRevision,state:'sent',context};
+    } catch {
+      const draft=await local.get(scope);
+      return {principal:isActor(store,principal)?principal:'',scope,body:draft.body,revision:draft.revision,priorRevision:draft.revision,state:'pending',context};
+    }
+  },
+  syncAllDrafts: async ([principal,now,browser],store,storage,native) => {
+    if(!isActor(store,principal))return {state:'pending',id:''};
+    try {
+      await using(store,storage,native,now,browser,db=>syncDrafts(transport(db,store,principal),draftsFor(store,storage,principal)));
+      return {state:'sent',id:''};
+    } catch {return {state:'pending',id:''};}
+  },
+  saveDraft: async ([principal,mode,parent,body,revision],store,storage) => {
+    const scope=draftScope(mode==='public'?'public':'private',parent);
+    const draft=await draftsFor(store,storage,principal).save(scope,body,revision); actor(store,principal);
+    return draftEnvelope(principal,scope,draft);
+  },
+  loadPosts: async ([principal,browser,now],store,storage,native) => {
+    if(!isActor(store,principal))return {principal:'',posts:[],available:false};
+    try {return await using(store,storage,native,now,browser,async db=>{
+      const request=transport(db,store,principal);
+      const newest=await allRows(request,'postsList') as PostRecord[];
+      const records=[...newest].sort((a,b)=>a.at-b.at || a.id.localeCompare(b.id));
+      const ids=[...new Set(newest.slice(0,100).map(p=>p.author))].slice(0,24);
+      const profiles=new Map(await Promise.all(ids.map(async did=>[did,await postProfile(did,storage,now)] as const)));
+      actor(store,principal);
+      const byId=new Map(records.map(p=>[p.id,p]));
+      const publicCounts=new Map<string,number>(),readableCounts=new Map<string,number>();
+      for(const p of records)if(p.parent&&!p.deleted){readableCounts.set(p.parent,(readableCounts.get(p.parent)||0)+1);if(p.visibility==='public')publicCounts.set(p.parent,(publicCounts.get(p.parent)||0)+1);}
+      const displayName=(did:string)=>{const profile=profiles.get(did);return profile?.handle?profile.name:did===principal?'You':'…'+did.slice(-6);};
+      const posts=records.map(p=>{
+        const profile=profiles.get(p.author);
+        const name=displayName(p.author);
+        const parentAuthor=p.parent?displayName(byId.get(p.parent)?.author||''):'';
+        const elapsed=Math.max(0,now-p.at),minutes=Math.floor(elapsed/60000);
+        const stamp=minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`;
+        return {id:p.id,canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
+      });
+      return {principal,posts,available:true};
+    });} catch {return {principal:isActor(store,principal)?principal:'',posts:[],available:false};}
+  },
+  publishPost: async ([principal,mode,parent,body,revision,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+    try {
+      const result=await publish(transport(db,store,principal),draftsFor(store,storage,principal),mode==='public'?'public':'private',parent,revision,body);
+      actor(store,principal); return {...result,principal,message:''};
+    } catch(error) {
+      actor(store,principal);
+      return {state:'failed',id:'',parent,principal,visibility:mode,message:(error as Error).message || 'Could not post. Your draft is kept.'};
+    }
+  }),
+  deletePost: async ([principal,id,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+    const response=await transport(db,store,principal)('m','deletePost',{id},newIntent());
+    if(response.state==='failed')throw refused(response.why);
+    if(response.state!=='sent'||response.result?.id!==id||response.result?.deleted!==true)reject('E_NETWORK','Could not confirm deletion. Try again.');
+    actor(store,principal);return {state:'sent',id};
+  }),
+  loadAudience: async ([principal,browser,now],store,storage,native) => {
+    if(!isActor(store,principal))return {principal:'',id:'',members:[],available:false};
+    try {return await using(store,storage,native,now,browser,async db=>{
+      const request=transport(db,store,principal);const groups=await allRows(request,'audienceList');
+      const id=groups[0]?.id||'';
+      const members=id?await allRows(request,'audienceMembersList',{audience:id}):[];
+      return {principal,id,members:members.map(m=>({principal:m.principal,access:m.access})),available:true};
+    });} catch {return {principal:isActor(store,principal)?principal:'',id:'',members:[],available:false};}
+  },
+  grantAudience: async ([principal,did,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+    const value=parseLoginInput(did.trim());
+    if(!value.valid || !value.value.startsWith('did:'))reject('E_INPUT','Enter a complete DID.');
+    const request=transport(db,store,principal);const group=await request('m','ensureAudience',{},newIntent());
+    if(group.state!=='sent'||!group.result?.id)reject('E_NETWORK','Could not open your private audience.');
+    const result=await request('m','setAudienceMember',{audience:group.result.id,principal:value.value,access:'reply'},newIntent());
+    if(result.state==='failed')throw refused(result.why);
+    return {state:'sent',id:value.value};
+  }),
+  revokeAudience: async ([principal,audience,did,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+    const result=await transport(db,store,principal)('m','removeAudienceMember',{audience,principal:did},newIntent());
+    if(result.state==='failed')throw refused(result.why);
+    return {state:'sent',id:did};
+  }),
   accountProfile: ([principal], store, storage) => loadAccountProfile(principal, storage),
   logout: ([now, browser], store, storage, native) => using(store, storage, native, now, browser, async db => {
     await db.logout(); return { state: 'sent', id: '' };

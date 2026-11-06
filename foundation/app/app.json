@@ -53,12 +53,12 @@
   },
   "icons": [
     {
-      "src": "assets/brand/jera-favicon-v3.png",
+      "src": "assets/brand/jera-favicon-dark-v4.png",
       "sizes": "64x64",
       "type": "image/png"
     },
     {
-      "src": "assets/brand/jeraappicon.png",
+      "src": "assets/brand/jera-appicon-dark.png",
       "sizes": "1024x1024",
       "type": "image/png"
     }

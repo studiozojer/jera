@@ -1,0 +1,27 @@
+--- a/host/web/auth-glue.js
++++ b/host/web/auth-glue.js
+@@ -6,10 +6,11 @@
+ // Cross-Origin-Opener-Policy. The runner rules (grants, one session,
+ // supersession) and checks the callback (`exact_runner::auth::accept`); this
+ // only opens, listens and reports. A closed popup alone is not a
+-// cancellation: 499 only after `closed` held for a grace period with no
+-// message, or at the bound. No redirect fallback: a blocked popup is 428.
++// cancellation when a BroadcastChannel can still return the callback. Wait
++// for that channel or the bound; use the closed grace only without a channel.
++// No redirect fallback: a blocked popup is 428.
+ // Loaded after first paint when the app grants `auth.session`.
+-const GRACE_MS = 3000;           // `closed` true this long, and no message: cancelled
++const GRACE_MS = 3000;           // closed-popup fallback when no channel exists
+ const BOUND_MS = 10 * 60 * 1000; // no callback within this: cancelled (D4 item 4)
+ const POLL_MS = 250;
+ let live = null; // { ticket, popup, done, timers }
+@@ -76,6 +77,9 @@
+   const poll = setInterval(() => {
+     if (!live) return;
+     if (!env.active(op.ticket)) { finish(env, null); return; } // superseded or forgotten (D3)
++    // COOP can sever the opener for the entire human sign-in, not just the
++    // final redirect. With a callback channel, `closed` cannot prove cancel.
++    if (channel) return;
+     let closed = false;
+     try { closed = popup.closed; } catch {}
+     if (!closed) { closedSince = null; return; }

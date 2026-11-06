@@ -1,0 +1,29 @@
+use Action from "./dao/actions.contract"
+use spaceSm, spaceMd, radiusMd, minTouchTarget from "./dao.contract"
+use WhyteXs from "./dao.contract"
+use WhyteSm from "./dao/foundations.contract"
+
+shape ExperienceSnapshot
+  mode: string
+  revision: number
+
+// Jera-specific controlled composition; its visual expression may evolve without
+// changing the global experience contract or the shared daoUI action behavior.
+component ExperienceModeControl
+  props
+    mode: string
+    change: action
+    disabled: bool
+  action navigate(current: string, key: string, event: KeyboardEvent)
+    if not disabled and not event.isComposing and (key == "ArrowLeft" or key == "ArrowRight" or key == "Home" or key == "End")
+      preventDefault()
+      let next = key == "Home" ? "private" : key == "End" ? "public" : current == "private" ? "public" : "private"
+      change(next)
+      focus(`experience-${next}`)
+  view
+    row gap=spaceMd() align-items="center" flex-wrap="wrap" testId="experience-control"
+      text "Experience" class=WhyteXs color="tx.secondary"
+      row role="radiogroup" aria-label="Experience" gap=spaceSm() align-items="center" flex-wrap="wrap"
+        for option in ["private", "public"] key=option
+          button id=`experience-${option}` testId=`experience-${option}` role="radio" aria-checked=(mode == option) tabindex=(mode == option ? 0 : -1) disabled=disabled press=change(option) key=navigate(option) appearance="none" class=Action min-height=minTouchTarget() cursor=(disabled ? "default" : "pointer") padding="8px 12px" border="1px solid bd.primary" border-radius=radiusMd() background-color=(mode == option ? "bg.field" : "transparent") color=(mode == option ? "tx.primary" : "tx.secondary")
+            text (option == "private" ? "Private" : "Public") class=WhyteSm

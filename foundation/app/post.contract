@@ -1,0 +1,90 @@
+use spaceSm, spaceMd, radiusMd, minTouchTarget from "./dao.contract"
+use WhyteXs from "./dao.contract"
+use WhyteSm from "./dao/foundations.contract"
+use AccountAvatar from "./signin.contract"
+use IconButton from "./dao/actions.contract"
+use Menu, MenuItem from "./dao/overlays.contract"
+
+shape Post
+  id: string
+  principal: string
+  canDelete: bool
+  deleted: bool
+  parentAuthor: string
+  parentPublic: bool
+  publicReplies: number
+  readableReplies: number
+  avatar: string
+  audience: string
+  at: number
+  root: string
+  parent: string
+  visibility: string
+  author: string
+  handle: string
+  initial: string
+  body: string
+  stamp: string
+
+component PostAvatar
+  props
+    post: Post
+  view
+    AccountAvatar(src=post.avatar, label=post.author, size="2.25rem", radius=radiusMd())
+
+component Author
+  props
+    post: Post
+    menuId: string
+    remove: action
+    clearance: number
+  action copyPost
+    copyText(post.body)
+  view
+    row gap=spaceSm() align-items="center" flex-wrap="wrap" min-width=0
+      row gap=spaceSm() align-items="center" flex-wrap="wrap" min-width=0 flex=1 flex-basis="8rem"
+        text post.author class=WhyteSm
+        text post.stamp color="tx.secondary" class=WhyteXs
+        if post.visibility == "private"
+          text "Private" color="tx.secondary" class=WhyteXs
+      // Keep the author line at reading height; the full menu target extends
+      // into the surrounding space without adding a blank line below the name.
+      if not post.deleted
+        box height="1.5rem" display="flex" align-items="center" flex-shrink=0
+          Menu(id=menuId, label=`More options for ${post.author}: ${post.body.slice(0, 64)}`, symbol="symbol:ellipsis", disabled=false, testId=`more-${menuId}`, clearance=clearance)
+            MenuItem(label="Copy text", menuId=menuId, destructive=false, disabled=false, press=copyPost, testId=`copy-${menuId}`)
+            if post.canDelete
+              MenuItem(label="Delete", menuId=menuId, destructive=true, disabled=false, press=remove(post.id), testId=`delete-${menuId}`)
+
+
+component PostActions
+  props
+    post: Post
+    comments: number
+    comment: action
+    commentId: string
+    commentLabel: string
+    context: string
+    clearance: number
+  action unavailable
+    comment()
+  view
+    row gap=0 align-items="center" flex-wrap="wrap"
+      IconButton(controlId="", kind="ghost", label="Like", symbol="symbol:heart", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=true, press=unavailable, testId=`like-${context}`, clearance=clearance)
+      IconButton(controlId="", kind="ghost", label=`${comments > 0 ? `${comments} ${comments == 1 ? "reply" : "replies"}. ` : ""}${commentLabel}: ${post.author}, ${post.body.slice(0, 64)}`, symbol="symbol:icon.post-comment", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=false, press=comment, testId=commentId, clearance=clearance)
+        if comments > 0
+          text `${comments}` class=WhyteXs
+      IconButton(controlId="", kind="ghost", label="Repost", symbol="symbol:repeat", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=true, press=unavailable, testId=`repost-${context}`, clearance=clearance)
+      IconButton(controlId="", kind="ghost", label="Send", symbol="symbol:icon.post-send", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=true, press=unavailable, testId=`send-${context}`, clearance=clearance)
+
+
+shape Draft
+  mode: string
+  context: string
+  body: string
+
+fn conversationRoot(posts: Post[], id: string): string = match first(posts.filter(p => p.id == id)) { case some(p) => p.root == "" ? p.id : p.root, case none => id }
+
+// A reply can narrow its immediate parent's audience, never widen it. Future
+// audience/group grants must additionally enforce recipient membership in storage.
+fn canReplyInExperience(posts: Post[], parent: string, mode: string): bool = (mode == "public" or mode == "private") and posts.filter(p => p.id == parent and not p.deleted and (p.visibility == "public" or mode == "private")).length == 1

@@ -1,0 +1,85 @@
+use spaceSm, spaceMd, spaceLg, spaceXxl, radiusMd, radiusFull, minTouchTarget from "./dao.contract"
+use WhyteSm, WhyteXs, QuietAction from "./dao.contract"
+use Post, PostAvatar, Author, PostActions from "./post.contract"
+use Action from "./dao/actions.contract"
+use Avatar from "./dao/reading.contract"
+
+component ThreadReplyEntry
+  props
+    post: Post
+    reply: action
+    clearance: number
+  view
+    column padding=spaceLg() border-top="1px solid bd.primary"
+      button press=reply(post.id) testId=`thread-reply-entry-${post.id}` aria-label=`Reply to ${post.author}` appearance="none" class=Action width="100%" min-width=0 min-height=minTouchTarget() padding=spaceSm() border="1px solid bd.primary" border-radius=radiusFull() background-color="bg.field" color="tx.secondary" display="flex" align-items="center" gap=spaceMd() flex-wrap="wrap" text-align="left" scroll-margin-top=clearance
+        :hover
+          background-color="bg.field"
+        Avatar(initial="D", large=false)
+        text `Reply to ${post.author}…` class=WhyteSm min-width=0 flex=1 flex-basis="8rem"
+
+// Jera owns conversation structure; the shared author/actions keep their anatomy.
+component ThreadHero
+  props
+    post: Post
+    posts: Post[]
+    reply: action
+    context: string
+    clearance: number
+    mode: string
+  view
+    article id=`thread-${context}-${post.id}` padding=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column" gap=spaceMd() scroll-margin-top=clearance scroll-margin-bottom="6rem"
+      row gap=spaceMd() align-items="center"
+        PostAvatar(post=post)
+        column flex=1 min-width=0
+          Author(post=post, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
+      if post.visibility == "public" and mode == "private"
+        text "Public post" class=WhyteXs color="tx.secondary" testId="public-thread-context"
+      text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
+      PostActions(post=post, comments=posts.filter(p => p.parent == post.id).length, comment=reply(post.id), commentId="reply", commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
+
+component ThreadRow
+  props
+    post: Post
+    posts: Post[]
+    reply: action
+    context: string
+    clearance: number
+    continued: bool
+  view
+    row id=`thread-${context}-${post.id}` gap=spaceMd() align-items="stretch" position="relative" scroll-margin-top=clearance scroll-margin-bottom="6rem"
+      // The avatar rail and reading text follow the same text-size scaling.
+      PostAvatar(post=post)
+      if continued
+        box aria-hidden=true pointer-events="none" position="absolute" left="1.125rem" top="2.25rem" margin-top=spaceSm() bottom=0 width=1 background-color="bd.primary"
+      column flex=1 min-width=0 gap=spaceSm()
+        column gap=spaceMd()
+          Author(post=post, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
+          text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
+        PostActions(post=post, comments=posts.filter(p => p.parent == post.id).length, comment=reply(post.id), commentId=`reply-to-${post.id}`, commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
+
+component ThreadBranch
+  props
+    post: Post
+    posts: Post[]
+    reply: action
+    open: action
+    context: string
+    clearance: number
+  derive children = posts.filter(p => p.parent == post.id)
+  derive preview = match first(children) { case some(p) => p, case none => post }
+  derive deeper = posts.filter(p => p.parent == preview.id).length
+  derive moreTarget = children.length > 1 ? post.id : preview.id
+  derive moreCount = children.length > 1 ? children.length : deeper
+  view
+    article padding=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column"
+      ThreadRow(post=post, posts=posts, reply=reply, context=context, clearance=clearance, continued=(children.length > 0))
+      if children.length > 0
+        column margin-left=spaceXxl() padding-top=spaceMd() position="relative"
+          // Elbow joins the parent's avatar rail to its child's avatar.
+          box aria-hidden=true pointer-events="none" position="absolute" left="1.125rem" margin-left=(0 - spaceXxl()) top=0 width=spaceMd() height="1.125rem" padding-top=spaceMd() border-left="1px solid bd.primary" border-bottom="1px solid bd.primary" border-bottom-left-radius=radiusMd()
+          ThreadRow(post=preview, posts=posts, reply=reply, context=context, clearance=clearance, continued=(moreCount > 0))
+          if moreCount > 0
+            row padding-top=spaceSm() position="relative"
+              box aria-hidden=true pointer-events="none" position="absolute" left="1.125rem" top=0 height=spaceSm() width=1 background-color="bd.primary"
+              button press=open(moreTarget) testId=`show-replies-${post.id}` appearance="none" class=QuietAction scroll-margin-top=clearance min-height=minTouchTarget() margin-left=minTouchTarget() padding-left=spaceSm() padding-right=spaceSm() border-width=0 border-radius=radiusMd() background-color="transparent" text-align="left"
+                text (children.length > 1 ? `Show all ${moreCount} replies` : (moreCount == 1 ? "Show 1 reply" : `Show ${moreCount} replies`)) color="tx.secondary" class=WhyteXs

@@ -1,0 +1,76 @@
+test "feed writing entry shares the composer draft and experience"
+  tap "feed-write"
+  clock settle
+  type "composer" "A thought started from the feed"
+  tap "cancel"
+  clock settle
+  tap "feed-write-post"
+  clock settle
+  expect text "composer" == "A thought started from the feed"
+  tap "experience-private"
+  clock settle
+  tap "cancel"
+  clock settle
+  tap "feed-write"
+  clock settle
+  expect state mode == "private"
+  expect text "composer" == ""
+  type "composer" "A private thought from the feed"
+  tap "post"
+  clock settle
+  expect text "thread-body-post-61" == "A private thought from the feed"
+  tap "back"
+  clock settle
+  expect tree has "feed-composer"
+  expect tree has "body-post-61"
+
+test "feed rows open their thread while nested controls stay independent"
+  tap "post-row-seed-2"
+  clock settle
+  expect text "thread-body-seed-2" == "@kepler What changes when we treat memory as a garden?"
+  tap "back"
+  clock settle
+  expect tree missing "thread-body-seed-2"
+  tap "more-stream-menu-seed-2"
+  clock settle
+  expect tree has "copy-stream-menu-seed-2"
+  expect tree missing "thread-body-seed-2"
+  tap "copy-stream-menu-seed-2"
+  clock settle
+  expect tree missing "thread-body-seed-2"
+  tap "thread-seed-2"
+  clock settle
+  expect tree has "thread-body-seed-2"
+  tap "back"
+  clock settle
+  expect tree missing "thread-body-seed-2"
+
+test "posting from the stream consumes the composer before returning"
+  tap "write"
+  clock settle
+  type "composer" "A new thought from the stream."
+  tap "post"
+  clock settle
+  expect text "thread-body-post-61" == "A new thought from the stream."
+  tap "back"
+  clock settle
+  expect tree missing "composer"
+  expect text "body-post-61" == "A new thought from the stream."
+
+test "posting from a thread returns to that thread without a completed composer"
+  tap "thread-seed-2"
+  clock settle
+  tap "write"
+  clock settle
+  type "composer" "A related thought in a new post."
+  tap "post"
+  clock settle
+  expect text "thread-body-post-61" == "A related thought in a new post."
+  tap "back"
+  clock settle
+  expect tree missing "composer"
+  expect text "thread-body-seed-2" == "@kepler What changes when we treat memory as a garden?"
+  tap "back"
+  clock settle
+  expect tree missing "composer"
+  expect text "body-post-61" == "A related thought in a new post."

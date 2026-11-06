@@ -1,0 +1,19 @@
+[package]
+name = "design-preview-linux"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+build = "build.rs"
+
+[[bin]]
+name = "design-preview-linux"
+path = "src/main.rs"
+
+[dependencies]
+exact-logic = { path = "../../../tooling/exact2/logic" }
+exact-linux = { path = "../../../tooling/exact2/host/linux" }
+exact-js = { path = "../../../tooling/exact2/js" }
+
+[build-dependencies]
+exact-js-bake = { path = "../../../tooling/exact2/js/bake" }

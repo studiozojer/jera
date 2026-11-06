@@ -1,0 +1,34 @@
+{
+  "signs": ["aries", "taurus", "gemini", "cancer", "leo", "virgo",
+            "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces"],
+  "planets": ["sun", "moon", "mercury", "venus", "mars",
+              "jupiter", "saturn", "uranus", "neptune", "pluto"],
+  "aspects": ["conjunct", "sextile", "square", "trine", "opposite",
+              "semi-sextile", "quincunx"],
+  "houses": ["1h", "2h", "3h", "4h", "5h", "6h",
+             "7h", "8h", "9h", "10h", "11h", "12h"],
+  "hues": ["red", "orange", "yellow", "lime", "green", "aqua", "sky",
+           "blue", "indigo", "purple", "byzantium", "magenta", "gold", "greyscale"],
+  "zodiacHueSchemes": {
+    "rainbow": {
+      "variant": "coloredForeground",
+      "signs": ["red", "orange", "yellow", "lime", "green", "aqua",
+                "sky", "blue", "indigo", "purple", "byzantium", "magenta"]
+    },
+    "elements": {
+      "variant": "coloredBackground",
+      "signs": ["red", "green", "yellow", "blue", "red", "green",
+                "yellow", "blue", "red", "green", "yellow", "blue"]
+    },
+    "multiplicity": {
+      "variant": "subtle",
+      "signs": ["red", "blue", "green", "red", "blue", "green",
+                "red", "blue", "green", "red", "blue", "green"]
+    }
+  },
+  "planetHues": {
+    "sun": "gold", "moon": "gold", "mercury": "blue", "venus": "byzantium",
+    "mars": "red", "jupiter": "green", "saturn": "orange", "uranus": "sky",
+    "neptune": "indigo", "pluto": "magenta"
+  }
+}

@@ -1,0 +1,17 @@
+# Stable Post availability during autosave
+
+David reported a button flickering on each character in the Mac interface and requested a short recording with enough provenance to reproduce the friction. He also explicitly rejected keylogging as an observation strategy. The affected button was not named; the investigated reproduction is the composer’s Post control, in Chromium on macOS.
+
+At deletion checkpoint `afbed1b`, the button’s disabled expression included `pending(draftSaved)`. Each editor change started a queued durable save, disabling and re-enabling the control. The before recording contains 95 disabled-state transitions for the same 47-character synthetic sequence. Removing that pending-state coupling produces one transition: an empty draft becomes postable after the first nonempty input. The SDK and compatibility patches are unchanged. This reproduction identifies an application state boundary; it does not establish an Exact rendering defect or separately test Safari/macOS native rendering.
+
+The control remains busy during publication. On press, the data module persists the exact editor body/revision through the same account/origin-scoped draft queue before sealing and sending. This avoids accepting a visually enabled action that silently does nothing while an autosave is pending. Older queued saves cannot overwrite the newer snapshot; an ambiguous publication still seals its exact payload. A recovered cloud draft at editor revision zero can be posted without another keystroke. Tests cover the queued-save handoff, recovered draft and native Exact async-context ownership.
+
+## Repeatable evidence
+
+`tests/post-button.browser.mjs` records the normal UI against the disposable real Snapback/simulated-OAuth fixture on port3035. `JERA_CAPTURE_LABEL=after` asserts one disabled-state transition. `JERA_CAPTURE_DIR` selects the artifact directory; the default is `/tmp/jera-button-flicker`. It uses a constant synthetic sentence and a MutationObserver limited to the Post control’s attributes. The trace includes monotonic observation times, disabled state, opacity and background paint. It does not collect input values, key events, request bodies, bearer tokens or production content. The recording contains only synthetic fixture UI. The paired before/after clips and content-free traces are preserved in the composed commons’ November5 review.
+
+Run the fixture in an isolated review copy with the same pinned SDK, Bun1.4.2 and app manifest; start `node test-server.mjs` from app/ and `bun exact.mjs web --port3035`. Then run `bun tests/post-button.browser.mjs` from foundation/. Do not use the live-account client. The baseline is `afbed1b`; the fix commit follows it. Browser review and installation are separate from David’s confirmation that this was the control he meant.
+
+For future Observe integration, an action/state timeline with fixture ID, source revision, viewport, pointer mode, task boundaries, transition counts and rendering spans could explain friction without collecting text. Those are proposed signals, not shipped telemetry or a claim about Observe’s existing capabilities. Preserve the reported observation, the replay environment, diagnosis and corrected outcome as separate evidence.
+
+Later lifecycle refinement: David’s next report changes local cache retirement to the next explicit composer opening. `DRAFT-LIFECYCLE.md` supersedes any immediate-local-clear assumption while preserving steady button availability and the exact-snapshot queue handoff.
