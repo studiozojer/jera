@@ -2,6 +2,10 @@
 
 This is the current acceptance contract, based on David's direction, his authentication correction on 2026-10-31 and his simple-social-loop clarification on 2026-11-01. Earlier agent-authored plans that deferred ATproto identity are superseded. Keep implementation evidence separate from decisions about what Jera is.
 
+## Debugging and performance as systems learning — David’s November 5 priority
+
+Whenever debugging or improving performance, our number-one priority is to understand how Exact2 and Snapback function, discover friction, and consider how their execution paths can better align with operator workflows. Carry the mechanism and reusable learning alongside the fix. Trace and test relevant boundaries, identify the appropriate owner of an improvement, and retain reproducible provenance without keylogging. An app-owned cause can still reveal an opportunity for clearer framework APIs, diagnostics or operator practice; it does not establish an upstream defect. The composed commons’ `practices/exact-snapback-debugging/practice.md` carries this shared method and links David’s original wording.
+
 ## Backend-connected mobile promotion — November 5
 
 David requested preparing the calibrated interface for the real mobile app. Posts and replies sync to the existing Snapback backend at https://snapback.jera.ink; they are not device-only and are not published to ATproto. Public means readable by signed-in Jera accounts. Private uses a DID audience with read or reply capability; the account UI initially adds read-and-reply members. Private roots and private replies to public parents use the author’s private audience. Descendants of private posts inherit that same audience, and cannot become public or substitute another audience. Removing membership affects existing and future server reads, including descendants authored by the removed member.
