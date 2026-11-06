@@ -47,3 +47,31 @@ test('a historical publish receipt cannot resurrect a deleted post or trap its s
  expect((await publish(req,a,'public','',1)).state).toBe('deleted');
  const after=await a.get('root:public');expect(after.body).toBe('');expect(after.sealed).toBeNull();
 });
+
+test('Post waits for a queued autosave and publishes exactly the snapshot taken on press',async()=>{
+ const {fs}=files();const drafts=new Drafts(fs,'https://post-queue.test',alice);
+ await drafts.get('root:public');
+ let started!:()=>void,release!:()=>void;
+ const entered=new Promise<void>(r=>{started=r}),held=new Promise<void>(r=>{release=r});
+ const write=fs.atomicWriteFile;let block=true;
+ fs.atomicWriteFile=async(p,b)=>{if(block){block=false;started();await held;}return write(p,b);};
+ const autosave=drafts.save('root:public','Earlier autosave',1);await entered;
+ let record:any;
+ const request:Request=async(_kind,op,args)=>{
+  if(op==='publishPost'){expect(args.body).toBe('Exact text at press');record={id:'queued-post',author:alice,...args};return{state:'sent',result:record};}
+  if(op==='postForIntent')return{data:record};throw new Error(op);
+ };
+ const posting=publish(request,drafts,'public','',2,'Exact text at press');
+ release();await autosave;expect((await posting).state).toBe('sent');
+ await drafts.save('root:public','Late old save',1);
+ expect((await drafts.get('root:public')).body).toBe('');
+});
+test('a recovered cloud draft at editor revision zero can be posted without another keystroke',async()=>{
+ const {fs}=files();const drafts=new Drafts(fs,'https://recovered.test',alice);
+ let record:any;const req:Request=async(_kind,op,args)=>{
+  if(op==='draftForDevice')return{data:null};if(op==='latestDraft')return{data:[{body:'Recovered text',revision:9}]};
+  if(op==='publishPost'){record={id:'recovered-post',author:alice,...args};return{state:'sent',result:record};}
+  if(op==='postForIntent')return{data:record};throw new Error(op);
+ };
+ await syncScope(req,drafts,'root:public');expect((await publish(req,drafts,'public','',0,'Recovered text')).state).toBe('sent');
+});

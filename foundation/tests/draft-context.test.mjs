@@ -58,7 +58,7 @@ test('queued draft storage retains its issuing answer across native async steps'
   };
   const synced=await answer('sync',()=>context.draftModule.syncScope(request,draft,'root:public'));
   assert.equal(synced.draft.syncedRevision,1);
-  const posted=await answer('publish',()=>context.draftModule.publish(request,draft,'public','',1));
+  const posted=await answer('publish',()=>context.draftModule.publish(request,draft,'public','',2,'Exact native snapshot'));
   assert.equal(posted.state,'sent');
   assert.equal(posted.id,'fixture-post');
   assert.equal((await answer('after',()=>draft.get('root:public'))).body,'');

@@ -145,9 +145,9 @@ const sources: Sources = {
       return {principal,posts,available:true};
     });} catch {return {principal:isActor(store,principal)?principal:'',posts:[],available:false};}
   },
-  publishPost: async ([principal,mode,parent,revision,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+  publishPost: async ([principal,mode,parent,body,revision,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
     try {
-      const result=await publish(transport(db,store,principal),draftsFor(store,storage,principal),mode==='public'?'public':'private',parent,revision);
+      const result=await publish(transport(db,store,principal),draftsFor(store,storage,principal),mode==='public'?'public':'private',parent,revision,body);
       actor(store,principal); return {...result,principal,message:''};
     } catch(error) {
       actor(store,principal);

@@ -83,11 +83,19 @@ export async function allRows(request: Request, operation: string, args: Record<
   } while (c);
   return rows;
 }
-export async function publish(request: Request, drafts: Drafts, mode: Mode, parent: string, revision: number) {
+export async function publish(request: Request, drafts: Drafts, mode: Mode, parent: string, revision: number, body?: string) {
   const scope = draftScope(mode, parent);
   // Seal the exact payload before sending. A retry after a lost response uses
   // the same intent, audience and bytes, even after a process restart.
   let draft = await drafts.get(scope);
+  // Post stays visually stable while autosaves run. On press, persist the exact
+  // editor snapshot through the same queue before sealing/sending it. Older queued
+  // saves cannot overwrite this revision, and sealed retries retain their payload.
+  if (body !== undefined && !draft.sealed) {
+    revision=Math.max(1,revision);
+    draft=await drafts.save(scope,body,revision);
+    if (draft.revision!==revision || draft.body!==body) throw new Error('The draft changed before posting. Your text is kept.');
+  }
   if (!draft.sealed) {
     if (draft.revision !== revision || !draft.body.trim()) throw new Error('Wait for your draft to finish saving.');
     let audience: string | null = null;

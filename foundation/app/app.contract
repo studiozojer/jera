@@ -275,8 +275,8 @@ component App
   action retryDraft
     refresh savedDraft
   action post
-    if draft.trim() != "" and not pending(published) and not pending(draftSaved) and not failed(draftSaved) and editorContext == editorKey and (replyTo == "" or canReplyInExperience(posts, replyTo, mode))
-      send published = publishPost(account.principal, mode, replyTo, editRevision, time.epochAtZero + performanceNow(), page.navigationType != "")
+    if draft.trim() != "" and not pending(published) and not pending(experienceChanged) and editorContext == editorKey and (replyTo == "" or canReplyInExperience(posts, replyTo, mode))
+      send published = publishPost(account.principal, mode, replyTo, draft, editRevision, time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterPost
     match published
       case some(result)
@@ -454,7 +454,7 @@ component App
             row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
               Button(controlId="back", label="Cancel", kind="ghost", size="medium", icon=none, disabled=pending(published), busy=false, press=dismiss, testId="cancel")
               text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
-              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(draft.trim() == "" or pending(experienceChanged) or pending(draftSaved) or failed(draftSaved) or editorContext != editorKey), busy=pending(published), press=post, testId="post")
+              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(draft.trim() == "" or pending(experienceChanged) or editorContext != editorKey), busy=pending(published), press=post, testId="post")
             if privateReply
               text "Private" class=WhyteXs color="tx.secondary" aria-label="Reply visibility: Private" testId="reply-private-only"
             else
