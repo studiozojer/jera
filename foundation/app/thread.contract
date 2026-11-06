@@ -30,7 +30,7 @@ component ThreadHero
     clearance: number
     mode: string
   view
-    article id=`thread-${context}-${post.id}` padding=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column" gap=spaceMd() scroll-margin-top=clearance scroll-margin-bottom="6rem"
+    article id=`thread-${context}-${post.id}` padding-top=spaceLg() padding-right=spaceLg() padding-bottom="dao.space.xs" padding-left=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column" gap=spaceMd() scroll-margin-top=clearance scroll-margin-bottom="6rem"
       column gap=spaceSm()
         row gap=spaceMd() align-items="center"
           PostAvatar(post=post)
@@ -81,12 +81,12 @@ component ThreadBranch
   derive moreTarget = children.length > 1 ? post.id : preview.id
   derive moreCount = children.length > 1 ? children.length : deeper
   view
-    article padding=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column"
+    article padding-top=spaceLg() padding-right=spaceLg() padding-bottom="dao.space.xs" padding-left=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column"
       ThreadRow(remove=remove, post=post, posts=posts, mode=mode, reply=reply, context=context, clearance=clearance, continued=(children.length > 0))
       if children.length > 0
-        column margin-left=spaceXxl() padding-top=spaceMd() position="relative"
+        column margin-left=spaceXxl() padding-top=spaceSm() position="relative"
           // Elbow joins the parent's avatar rail to its child's avatar.
-          box aria-hidden=true pointer-events="none" position="absolute" left="1.125rem" margin-left=(0 - spaceXxl()) top=0 width=spaceMd() height="1.125rem" padding-top=spaceMd() border-left="1px solid bd.primary" border-bottom="1px solid bd.primary" border-bottom-left-radius=radiusMd()
+          box aria-hidden=true pointer-events="none" position="absolute" left="1.125rem" margin-left=(0 - spaceXxl()) top=0 width=spaceMd() height="1.125rem" padding-top=spaceSm() border-left="1px solid bd.primary" border-bottom="1px solid bd.primary" border-bottom-left-radius=radiusMd()
           ThreadRow(remove=remove, post=preview, posts=posts, mode=mode, reply=reply, context=context, clearance=clearance, continued=(moreCount > 0))
           if moreCount > 0
             row padding-top=spaceSm() position="relative"

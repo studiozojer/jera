@@ -390,7 +390,7 @@ component App
                     column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
                       FeedComposer(write=write, avatar=profileAvatar, name=profileName)
                       for item, index in feedPosts key=item.id
-                        article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom=spaceMd() padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
+                        article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom="dao.space.xs" padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                           :hover
                             background-color="transparent"
                           row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
