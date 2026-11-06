@@ -193,15 +193,17 @@ table posts:
   author: principal
   intent: text 26..26
   unique author, intent
-  body: text 1..12000
+  body: text <=12000
+  deleted: bool default false
   visibility: enum('public', 'private')
   audience: audiences ?
   parent: posts ?
   root: posts ?
   at: time default now
-  immutable author, intent, body, visibility, audience, parent, root, at
+  immutable author, intent, visibility, audience, parent, root, at
   read <- .visibility = 'public' or exists audiences[.audience, owner = viewer] or exists audienceMembers[.audience, viewer]
-  insert <- .author = viewer
+  insert <- .author = viewer and not .deleted and .body != ''
+  update (old, next) <- old.author = viewer and next.deleted and next.body = ''
   online only
 
 -- Unpublished drafts never share the posted audience. Each device keeps a
@@ -253,16 +255,24 @@ mutation removeAudienceMember(audience: audiences, principal: principal):
   require principal != viewer else OWNER_MEMBERSHIP
   delete audienceMembers[audience, principal]
   return null
+-- Keep identity/intent and audience boundaries, never the deleted text. Other
+-- authors' replies remain theirs; a delayed publish cannot resurrect this row.
+mutation deletePost(id: posts):
+  -- The named update rule authorizes the old author, including when a private
+  -- audience has revoked their read access. No hidden content is returned.
+  update posts[id] { body: '', deleted: true }
+  return { id, deleted: true }
 mutation publishPost(intent: text 26..26, body: text 1..12000, visibility: enum('public', 'private'), audience: audiences ?, parent: posts ?, draftDevice: text 26..26 ?, draftRevision: int 0..9007199254740991 ?, draftScope: text 1..200 ?):
   require trim(body) != '' else EMPTY_POST
   prior = posts[author = viewer, intent = intent]
   if prior != null:
-    require prior.body = body and prior.visibility = visibility and prior.audience = audience and prior.parent = parent else INTENT_REUSE
+    require (prior.deleted or prior.body = body) and prior.visibility = visibility and prior.audience = audience and prior.parent = parent else INTENT_REUSE
     return prior
   root = null
   scope = audience
   if parent != null:
     p = posts[parent] ! else PARENT_UNAVAILABLE
+    require not p.deleted else PARENT_DELETED
     root = p.root if p.root != null else p.id
     if p.visibility = 'private':
       require visibility = 'private' else CANNOT_WIDEN_AUDIENCE

@@ -7,6 +7,8 @@ use Menu, MenuItem from "./dao/overlays.contract"
 shape Post
   id: string
   principal: string
+  canDelete: bool
+  deleted: bool
   parentAuthor: string
   parentPublic: bool
   publicReplies: number
@@ -33,6 +35,7 @@ component Author
   props
     post: Post
     menuId: string
+    remove: action
     clearance: number
   action copyPost
     copyText(post.body)
@@ -45,9 +48,12 @@ component Author
           text "Private" color="tx.secondary" class=WhyteXs
       // Keep the author line at reading height; the full menu target extends
       // into the surrounding space without adding a blank line below the name.
-      box height="1.5rem" display="flex" align-items="center" flex-shrink=0
-        Menu(id=menuId, label=`More options for ${post.author}: ${post.body.slice(0, 64)}`, symbol="symbol:ellipsis", disabled=false, testId=`more-${menuId}`, clearance=clearance)
-          MenuItem(label="Copy text", menuId=menuId, destructive=false, disabled=false, press=copyPost, testId=`copy-${menuId}`)
+      if not post.deleted
+        box height="1.5rem" display="flex" align-items="center" flex-shrink=0
+          Menu(id=menuId, label=`More options for ${post.author}: ${post.body.slice(0, 64)}`, symbol="symbol:ellipsis", disabled=false, testId=`more-${menuId}`, clearance=clearance)
+            MenuItem(label="Copy text", menuId=menuId, destructive=false, disabled=false, press=copyPost, testId=`copy-${menuId}`)
+            if post.canDelete
+              MenuItem(label="Delete", menuId=menuId, destructive=true, disabled=false, press=remove(post.id), testId=`delete-${menuId}`)
 
 
 component PostActions
@@ -80,4 +86,4 @@ fn conversationRoot(posts: Post[], id: string): string = match first(posts.filte
 
 // A reply can narrow its immediate parent's audience, never widen it. Future
 // audience/group grants must additionally enforce recipient membership in storage.
-fn canReplyInExperience(posts: Post[], parent: string, mode: string): bool = (mode == "public" or mode == "private") and posts.filter(p => p.id == parent and (p.visibility == "public" or mode == "private")).length == 1
+fn canReplyInExperience(posts: Post[], parent: string, mode: string): bool = (mode == "public" or mode == "private") and posts.filter(p => p.id == parent and not p.deleted and (p.visibility == "public" or mode == "private")).length == 1

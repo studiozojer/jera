@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, copyFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, copyFile, appendFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
@@ -28,6 +28,15 @@ test('real social storage: DID audiences, private branches, revocation, replay a
   const dir = await mkdtemp(resolve(tmpdir(), 'jera-social-'));
   await mkdir(resolve(dir, 'snapback'));
   await copyFile(resolve(root, 'snapback/schema.q'), resolve(dir, 'snapback/schema.q'));
+  // Test-only mutations exercise the table transition rule independently of
+  // the safe public operation; these never enter the deployed schema.
+  await appendFile(resolve(dir, 'snapback/schema.q'), `
+mutation probePostPatch(id: posts, body: text <=12000, deleted: bool):
+  update posts[id] { body, deleted }
+  return null
+mutation probePostInsert(intent: text 26..26, body: text <=12000, deleted: bool):
+  return insert posts { author: viewer, intent, body, deleted, visibility: 'public', audience: null, parent: null, root: null }
+`);
   let server = await start(dir);
   t.after(async () => { await server?.stop(); await rm(dir, {recursive:true, force:true}); });
   const service = execFileSync(cli, ['token', '--service', 'social-test'], {cwd:dir, encoding:'utf8', stdio:['ignore','pipe','pipe']}).trim();
@@ -85,14 +94,35 @@ test('real social storage: DID audiences, private branches, revocation, replay a
   assert(!afterRevoke.some(p=>p.id===priv.id||p.id===child.id),'revocation also denies the revoked author’s descendant');
   await refused(b.mutate('publishPost',args),'PARENT_UNAVAILABLE');
   await a.mutate('setAudienceMember',{audience:audience.id,principal:bob.did,access:'read'});
+  // Ownership authorizes deletion even after losing audience read access.
+  await a.mutate('removeAudienceMember',{audience:audience.id,principal:bob.did});
+  await refused(o.mutate('deletePost',{id:child.id}),'NOT_FOUND');
+  assert.deepEqual((await b.mutate('deletePost',{id:child.id})).result,{id:child.id,deleted:true});
+  assert.equal((await a.query('postById',{id:child.id})).data.body,'');
+  await a.mutate('setAudienceMember',{audience:audience.id,principal:bob.did,access:'read'});
   assert(rows(await b.query('postsList')).some(p=>p.id===child.id));
   await refused(b.mutate('publishPost',args),'REPLY_NOT_ALLOWED');
   // No implicit organizing task or memory module is created by social posting.
+  await refused(a.mutate('probePostPatch',{id:pub.id,body:'An unauthorized edit',deleted:false}),'E_RULE');
+  await refused(a.mutate('probePostPatch',{id:pub.id,body:'Hidden old text',deleted:true}),'E_RULE');
+  await refused(a.mutate('probePostInsert',{intent:intentId(),body:'',deleted:false}),'E_RULE');
+  await refused(a.mutate('probePostInsert',{intent:intentId(),body:'Hidden text',deleted:true}),'E_RULE');
+  await refused(o.mutate('deletePost',{id:pub.id}),'E_RULE');
+  await a.mutate('deletePost',{id:pub.id});
+  await a.mutate('deletePost',{id:pub.id}); // Retry is safe with a new request id.
+  await refused(a.mutate('probePostPatch',{id:pub.id,body:'Resurrected',deleted:false}),'E_RULE');
+  await refused(a.mutate('probePostPatch',{id:pub.id,body:'',deleted:false}),'E_RULE');
+  const removed=(await a.query('postById',{id:pub.id})).data;
+  assert.equal(removed.deleted,true);assert.equal(removed.body,'');
+  assert.equal((await b.query('postById',{id:branch.id})).data.body,'Bob’s private branch on Alice’s public post','deleting a parent preserves another author’s replies');
+  const replay=(await a.request('/m/publishPost',{id:intentId(),args:{intent:pub.intent,body:'Public ♍︎ ♍️ :virgo:',visibility:'public',audience:null,parent:null}})).result;
+  assert.equal(replay.id,pub.id);assert.equal(replay.deleted,true);assert.equal(replay.body,'','late publication cannot resurrect deleted text');
+  await refused(b.mutate('publishPost',{body:'Reply to removed post',visibility:'public',audience:null,parent:pub.id}),'PARENT_DELETED');
   assert.deepEqual(rows(await a.query('armillariesList')),[]);
   await server.stop(); server=null;
   server=await start(dir);
   for(const person of people) person.client.origin=server.url;
-  assert(rows(await a.query('postsList')).some(p=>p.body==='Public ♍︎ ♍️ :virgo:'));
+  assert(rows(await a.query('postsList')).some(p=>p.id===pub.id&&p.deleted&&p.body===''));
   assert(rows(await b.query('postsList')).some(p=>p.id===branch.id));
   assert(!rows(await o.query('postsList')).some(p=>p.visibility==='private'));
   assert.equal((await a.query('latestDraft',{scope:'root:private'})).data[0].body,'Unpublished private draft');

@@ -4,6 +4,7 @@ use AccountAvatar, AccountRow, LoginButton, SignInFAQ from "./signin.contract"
 use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, radiusMd, radiusFull, minTouchTarget from "./dao.contract"
 use WhyteSm, WhyteXs, WhyteMd, QuietAction from "./dao.contract"
 use Button, Action from "./dao/actions.contract"
+use Confirmation from "./dao/overlays.contract"
 use Post, Author, PostAvatar, PostActions, canReplyInExperience from "./post.contract"
 use ReadingHeader, ThreadHeader, WriteButton, FeedComposer from "./chrome.contract"
 use ThreadHero, ThreadBranch, ThreadReplyEntry from "./thread.contract"
@@ -174,7 +175,7 @@ component App
   resource timeline = loadPosts(account.principal, page.navigationType != "", dataNow) as shape Timeline else empty()
   derive posts = timeline.principal == account.principal ? timeline.posts : []
   derive visiblePosts = posts.filter(p => p.visibility == "public" or mode == "private")
-  derive feedPosts = sortBy(posts.filter(p => p.visibility == mode and (p.parent == "" or (mode == "private" and p.parentPublic))), p => p.at, "desc")
+  derive feedPosts = sortBy(posts.filter(p => not p.deleted and p.visibility == mode and (p.parent == "" or (mode == "private" and p.parentPublic))), p => p.at, "desc")
   state replyTo = ""
   state composeContextChanged = false
   state lastPosted = ""
@@ -218,6 +219,29 @@ component App
       send experienceChanged = changeExperience(account.principal, savedDraft.pendingMode, time.epochAtZero + performanceNow())
   action refreshPosts
     refresh timeline
+  state deleteTarget = ""
+  state deleteActor = ""
+  state deleteErrorShown = false
+  mutation deletedPost as shape Ack refreshes timeline
+  task deleteFailed when account.principal != "" and failed(deletedPost) and not deleteErrorShown
+    after(1, showDeleteError)
+  action showDeleteError
+    deleteErrorShown = true
+    showModal("delete-post-error")
+  action requestDelete(id: string)
+    if posts.filter(p => p.id == id and p.canDelete).length == 1 and not pending(deletedPost)
+      deleteTarget = id
+      deleteActor = account.principal
+      showModal("delete-post-confirmation")
+  action cancelDelete
+    deleteTarget = ""
+    deleteActor = ""
+  action confirmDelete
+    if deleteTarget != "" and deleteActor == account.principal and not pending(deletedPost)
+      deleteErrorShown = false
+      send deletedPost = deletePost(deleteActor, deleteTarget, time.epochAtZero + performanceNow(), page.navigationType != "")
+    deleteTarget = ""
+    deleteActor = ""
   action selectExperience(value: string)
     if value != mode and not pending(experienceChanged) and not pending(published) and not pendingDraft and (top(nav).name != "compose" or replyTo == "" or canReplyInExperience(posts, replyTo, value))
       if top(nav).name != "compose"
@@ -256,11 +280,11 @@ component App
   action afterPost
     match published
       case some(result)
-        if result.state == "sent" and result.principal == account.principal
+        if (result.state == "sent" or result.state == "deleted") and result.principal == account.principal
           editorText = ""
           editorContext = ""
           let previous = composeContextChanged ? go(nav, "/") : back(nav)
-          nav = result.parent == "" ? push(previous, path("thread", result.id)) : (top(previous).params.id == result.parent ? previous : push(previous, path("thread", result.parent)))
+          nav = result.state == "deleted" ? go(previous, "/") : result.parent == "" ? push(previous, path("thread", result.id)) : (top(previous).params.id == result.parent ? previous : push(previous, path("thread", result.parent)))
           lastPosted = result.id
       case none
         lastPosted = ""
@@ -299,6 +323,11 @@ component App
     send signedOut = logout(time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterLogout
     nav = go(nav, "/")
+    close("delete-post-confirmation")
+    close("delete-post-error")
+    deleteErrorShown = true
+    deleteTarget = ""
+    deleteActor = ""
     replyTo = ""
     lastPosted = ""
     editorText = ""
@@ -347,7 +376,7 @@ component App
                             column flex=1 flex-basis="12rem" min-width=0 gap="dao.space.xs"
                               // Clear the menu's full touch target without widening action gaps.
                               column gap=spaceMd()
-                                Author(post=item, menuId=`stream-menu-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
+                                Author(post=item, remove=requestDelete, menuId=`stream-menu-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
                                 column gap="dao.space.xs"
                                   if item.parent != ""
                                     text `Private reply to ${item.parentAuthor}` class=WhyteXs color="tx.secondary"
@@ -413,10 +442,11 @@ component App
                         for parent in visiblePosts.filter(p => p.id == focused.parent) key=parent.id
                           button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(threadHeaderHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
                             text `Replying to ${parent.author}` color="tx.secondary" class=WhyteXs
-                      ThreadHero(post=focused, posts=visiblePosts, reply=reply, mode=mode, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
-                      ThreadReplyEntry(post=focused, reply=reply, avatar=profileAvatar, name=profileName, clearance=(threadHeaderHeight + spaceSm()))
+                      ThreadHero(remove=requestDelete, post=focused, posts=visiblePosts, reply=reply, mode=mode, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                      if not focused.deleted
+                        ThreadReplyEntry(post=focused, reply=reply, avatar=profileAvatar, name=profileName, clearance=(threadHeaderHeight + spaceSm()))
                       for child in visiblePosts.filter(p => p.parent == focused.id) key=child.id
-                        ThreadBranch(post=child, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                        ThreadBranch(remove=requestDelete, post=child, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
                   box height="env(safe-area-inset-bottom)" flex-shrink=0
             WriteButton(write=write, compact=compact)
         if entry.name == "compose" and account.principal != ""
@@ -502,3 +532,10 @@ component App
                       Button(controlId="", label="Remove", kind="ghost", size="medium", icon=none, disabled=pending(audienceRevoked), busy=false, press=removeAudienceMember(member.principal), testId=`audience-remove-${member.principal}`)
                   if audience.members.length == 0 and audience.available and not pending(audience)
                     text "Only you can see your private posts." class=WhyteSm color="tx.secondary"
+      if account.principal != ""
+        Confirmation(id="delete-post-confirmation", question="Delete post?", message="This can’t be undone. Replies from others will stay.", confirmLabel="Delete", confirm=confirmDelete, cancel=cancelDelete, testId="confirm-delete-post")
+        if failed(deletedPost)
+          dialog id="delete-post-error" role="alertdialog" aria-label="Couldn’t delete post" cancel=cancelDelete
+            text "Couldn’t confirm deletion. Check your connection and try again from the post menu."
+            button commandfor="delete-post-error" command="close" testId="delete-error-close"
+              text "OK"

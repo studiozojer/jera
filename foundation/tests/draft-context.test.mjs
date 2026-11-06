@@ -48,10 +48,12 @@ test('queued draft storage retains its issuing answer across native async steps'
   assert.equal((await reading).body,'Kept across the queue');
   assert.ok(seen.includes('save'));
   assert.ok(seen.includes('read'));
+  let record;
   const request=async(_kind,operation,args)=>{
     assert.ok(active,'network work must belong to an active answer');
     if(operation==='saveSocialDraft')return {state:'sent',result:args};
-    if(operation==='publishPost')return {state:'sent',result:{id:'fixture-post',author:draft.principal,...args}};
+    if(operation==='publishPost'){record={id:'fixture-post',author:draft.principal,...args};return {state:'sent',result:record};}
+    if(operation==='postForIntent')return {data:record};
     throw new Error(operation);
   };
   const synced=await answer('sync',()=>context.draftModule.syncScope(request,draft,'root:public'));

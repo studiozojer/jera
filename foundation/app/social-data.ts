@@ -1,7 +1,7 @@
 // Durable local drafts and posting intents; authoritative records/ACLs live in Snapback.
 // The host filesystem is account+origin scoped. A network timeout never means sent.
 export type Mode = 'private' | 'public';
-export type PostRecord = { id: string; author: string; body: string; visibility: Mode; audience: string | null; parent: string | null; root: string | null; at: number; intent: string };
+export type PostRecord = { id: string; author: string; body: string; deleted: boolean; visibility: Mode; audience: string | null; parent: string | null; root: string | null; at: number; intent: string };
 export type Posting = { intent: string; body: string; visibility: Mode; audience: string | null; parent: string | null; draftDevice?: string; draftRevision?: number; draftScope?: string };
 export type Draft = { body: string; revision: number; intent: string; sealed: Posting | null; syncedRevision?: number; cloudRevision?: number };
 type Vault = { version: 1; principal: string; origin: string; mode: Mode; device: string; drafts: Record<string, Draft> };
@@ -93,7 +93,7 @@ export async function publish(request: Request, drafts: Drafts, mode: Mode, pare
     let audience: string | null = null;
     if (parent) {
       const p = (await request('q', 'postById', {id:parent})).data as PostRecord | null;
-      if (!p) throw new Error('This conversation is no longer available. Your draft is kept.');
+      if (!p || p.deleted) throw new Error('This post is no longer available for replies. Your draft is kept.');
       if (p.visibility === 'private') {
         if (mode !== 'private') throw new Error('Replies to private posts must stay private.');
         audience=p.audience;
@@ -120,11 +120,13 @@ export async function publish(request: Request, drafts: Drafts, mode: Mode, pare
       throw Object.assign(new Error(response.why?.message || 'Could not post. Your draft is kept.'), {definite:true});
     }
     if (response.state !== 'sent') return {state:'pending',id:'',visibility:payload.visibility,parent:parent};
-    const post = response.result?.id ? response.result : (await request('q','postForIntent',{intent:payload.intent})).data;
+    // Mutation receipts can predate deletion on another device. Read the current
+    // record before settling a sealed draft; never render a historical receipt.
+    const post = (await request('q','postForIntent',{intent:payload.intent})).data;
     if (!post?.id) return {state:'pending',id:'',visibility:payload.visibility,parent:parent};
-    if (post.author !== drafts.principal || post.intent !== payload.intent || post.body !== payload.body || post.parent !== payload.parent || post.visibility !== payload.visibility || post.audience !== payload.audience) throw new Error('Could not verify the posted result.');
+    if (post.author !== drafts.principal || post.intent !== payload.intent || (post.deleted ? post.body !== '' : post.body !== payload.body) || post.parent !== payload.parent || post.visibility !== payload.visibility || post.audience !== payload.audience) throw new Error('Could not verify the posted result.');
     await drafts.use(v => {const d=v.drafts[scope];if(d?.sealed?.intent===payload.intent)v.drafts[scope]={body:'',revision:d.revision+1,intent:newIntent(),sealed:null,syncedRevision:payload.draftDevice?d.revision+1:0,cloudRevision:(payload.draftRevision||0)+1};},true);
-    return {state:'sent',id:post.id as string,visibility:payload.visibility,parent:parent};
+    return {state:post.deleted?'deleted':'sent',id:post.id as string,visibility:payload.visibility,parent:parent};
   } catch(error) {
     if ((error as {definite?:boolean}).definite) throw error;
     return {state:'pending',id:'',visibility:payload.visibility,parent:parent};

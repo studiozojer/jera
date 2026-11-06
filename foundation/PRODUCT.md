@@ -10,6 +10,10 @@ Unpublished drafts are owner-only cloud records, independent of posted audiences
 
 The first live post queries require connectivity rather than showing an unverified offline feed. Draft input and pending intents remain recoverable locally and sync when the app is online/foregrounded again. Existing OAuth/DID identity, old memory records and native signing identity remain in place. There are no seeded users/messages in the authenticated UI and no automatic task creation from posting. A real operator scheduler/reply remains separate work; shared authenticated post operations are available to independently authorized operator accounts.
 
+## Author-owned deletion — November 5
+
+David requested clearing the current posts and adding deletion. The reset is complete; `DELETION.md` records its scope and verification. Active posts/replies have an author-only Delete menu with confirmation. Deletion clears the text, hides the post from the feed and keeps an ancestry/intent tombstone so other authors’ replies remain intact and delayed publication cannot resurrect content. This behavior is an implementation choice for the requested feature, not a new David-authored policy. Audience boundaries remain unchanged.
+
 ## Lexicon-shaped, parallel experiences — David’s November 4 north star
 
 The lexicon a person is interacting with influences the UI they see. Treat this as a standing Jera design north star, revisited each session. Content meaning and its available operations may select a contextual expression of shared components. Maintain familiar navigation and a common underlying structure; contextual divergence should earn its place through use rather than require a separate application for every vocabulary.

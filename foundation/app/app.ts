@@ -132,7 +132,7 @@ const sources: Sources = {
       actor(store,principal);
       const byId=new Map(records.map(p=>[p.id,p]));
       const publicCounts=new Map<string,number>(),readableCounts=new Map<string,number>();
-      for(const p of records)if(p.parent){readableCounts.set(p.parent,(readableCounts.get(p.parent)||0)+1);if(p.visibility==='public')publicCounts.set(p.parent,(publicCounts.get(p.parent)||0)+1);}
+      for(const p of records)if(p.parent&&!p.deleted){readableCounts.set(p.parent,(readableCounts.get(p.parent)||0)+1);if(p.visibility==='public')publicCounts.set(p.parent,(publicCounts.get(p.parent)||0)+1);}
       const displayName=(did:string)=>{const profile=profiles.get(did);return profile?.handle?profile.name:did===principal?'You':'…'+did.slice(-6);};
       const posts=records.map(p=>{
         const profile=profiles.get(p.author);
@@ -140,7 +140,7 @@ const sources: Sources = {
         const parentAuthor=p.parent?displayName(byId.get(p.parent)?.author||''):'';
         const elapsed=Math.max(0,now-p.at),minutes=Math.floor(elapsed/60000);
         const stamp=minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`;
-        return {id:p.id,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.body,stamp};
+        return {id:p.id,canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
       });
       return {principal,posts,available:true};
     });} catch {return {principal:isActor(store,principal)?principal:'',posts:[],available:false};}
@@ -153,6 +153,12 @@ const sources: Sources = {
       actor(store,principal);
       return {state:'failed',id:'',parent,principal,visibility:mode,message:(error as Error).message || 'Could not post. Your draft is kept.'};
     }
+  }),
+  deletePost: async ([principal,id,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+    const response=await transport(db,store,principal)('m','deletePost',{id},newIntent());
+    if(response.state==='failed')throw refused(response.why);
+    if(response.state!=='sent'||response.result?.id!==id||response.result?.deleted!==true)reject('E_NETWORK','Could not confirm deletion. Try again.');
+    actor(store,principal);return {state:'sent',id};
   }),
   loadAudience: async ([principal,browser,now],store,storage,native) => {
     if(!isActor(store,principal))return {principal:'',id:'',members:[],available:false};

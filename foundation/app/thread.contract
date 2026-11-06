@@ -25,6 +25,7 @@ component ThreadHero
     post: Post
     posts: Post[]
     reply: action
+    remove: action
     context: string
     clearance: number
     mode: string
@@ -33,11 +34,12 @@ component ThreadHero
       row gap=spaceMd() align-items="center"
         PostAvatar(post=post)
         column flex=1 min-width=0
-          Author(post=post, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
+          Author(post=post, remove=remove, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
       if post.visibility == "public" and mode == "private"
         text "Public post" class=WhyteXs color="tx.secondary" testId="public-thread-context"
       text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
-      PostActions(post=post, comments=(mode == "public" ? post.publicReplies : post.readableReplies), comment=reply(post.id), commentId="reply", commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
+      if not post.deleted
+        PostActions(post=post, comments=(mode == "public" ? post.publicReplies : post.readableReplies), comment=reply(post.id), commentId="reply", commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
 
 component ThreadRow
   props
@@ -45,6 +47,7 @@ component ThreadRow
     post: Post
     posts: Post[]
     reply: action
+    remove: action
     context: string
     clearance: number
     continued: bool
@@ -56,9 +59,10 @@ component ThreadRow
         box aria-hidden=true pointer-events="none" position="absolute" left="1.125rem" top="2.25rem" margin-top=spaceSm() bottom=0 width=1 background-color="bd.primary"
       column flex=1 min-width=0 gap=spaceSm()
         column gap=spaceMd()
-          Author(post=post, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
+          Author(post=post, remove=remove, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
           text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
-        PostActions(post=post, comments=(mode == "public" ? post.publicReplies : post.readableReplies), comment=reply(post.id), commentId=`reply-to-${post.id}`, commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
+        if not post.deleted
+          PostActions(post=post, comments=(mode == "public" ? post.publicReplies : post.readableReplies), comment=reply(post.id), commentId=`reply-to-${post.id}`, commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
 
 component ThreadBranch
   props
@@ -66,6 +70,7 @@ component ThreadBranch
     post: Post
     posts: Post[]
     reply: action
+    remove: action
     open: action
     context: string
     clearance: number
@@ -76,12 +81,12 @@ component ThreadBranch
   derive moreCount = children.length > 1 ? children.length : deeper
   view
     article padding=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column"
-      ThreadRow(post=post, posts=posts, mode=mode, reply=reply, context=context, clearance=clearance, continued=(children.length > 0))
+      ThreadRow(remove=remove, post=post, posts=posts, mode=mode, reply=reply, context=context, clearance=clearance, continued=(children.length > 0))
       if children.length > 0
         column margin-left=spaceXxl() padding-top=spaceMd() position="relative"
           // Elbow joins the parent's avatar rail to its child's avatar.
           box aria-hidden=true pointer-events="none" position="absolute" left="1.125rem" margin-left=(0 - spaceXxl()) top=0 width=spaceMd() height="1.125rem" padding-top=spaceMd() border-left="1px solid bd.primary" border-bottom="1px solid bd.primary" border-bottom-left-radius=radiusMd()
-          ThreadRow(post=preview, posts=posts, mode=mode, reply=reply, context=context, clearance=clearance, continued=(moreCount > 0))
+          ThreadRow(remove=remove, post=preview, posts=posts, mode=mode, reply=reply, context=context, clearance=clearance, continued=(moreCount > 0))
           if moreCount > 0
             row padding-top=spaceSm() position="relative"
               box aria-hidden=true pointer-events="none" position="absolute" left="1.125rem" top=0 height=spaceSm() width=1 background-color="bd.primary"
