@@ -2,7 +2,7 @@ import type { Answer, Sources, Store, Storage, NativeModule } from './app.contra
 import { Snapback, refused } from './snapback4/snapback.ts';
 import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile } from './account-profile.ts';
-import { Drafts, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
+import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
 import { accountExperience } from './experience-store.ts';
 
 const origin = 'http://127.0.0.1:4417';
@@ -91,22 +91,24 @@ const sources: Sources = {
     await draftsFor(store,storage,principal).setMode(mode);
     actor(store,principal); return {principal,...context.change(mode,now)};
   },
-  loadDraft: async ([principal,mode,parent],store,storage) => {
-    const scope=draftScope(mode==='public'?'public':'private',parent);
-    if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,pendingMode:''};
-    const draft=await draftsFor(store,storage,principal).get(scope); if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,pendingMode:''};
-    return draftEnvelope(principal,scope,draft);
+  prepareDraft: async ([principal,mode,parent,context,now,browser],store,storage,native) => {
+    const local=draftsFor(store,storage,principal);
+    // No transport is opened for an ordinary unposted draft. An unavailable
+    // publication lookup preserves the sealed draft, including while offline.
+    const draft=await beginDraft((kind,operation,args,id)=>using(store,storage,native,now,browser,db=>transport(db,store,principal)(kind,operation,args,id)),local,mode==='public'?'public':'private',parent);
+    actor(store,principal);
+    return {...draftEnvelope(principal,draftScope(mode==='public'?'public':'private',parent),draft),context};
   },
-  syncDraft: async ([principal,mode,parent,now,browser],store,storage,native) => {
+  syncDraft: async ([principal,mode,parent,context,now,browser],store,storage,native) => {
     const scope=draftScope(mode==='public'?'public':'private',parent);
-    if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,priorRevision:0,state:'pending'};
+    if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,priorRevision:0,state:'pending',context};
     const local=draftsFor(store,storage,principal);
     try {
       const synced=await using(store,storage,native,now,browser,db=>syncScope(transport(db,store,principal),local,scope));
-      return {principal,scope,body:synced.draft.body,revision:synced.draft.revision,priorRevision:synced.priorRevision,state:'sent'};
+      return {principal,scope,body:synced.draft.body,revision:synced.draft.revision,priorRevision:synced.priorRevision,state:'sent',context};
     } catch {
       const draft=await local.get(scope);
-      return {principal:isActor(store,principal)?principal:'',scope,body:draft.body,revision:draft.revision,priorRevision:draft.revision,state:'pending'};
+      return {principal:isActor(store,principal)?principal:'',scope,body:draft.body,revision:draft.revision,priorRevision:draft.revision,state:'pending',context};
     }
   },
   syncAllDrafts: async ([principal,now,browser],store,storage,native) => {

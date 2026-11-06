@@ -3,7 +3,7 @@
 export type Mode = 'private' | 'public';
 export type PostRecord = { id: string; author: string; body: string; deleted: boolean; visibility: Mode; audience: string | null; parent: string | null; root: string | null; at: number; intent: string };
 export type Posting = { intent: string; body: string; visibility: Mode; audience: string | null; parent: string | null; draftDevice?: string; draftRevision?: number; draftScope?: string };
-export type Draft = { body: string; revision: number; intent: string; sealed: Posting | null; syncedRevision?: number; cloudRevision?: number };
+export type Draft = { body: string; revision: number; intent: string; sealed: Posting | null; posted?: string; syncedRevision?: number; cloudRevision?: number };
 type Vault = { version: 1; principal: string; origin: string; mode: Mode; device: string; drafts: Record<string, Draft> };
 export type Files = { readFile(path: string): Promise<ArrayBuffer>; atomicWriteFile(path: string, data: Uint8Array): Promise<unknown>; readdir(path: string): Promise<string[]> };
 export type Request = (kind: 'q' | 'm', operation: string, args: Record<string, unknown>, id?: string) => Promise<any>;
@@ -59,6 +59,7 @@ export class Drafts {
     if (body.length > 12000 || !Number.isSafeInteger(revision) || revision < 1) throw new Error('Invalid draft.');
     return this.use(v => {
       const old = v.drafts[scope] ?? emptyDraft();
+      if (revision <= old.revision) return old;
       if (old.sealed) throw new Error('Confirm the pending post before changing its text.');
       if (revision > old.revision) v.drafts[scope] = {...old, body, revision};
       return v.drafts[scope] ?? old;
@@ -83,6 +84,34 @@ export async function allRows(request: Request, operation: string, args: Record<
   } while (c);
   return rows;
 }
+
+function matchesPublication(post: PostRecord, payload: Posting, principal: string) {
+  return typeof post.id==='string' && post.id!=='' && post.author===principal && post.intent===payload.intent &&
+    (post.deleted ? post.body==='' : post.body===payload.body) && post.parent===payload.parent &&
+    post.visibility===payload.visibility && post.audience===payload.audience;
+}
+
+// Opening a writing session is the retirement boundary. A confirmed post is
+// retained locally until then; ambiguous/offline publication stays recoverable.
+// Keep this lookup behind Request so a future indexer can supply the evidence.
+export async function beginDraft(request: Request, drafts: Drafts, mode: Mode, parent: string) {
+  const scope=draftScope(mode,parent), draft=await drafts.get(scope), payload=draft.sealed;
+  if (!payload) return draft;
+  let post: PostRecord | null;
+  try {post=(await request('q','postForIntent',{intent:payload.intent})).data;}
+  catch {return draft;}
+  if (!post) return draft;
+  if (!matchesPublication(post,payload,drafts.principal) || (draft.posted && draft.posted!==post.id)) throw new Error('Could not verify the previous post. Your draft is kept.');
+  return drafts.use(v=>{
+    const current=v.drafts[scope];
+    if (!current || current.sealed?.intent!==payload.intent) return current??emptyDraft();
+    const revision=current.revision+1;
+    const next: Draft={body:'',revision,intent:newIntent(),sealed:null,syncedRevision:revision,cloudRevision:Math.max(current.cloudRevision||0,(payload.draftRevision||0)+1)};
+    v.drafts[scope]=next;
+    return next;
+  },true);
+}
+
 export async function publish(request: Request, drafts: Drafts, mode: Mode, parent: string, revision: number, body?: string) {
   const scope = draftScope(mode, parent);
   // Seal the exact payload before sending. A retry after a lost response uses
@@ -132,8 +161,10 @@ export async function publish(request: Request, drafts: Drafts, mode: Mode, pare
     // record before settling a sealed draft; never render a historical receipt.
     const post = (await request('q','postForIntent',{intent:payload.intent})).data;
     if (!post?.id) return {state:'pending',id:'',visibility:payload.visibility,parent:parent};
-    if (post.author !== drafts.principal || post.intent !== payload.intent || (post.deleted ? post.body !== '' : post.body !== payload.body) || post.parent !== payload.parent || post.visibility !== payload.visibility || post.audience !== payload.audience) throw new Error('Could not verify the posted result.');
-    await drafts.use(v => {const d=v.drafts[scope];if(d?.sealed?.intent===payload.intent)v.drafts[scope]={body:'',revision:d.revision+1,intent:newIntent(),sealed:null,syncedRevision:payload.draftDevice?d.revision+1:0,cloudRevision:(payload.draftRevision||0)+1};},true);
+    if (!matchesPublication(post,payload,drafts.principal)) throw new Error('Could not verify the posted result.');
+    // Mark success without unloading the cache. The next explicit opening
+    // verifies publication again and retires this intent before showing a form.
+    await drafts.use(v => {const d=v.drafts[scope];if(d?.sealed?.intent===payload.intent)d.posted=post.id;},true);
     return {state:post.deleted?'deleted':'sent',id:post.id as string,visibility:payload.visibility,parent:parent};
   } catch(error) {
     if ((error as {definite?:boolean}).definite) throw error;
@@ -177,7 +208,13 @@ export async function syncScope(request: Request, drafts: Drafts, scope: string)
       const response=await request('m','saveSocialDraft',{deviceKey:device,scope,body:sending.body,revision:sending.cloudRevision},newIntent());
       if(response.state!=='sent'||!response.result)throw new Error('Draft sync is waiting for a connection.');
       await drafts.use(v=>{const d=v.drafts[scope];if(d){d.cloudRevision=Math.max(d.cloudRevision||0,response.result.revision);if(d.revision===sending.editorRevision&&d.body===sending.body&&response.result.body===sending.body)d.syncedRevision=sending.editorRevision;}},true);
-      if(response.result.body!==sending.body){const current=await drafts.get(scope);if(current.body!==response.result.body)throw new Error('A newer cloud draft was kept; your local copy is preserved too.');}
+      if(response.result.body!==sending.body){
+        const current=await drafts.get(scope);
+        // The server already retired the active cloud branch on publication.
+        // Its empty tombstone is compatible with our retained posted cache.
+        const publishedTombstone=current.posted && current.sealed && response.result.body==='' && response.result.revision>=(current.sealed.draftRevision||0)+1;
+        if(current.body!==response.result.body && !publishedTombstone)throw new Error('A newer cloud draft was kept; your local copy is preserved too.');
+      }
     }
   }
   return {draft:await drafts.get(scope),priorRevision};

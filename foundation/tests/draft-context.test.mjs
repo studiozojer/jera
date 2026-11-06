@@ -61,6 +61,10 @@ test('queued draft storage retains its issuing answer across native async steps'
   const posted=await answer('publish',()=>context.draftModule.publish(request,draft,'public','',2,'Exact native snapshot'));
   assert.equal(posted.state,'sent');
   assert.equal(posted.id,'fixture-post');
-  assert.equal((await answer('after',()=>draft.get('root:public'))).body,'');
+  assert.equal((await answer('after',()=>draft.get('root:public'))).body,'Exact native snapshot');
+  const opened=await answer('open',()=>context.draftModule.beginDraft(request,draft,'public',''));
+  assert.equal(opened.body,'');
+  assert.equal(opened.sealed,null);
+  assert.ok(seen.includes('open'));
   assert.equal(active,null);
 });

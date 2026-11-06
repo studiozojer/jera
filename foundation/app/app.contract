@@ -69,7 +69,15 @@ shape SavedDraft
   body: string
   revision: number
   pendingMode: string
+shape OpenedDraft
+  principal: string
+  scope: string
+  body: string
+  revision: number
+  pendingMode: string
+  context: string
 shape CloudDraft
+  context: string
   principal: string
   scope: string
   body: string
@@ -181,25 +189,44 @@ component App
   state lastPosted = ""
   derive privateReply = posts.filter(p => p.id == replyTo and p.visibility == "private").length > 0
   derive scope = replyTo == "" ? `root:${mode}` : `reply:${replyTo}`
-  derive editorKey = `${account.principal}|${scope}`
+  derive editorKey = `${account.principal}|${scope}|${mode}|${top(nav).id}`
   state editorContext = ""
   state editorText = ""
   state editRevision = 0
+  state editorPendingMode = ""
   derive draft = editorContext == editorKey ? editorText : ""
-  resource savedDraft = loadDraft(account.principal, mode, replyTo) as shape SavedDraft else empty()
-  derive draftReady = savedDraft.principal == account.principal and savedDraft.scope == scope and not failed(savedDraft)
-  derive pendingDraft = draftReady and savedDraft.pendingMode != ""
-  mutation draftSaved as shape SavedDraft queue refreshes savedDraft
-  mutation cloudSynced as shape CloudDraft refreshes savedDraft then afterCloudSync
+  derive draftReady = editorContext == editorKey and account.principal != ""
+  derive pendingDraft = top(nav).name == "compose" and draftReady and editorPendingMode != ""
+  mutation openedDraft as shape OpenedDraft then afterDraftOpen
+  // The route identifies a writing session. Its preparation is an explicit
+  // command; a retained resource answer must never initialize a new editor.
+  task prepareComposer when top(nav).name == "compose" and account.principal != "" and editorContext != editorKey and not pending(draftSaved) key=editorKey
+    after(1, prepareComposer)
+  action prepareComposer
+    send openedDraft = prepareDraft(account.principal, mode, replyTo, editorKey, time.epochAtZero + performanceNow(), page.navigationType != "")
+  action afterDraftOpen
+    match openedDraft
+      case some(result)
+        if result.principal == account.principal and result.scope == scope and result.context == editorKey and top(nav).name == "compose"
+          editorText = result.body
+          editRevision = result.revision
+          editorPendingMode = result.pendingMode
+          editorContext = result.context
+          if result.pendingMode != "" and result.pendingMode != mode
+            send experienceChanged = changeExperience(account.principal, result.pendingMode, time.epochAtZero + performanceNow())
+      case none
+        editorContext = editorContext
+  mutation draftSaved as shape SavedDraft queue
+  mutation cloudSynced as shape CloudDraft then afterCloudSync
   mutation draftsSynced as shape Ack
   task syncEditingDraft when top(nav).name == "compose" and account.principal != "" and editorContext == editorKey and draftReady and not pending(draftSaved) and not pending(published) and not pendingDraft key=`${editorKey}|${editRevision}`
     after(800, syncCurrentDraft)
   action syncCurrentDraft
-    send cloudSynced = syncDraft(account.principal, mode, replyTo, time.epochAtZero + performanceNow(), page.navigationType != "")
+    send cloudSynced = syncDraft(account.principal, mode, replyTo, editorKey, time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterCloudSync
     match cloudSynced
       case some(result)
-        if result.principal == account.principal and result.scope == scope and editorContext == editorKey and editRevision == result.priorRevision and result.body != editorText
+        if result.principal == account.principal and result.scope == scope and result.context == editorKey and editorContext == editorKey and editRevision == result.priorRevision and result.body != editorText
           editorText = result.body
           editRevision = result.revision
       case none
@@ -208,15 +235,7 @@ component App
     every(15000, syncSavedDrafts)
   action syncSavedDrafts
     send draftsSynced = syncAllDrafts(account.principal, time.epochAtZero + performanceNow(), page.navigationType != "")
-  mutation published as shape Published refreshes timeline, savedDraft then afterPost
-  task hydrate when account.principal != "" and draftReady and editorContext != editorKey key=editorKey
-    after(1, hydrateEditor)
-  action hydrateEditor
-    editorText = savedDraft.body
-    editRevision = savedDraft.revision
-    editorContext = editorKey
-    if savedDraft.pendingMode != "" and savedDraft.pendingMode != mode
-      send experienceChanged = changeExperience(account.principal, savedDraft.pendingMode, time.epochAtZero + performanceNow())
+  mutation published as shape Published refreshes timeline then afterPost
   action refreshPosts
     refresh timeline
   state deleteTarget = ""
@@ -264,16 +283,17 @@ component App
     replyTo = id
     nav = push(nav, "/write")
   action edit(value: string)
-    let revision = editRevision + 1
-    editorText = value
-    editRevision = revision
-    send draftSaved = saveDraft(account.principal, mode, replyTo, value, revision)
+    if top(nav).name == "compose" and draftReady and not pending(published) and not pendingDraft
+      let revision = editRevision + 1
+      editorText = value
+      editRevision = revision
+      send draftSaved = saveDraft(account.principal, mode, replyTo, value, revision)
   action saveCurrentDraft
     let revision = editRevision + 1
     editRevision = revision
     send draftSaved = saveDraft(account.principal, mode, replyTo, editorText, revision)
   action retryDraft
-    refresh savedDraft
+    send openedDraft = prepareDraft(account.principal, mode, replyTo, editorKey, time.epochAtZero + performanceNow(), page.navigationType != "")
   action post
     if draft.trim() != "" and not pending(published) and not pending(experienceChanged) and editorContext == editorKey and (replyTo == "" or canReplyInExperience(posts, replyTo, mode))
       send published = publishPost(account.principal, mode, replyTo, draft, editRevision, time.epochAtZero + performanceNow(), page.navigationType != "")
@@ -281,11 +301,13 @@ component App
     match published
       case some(result)
         if (result.state == "sent" or result.state == "deleted") and result.principal == account.principal
-          editorText = ""
-          editorContext = ""
           let previous = composeContextChanged ? go(nav, "/") : back(nav)
           nav = result.state == "deleted" ? go(previous, "/") : result.parent == "" ? push(previous, path("thread", result.id)) : (top(previous).params.id == result.parent ? previous : push(previous, path("thread", result.parent)))
           lastPosted = result.id
+        if result.principal == account.principal and result.state == "pending"
+          editorPendingMode = result.visibility
+        if result.principal == account.principal and result.state == "failed"
+          editorPendingMode = ""
       case none
         lastPosted = ""
   task revealPosted when lastPosted != "" and top(nav).name == "thread" and posts.filter(p => p.id == lastPosted).length > 0 key=lastPosted
@@ -454,12 +476,14 @@ component App
             row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
               Button(controlId="back", label="Cancel", kind="ghost", size="medium", icon=none, disabled=pending(published), busy=false, press=dismiss, testId="cancel")
               text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
-              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(draft.trim() == "" or pending(experienceChanged) or editorContext != editorKey), busy=pending(published), press=post, testId="post")
+              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(draft.trim() == "" or pending(experienceChanged) or not draftReady), busy=pending(published), press=post, testId="post")
             if privateReply
               text "Private" class=WhyteXs color="tx.secondary" aria-label="Reply visibility: Private" testId="reply-private-only"
             else
-              ExperienceModeControl(idPrefix="experience", label="Post visibility", mode=mode, change=selectExperience, disabled=(pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
-            if failed(savedDraft)
+              ExperienceModeControl(idPrefix="experience", label="Post visibility", mode=mode, change=selectExperience, disabled=(not draftReady or pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
+            if not draftReady and not failed(openedDraft)
+              text "Opening draft…" class=WhyteXs color="tx.secondary" role="status" testId="draft-opening"
+            if failed(openedDraft)
               text "Couldn’t restore this draft. Existing data was kept." class=WhyteSm color="tx.secondary" role="status" testId="draft-load-error"
               Button(controlId="", label="Try again", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=retryDraft, testId="retry-draft-load")
             if failed(draftSaved)
@@ -467,7 +491,7 @@ component App
               Button(controlId="", label="Save draft", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(draftSaved), press=saveCurrentDraft, testId="retry-draft-save")
             match cloudSynced
               case some(result)
-                if result.principal == account.principal and result.scope == scope and result.state == "pending"
+                if result.principal == account.principal and result.scope == scope and result.context == editorKey and result.state == "pending"
                   text "Draft saved on this device. Sync will retry." class=WhyteXs color="tx.secondary" role="status"
               case none
                 box display="none"
@@ -488,7 +512,7 @@ component App
                 column gap=spaceSm() border-left="1px solid bd.primary" padding-left=spaceMd()
                   text `Replying to ${recipient.author}` color="tx.secondary" class=WhyteXs testId="reply-recipient"
                   text recipient.body class=WhyteSm white-space="pre-wrap" line-clamp=3 testId="reply-context"
-            textarea id="composer" maxlength=12000 disabled=(pending(experienceChanged) or pending(published) or pendingDraft or editorContext != editorKey) value=draft input=edit placeholder=(replyTo == "" ? "What's on your mind?" : "Continue the conversation…") aria-label=(replyTo == "" ? "Write a post" : "Write a reply") testId="composer" outline="none" rows=8 min-height=224 width="100%" box-sizing="border-box" padding-top=spaceSm() padding-bottom=spaceSm() border-width=0 background-color="transparent" color="tx.primary" font-family="Whyte" class=WhyteSm resize="none"
+            textarea id="composer" maxlength=12000 disabled=(pending(experienceChanged) or pending(published) or pendingDraft or not draftReady) value=draft input=edit placeholder=(replyTo == "" ? "What's on your mind?" : "Continue the conversation…") aria-label=(replyTo == "" ? "Write a post" : "Write a reply") testId="composer" outline="none" rows=8 min-height=224 width="100%" box-sizing="border-box" padding-top=spaceSm() padding-bottom=spaceSm() border-width=0 background-color="transparent" color="tx.primary" font-family="Whyte" class=WhyteSm resize="none"
         if entry.name == "account"
           // UIKit owns the sheet, including its safe area and interactive dismissal.
           // Web uses the dao-panel adapter for the same compact/regular presentation.

@@ -24,6 +24,18 @@ test "a real stored post and draft survive relaunch"
   expect state posts.length == 1
   expect state posts.0 .body == "A durable thought ♍︎ ♍️ :virgo:"
   expect state posts.0 .visibility == "private"
+  expect state editorText == "A durable thought ♍︎ ♍️ :virgo:"
+  tap "write"
+  clock settle
+  expect text "composer" == ""
+  type "composer" "An unposted next thought"
+  tap "cancel"
+  clock settle
+  tap "write"
+  clock settle
+  expect text "composer" == "An unposted next thought"
+  tap "cancel"
+  clock settle
   tap "reply"
   clock settle
   expect tree has "reply-private-only"
