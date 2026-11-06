@@ -1,5 +1,7 @@
 # Jera foundation
 
+Latest delivery handoff: [November 6 checkpoint](CHECKPOINT.md), including deployed state, dependency patches, phone build and verification limits.
+
 **Product status:** existing-account ATproto OAuth and DID-bound Snapback sessions are implemented; password and guest signup are disabled. David reported successful real-account login on the phone on 2026-11-01; relaunch and private-capture acceptance remain separate. Snapback is the accepted authoritative store for private drafts, shared modules and most initial application data; user input will not be published to ATproto during this phase. Lexicons and PDS storage are deferred while the UX develops. Read [the current product contract](PRODUCT.md) before extending it.
 
 The authenticated app now carries the calibrated feed, focused threads, reply entry and Private/Public composer into real Snapback data. Account → Private audience manages the DIDs that can read and reply to private posts. Posts are server-authoritative; unpublished drafts sync owner-only, with a local recovery/pending-intent journal. See [permissions](PERMISSIONS.md) and [the product contract](PRODUCT.md). Public means signed-in Jera readers, not ATproto publication. New accounts start Private.
