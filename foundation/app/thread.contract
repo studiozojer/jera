@@ -31,13 +31,14 @@ component ThreadHero
     mode: string
   view
     article id=`thread-${context}-${post.id}` padding=spaceLg() border-top="1px solid bd.primary" display="flex" flex-direction="column" gap=spaceMd() scroll-margin-top=clearance scroll-margin-bottom="6rem"
-      row gap=spaceMd() align-items="center"
-        PostAvatar(post=post)
-        column flex=1 min-width=0
-          Author(post=post, remove=remove, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
-      if post.visibility == "public" and mode == "private"
-        text "Public post" class=WhyteXs color="tx.secondary" testId="public-thread-context"
-      text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
+      column gap=spaceSm()
+        row gap=spaceMd() align-items="center"
+          PostAvatar(post=post)
+          column flex=1 min-width=0
+            Author(post=post, remove=remove, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
+        if post.visibility == "public" and mode == "private"
+          text "Public post" class=WhyteXs color="tx.secondary" testId="public-thread-context"
+        text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
       if not post.deleted
         PostActions(post=post, comments=(mode == "public" ? post.publicReplies : post.readableReplies), comment=reply(post.id), commentId="reply", commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
 
@@ -58,7 +59,7 @@ component ThreadRow
       if continued
         box aria-hidden=true pointer-events="none" position="absolute" left="1.125rem" top="2.25rem" margin-top=spaceSm() bottom=0 width=1 background-color="bd.primary"
       column flex=1 min-width=0 gap=spaceSm()
-        column gap=spaceMd()
+        column gap=spaceSm()
           Author(post=post, remove=remove, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
           text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
         if not post.deleted

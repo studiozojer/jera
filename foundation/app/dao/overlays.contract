@@ -3,6 +3,8 @@ use Action from "./actions.contract"
 use SheetHeader from "./reading.contract"
 
 component MenuTrigger
+  params
+    glyphSize: length = "1.25rem" control="token" group="Shape" priority=2 label="Menu glyph size"
   props
     label: string
     menuId: string
@@ -20,7 +22,7 @@ component MenuTrigger
         background-color="dao.bg.pressed"
       :disabled
         background-color="transparent"
-      image symbol font-size="1.25rem" aria-hidden=true
+      image symbol font-size="param.glyphSize" aria-hidden=true
 
 component Menu
   props

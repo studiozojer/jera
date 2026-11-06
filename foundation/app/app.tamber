@@ -397,6 +397,7 @@ icons
 
 // Consumer expression: retain David's gold action and opaque hover surfaces.
 params
+  MenuTrigger.glyphSize = 0.875rem
   Button.primaryFill = bg.action
   Button.primaryHover = bg.action-hover
   Button.primaryPressed = bg.action-pressed

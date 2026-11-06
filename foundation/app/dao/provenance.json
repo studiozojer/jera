@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "sourceRepository": "daoUI",
-  "sourceRevision": "804b73aa834ce66ceed1fe582c94b1fce260a243",
+  "sourceRevision": "0281730b9db9e3b40dbaa869ca60983a3341e9cb",
   "sourceDirty": false,
   "toolchain": {
     "exact2": {
@@ -17,7 +17,7 @@
     "dao/fields.contract": "84df5a81d42347cbc844a9e3db2e0be6f92844f3030db41adcb6bfb9bb9af2b6",
     "dao/foundations.contract": "09b4387f5b1d80647cd757adf8e49eede4be5b6399be893856cb5e45174afd35",
     "dao/layout.contract": "1fc86809cb6c14d475e6b3c2013dd509560308deb780337607a0f0b06f0c9c60",
-    "dao/overlays.contract": "9c55e2e55b525b8dbc49a4a863a6f349f972d63fa63eaa6db1077c712bb62e61",
+    "dao/overlays.contract": "72d6ad92dad92a5c4b661006807d357214037177077d860b46a269722655ed30",
     "dao/reading.contract": "d76ff4b146332b8509957ace4c0b2f0856d2b22a579ef70cbaf3fbd36098a435",
     "dao/selection.contract": "a973c4fad0b007515fea9bc1df95d55f82bf9b4b92022f446a4839affd95fa3c",
     "assets/dao/fonts/ABCWhyteEdu-Book.otf": "427e310b6116e2cb00e3c84f7e7157ee64a723b4da88af6c226b4a4ae06e44d0",

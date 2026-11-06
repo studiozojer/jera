@@ -397,7 +397,7 @@ component App
                             PostAvatar(post=item)
                             column flex=1 flex-basis="12rem" min-width=0 gap="dao.space.xs"
                               // Clear the menu's full touch target without widening action gaps.
-                              column gap=spaceMd()
+                              column gap=spaceSm()
                                 Author(post=item, remove=requestDelete, menuId=`stream-menu-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
                                 column gap="dao.space.xs"
                                   if item.parent != ""

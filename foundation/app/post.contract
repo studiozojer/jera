@@ -1,5 +1,6 @@
 use spaceSm, spaceMd, radiusMd, minTouchTarget from "./dao.contract"
-use WhyteSm, WhyteXs from "./dao.contract"
+use WhyteXs from "./dao.contract"
+use WhyteSm from "./dao/foundations.contract"
 use AccountAvatar from "./signin.contract"
 use IconButton from "./dao/actions.contract"
 use Menu, MenuItem from "./dao/overlays.contract"
@@ -41,7 +42,7 @@ component Author
     copyText(post.body)
   view
     row gap=spaceSm() align-items="center" flex-wrap="wrap" min-width=0
-      row gap=spaceMd() align-items="center" flex-wrap="wrap" min-width=0 flex=1 flex-basis="8rem"
+      row gap=spaceSm() align-items="center" flex-wrap="wrap" min-width=0 flex=1 flex-basis="8rem"
         text post.author class=WhyteSm
         text post.stamp color="tx.secondary" class=WhyteXs
         if post.visibility == "private"
