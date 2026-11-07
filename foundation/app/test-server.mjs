@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { AuthStore } from '../auth/store.mjs';
 import { createHandler, digest } from '../auth/service.mjs';
 import { randomBytes } from 'node:crypto';
+import { createPublicIndexer, indexTransport } from '../auth/public-index.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const directory = await mkdtemp(join(tmpdir(), 'jera-browser-'));
 await mkdir(join(directory, 'snapback'));
@@ -17,6 +18,7 @@ await copyFile(root + 'snapback/schema.q', join(directory, 'snapback/schema.q'))
 const port = Number(process.env.PORT ?? '4417'), upstream = `http://127.0.0.1:${port + 1}`;
 const child = spawn(`${root}node_modules/.bin/snapback4`, ['dev', '--port', String(port + 1), '--no-watch', '--unsafe-dev-doors'], { cwd: directory, stdio: 'inherit' });
 const store = new AuthStore(':memory:');
+let fixtureServiceToken;
 const callbacks = ['studio.zojer.jera.exact:/oauth'];
 const client = {
   clientMetadata: { scope: 'atproto' }, jwks: { keys: [] },
@@ -36,8 +38,8 @@ const handler = createHandler({ client, store, publicOrigin: `http://127.0.0.1:$
 searchAccounts: async query => ({ query, available: true, complete: true, items: 'owner.test'.includes(query.toLowerCase()) ? [{ did: 'did:plc:' + 'a'.repeat(24), handle: 'owner.test', displayName: 'Test Owner', avatar: '' }] : [] }),
 fetcher: async (url, options) => {
   if (options.headers.authorization === 'Bearer fixture-only') {
-    const token = execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'test-auth'], { cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-    options.headers.authorization = `Bearer ${token}`;
+    fixtureServiceToken = execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'atproto-auth'], { cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    options.headers.authorization = `Bearer ${fixtureServiceToken}`;
   }
   return fetch(url, options);
 } });
@@ -74,6 +76,28 @@ for (let attempt = 0; attempt < 100; attempt++) {
   await new Promise(resolve => setTimeout(resolve, 100));
 }
 server.listen(port, '127.0.0.1');
+// Synthetic PDS responses exercise the real importer and real Snapback index.
+// They are distinct from OAuth and live-network acceptance evidence.
+const indexer = createPublicIndexer({
+  request: async (...args) => {
+    fixtureServiceToken ||= execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'atproto-auth'], { cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    return indexTransport(upstream, fixtureServiceToken)(...args);
+  },
+  resolveIdentity: async did => ({ did, didDoc: { id: did, service: [{ id: '#atproto_pds', serviceEndpoint: 'https://pds.test' }] } }),
+  fetcher: async address => {
+    const url = new URL(address), method = url.pathname.split('/').at(-1), did = url.searchParams.get('did') || url.searchParams.get('repo');
+    if (method === 'com.atproto.sync.getRepoStatus') return Response.json({ did, active: true });
+    if (method === 'com.atproto.sync.getLatestCommit') return Response.json({ rev: 'fixture-v1', cid: 'bafyreiaaaaaaaa' });
+    const source = key => `at://${did}/app.bsky.feed.post/${key}`;
+    const row = (key, text, extra = {}) => ({ uri: source(key), cid: 'bafyreiaaaaaaaa', value: { $type: 'app.bsky.feed.post', text, createdAt: '2026-11-07T00:00:00Z', ...extra } });
+    return Response.json({ records: [
+      row('root', did.includes('aaaa') ? 'My Bluesky post ♍︎ ♍️ :virgo:' : 'Another account’s Bluesky post', { embed: { $type: 'app.bsky.embed.images', images: [{ alt: 'Synthetic public image', image: { ref: { $link: 'bafyreiaaaaaaaa' } } }] } }),
+      ...Array.from({ length: 50 }, (_, i) => row(`earlier-${i}`, `Earlier public post ${i + 1}`, { createdAt: '2026-11-06T00:00:00Z' })),
+      row('selfreply', 'My own thread continuation', { reply: { parent: { uri: source('root'), cid: 'bafyreiaaaaaaaa' }, root: { uri: source('root'), cid: 'bafyreiaaaaaaaa' } } }),
+    ] });
+  },
+});
+const indexTimer = setInterval(() => indexer.tick().catch(() => {}), 200); indexTimer.unref();
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => { server.closeAllConnections(); server.close(); child.kill(signal); });
 child.on('error', error => { console.error(error.message); process.exitCode = 1; });
 child.on('exit', async code => { server.close(); store.close(); await rm(directory, { recursive: true, force: true }); process.exit(code ?? 0); });

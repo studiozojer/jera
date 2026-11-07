@@ -163,6 +163,97 @@ mutation connect(source: nodes, target: nodes, relation: enum('relates', 'suppor
 query currentIdentity():
   return { did: viewer }
 
+-- A rebuildable index of registered accounts' public Bluesky records. Import
+-- authority stays in the existing trusted identity service, never the client.
+-- A generation is exposed only after the worker completes a stable PDS scan.
+table publicIndexAccounts:
+  owner: principal
+  generation: text <=26
+  pending: text <=26
+  revision: text <=128
+  pds: text <=2048
+  state: enum('pending', 'syncing', 'ready', 'error')
+  checkedAt: time default now
+  syncedAt: time ?
+  unique owner
+  immutable owner
+  read <- .owner = viewer or viewer = 'service:atproto-auth'
+  insert <- .owner = viewer
+  update <- viewer = 'service:atproto-auth'
+  online only
+
+table publicIndexRecords:
+  owner: principal
+  generation: text 26..26
+  key: text 64..64
+  rootKey: text <=64
+  isRoot: bool
+  uri: text 1..2048
+  cid: text 1..256
+  body: text <=12000
+  record: text 1..65536
+  parent: text <=2048
+  root: text <=2048
+  at: time
+  unique owner, generation, key
+  immutable owner, generation, key, uri
+  read <- .owner = viewer or viewer = 'service:atproto-auth'
+  insert <- viewer = 'service:atproto-auth'
+  update <- viewer = 'service:atproto-auth'
+  delete <- viewer = 'service:atproto-auth'
+  online only
+
+mutation ensurePublicIndex():
+  insert publicIndexAccounts { owner: viewer, generation: '', pending: '', revision: '', pds: '', state: 'pending', syncedAt: null } if absent
+  return publicIndexAccounts[owner = viewer] ! else INDEX_UNAVAILABLE
+query publicIndexStatus():
+  return publicIndexAccounts[owner = viewer]
+query publicIndexRoots(generation: text <=26, c: cursor ?):
+  a = publicIndexAccounts[owner = viewer] ! else INDEX_UNAVAILABLE
+  require generation = a.generation else INDEX_CHANGED
+  return publicIndexRecords where .owner = viewer and .generation = a.generation and .isRoot last 50 by .at, .key after c
+query publicIndexThread(generation: text <=26, key: text 64..64, c: cursor ?):
+  a = publicIndexAccounts[owner = viewer] ! else INDEX_UNAVAILABLE
+  require generation = a.generation else INDEX_CHANGED
+  p = publicIndexRecords[owner = viewer, generation = a.generation, key = key] ! else POST_UNAVAILABLE
+  root = p.rootKey if p.rootKey != '' else p.key
+  return publicIndexRecords where .owner = viewer and .generation = a.generation and (.key = root or .rootKey = root) first 100 by .at, .key after c
+query publicIndexAccountsList(c: cursor ?):
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  return publicIndexAccounts first 100 by .id after c
+mutation beginPublicIndex(owner: principal, generation: text 26..26): server
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  a = publicIndexAccounts[owner = owner] ! else INDEX_UNAVAILABLE
+  update a { pending: generation, state: 'syncing', checkedAt: now }
+  return a
+mutation stagePublicRecord(owner: principal, generation: text 26..26, key: text 64..64, rootKey: text <=64, isRoot: bool, uri: text 1..2048, cid: text 1..256, body: text <=12000, record: text 1..65536, parent: text <=2048, root: text <=2048, at: time): server
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  require exists publicIndexAccounts[owner = owner, pending = generation] else INDEX_SUPERSEDED
+  return upsert publicIndexRecords[owner, generation, key] { uri, rootKey, isRoot, cid, body, record, parent, root, at }
+mutation finishPublicIndex(owner: principal, generation: text 26..26, revision: text <=128, pds: text <=2048, expected: int 0..20000): server
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  a = publicIndexAccounts[owner = owner] ! else INDEX_UNAVAILABLE
+  require a.pending = generation else INDEX_SUPERSEDED
+  require count(publicIndexRecords where .owner = owner and .generation = generation) = expected else INDEX_INCOMPLETE
+  update a { generation, pending: '', revision, pds, state: 'ready', checkedAt: now, syncedAt: now }
+  return null
+mutation checkPublicIndex(owner: principal, failed: bool): server
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  a = publicIndexAccounts[owner = owner] ! else INDEX_UNAVAILABLE
+  update a { state: 'error' if failed else 'ready', pending: '', checkedAt: now }
+  return null
+query obsoletePublicRecords(owner: principal, c: cursor ?):
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  a = publicIndexAccounts[owner = owner] ! else INDEX_UNAVAILABLE
+  return publicIndexRecords where .owner = owner and .generation != a.generation and .generation != a.pending first 100 by .id after c
+mutation removeObsoletePublicRecord(id: publicIndexRecords): server
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  p = publicIndexRecords[id] ! else POST_UNAVAILABLE
+  a = publicIndexAccounts[owner = p.owner] ! else INDEX_UNAVAILABLE
+  require p.generation != a.generation and p.generation != a.pending else INDEX_ACTIVE
+  delete p
+  return null
+
 -- Social records are independent of memory modules and organizing tasks.
 -- The first private-audience UI is a DID list; audience IDs leave room for
 -- later groups and resource-scoped grants without changing post ownership.

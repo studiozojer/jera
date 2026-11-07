@@ -2,6 +2,14 @@
 
 This is the current acceptance contract, based on David's direction, his authentication correction on 2026-10-31 and his simple-social-loop clarification on 2026-11-01. Earlier agent-authored plans that deferred ATproto identity are superseded. Keep implementation evidence separate from decisions about what Jera is.
 
+## Own-posts Public index — November 7 direction
+
+David selected a bounded first public-network experience: index the logged-in DID’s Bluesky posts, show its top-level posts in Public, and retain self-authored thread continuations. Other people’s replies/likes and broader discovery can wait. Snapback owns the rebuildable index and its queries; the author’s PDS remains authoritative. A small application worker reads public records, reconciles changes/deletions and recovers after restart. It is separate from an autonomous operator. See PUBLIC-INDEX.md for the implemented boundaries and evidence.
+
+This supersedes the earlier Public reader meaning of signed-in Jera accounts. Network publication remains separate: this version reads existing Bluesky posts without granting PDS writes. Public is read-only in Jera, while private posting, audiences and draft storage retain their current contracts. Earlier Jera-only public posts and drafts are preserved without automatic publication or reassignment. The three-scope Public/Permeable/Local design remains a longer direction; this slice does not implement device-only Local or a generalized permissions framework.
+
+Acceptance requires historical posts, subsequent additions/updates/deletions, interrupted-scan safety, process recovery, account isolation, paginated roots and self-authored threads to work through the stored index. Preserve original record text and provenance. Initial synchronization, a completed empty feed and stale/error states must be distinguishable. The user’s own logged-in DID and native experience remain account-holder acceptance checks beyond synthetic fixtures and a public sample-account probe. The dated sections below retain earlier scope and delivery evidence; they do not establish deployment of this new reader.
+
 ## Debugging and performance as systems learning — David’s November 5 priority
 
 Whenever debugging or improving performance, our number-one priority is to understand how Exact2 and Snapback function, discover friction, and consider how their execution paths can better align with operator workflows. Carry the mechanism and reusable learning alongside the fix. Trace and test relevant boundaries, identify the appropriate owner of an improvement, and retain reproducible provenance without keylogging. An app-owned cause can still reveal an opportunity for clearer framework APIs, diagnostics or operator practice; it does not establish an upstream defect. The composed commons’ `practices/exact-snapback-debugging/practice.md` carries this shared method and links David’s original wording.

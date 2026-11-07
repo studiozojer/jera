@@ -51,41 +51,22 @@ test "a real stored post and draft survive relaunch"
   expect state posts.length == 2
   expect state posts.0 .body == "A durable thought ♍︎ ♍️ :virgo:"
 
-test "a private reply on a public post keeps its draft and hides in public"
+test "public reading has a distinct source and no publishing controls"
   fail fetch "https://public.api.bsky.app/"
   type "handle" "owner.test"
   clock data
   tap "login"
   authorize
   clock settle
-  tap "feed-write"
+  tap "header-experience-public"
   clock settle
-  tap "experience-public"
+  expect tree has "public-feed-title"
+  expect tree has "refresh-public"
+  expect tree missing "feed-write"
+  expect tree missing "write"
+  tap "header-experience-private"
   clock settle
-  type "composer" "A real public post"
-  clock settle
-  tap "post"
-  clock settle
-  expect state posts.0 .visibility == "public"
-  tap "reply"
-  clock settle
-  type "composer" "A real private branch"
-  clock settle
-  tap "experience-private"
-  clock settle
-  expect text "composer" == "A real private branch"
-  tap "post"
-  clock settle
-  expect state posts.length == 2
-  expect state posts.1 .visibility == "private"
-  expect state visiblePosts.length == 2
-  tap "reply"
-  clock settle
-  tap "experience-public"
-  clock settle
-  tap "cancel"
-  clock settle
-  expect state visiblePosts.length == 1
+  expect tree has "feed-write"
 
 test "a private audience grants and revokes DID access through the real store"
   fail fetch "https://public.api.bsky.app/"

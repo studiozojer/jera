@@ -2,6 +2,8 @@
 
 Latest delivery handoff: [November 6 checkpoint](CHECKPOINT.md), including deployed state, dependency patches, phone build and verification limits.
 
+**Public index implementation — November 7:** the new [own-posts Public reader](PUBLIC-INDEX.md) stores a rebuildable Bluesky index in Snapback, with a bounded PDS polling worker in the identity service. It reads the signed-in DID’s top-level posts and self-authored continuations. Public is read-only in this slice; private posting remains available. This is implementation/review state, not evidence that the deployed November 6 client has changed. The dated delivery notes below describe that earlier release.
+
 **Product status:** existing-account ATproto OAuth and DID-bound Snapback sessions are implemented; password and guest signup are disabled. David reported successful real-account login on the phone on 2026-11-01; relaunch and private-capture acceptance remain separate. Snapback is the accepted authoritative store for private drafts, shared modules and most initial application data; user input will not be published to ATproto during this phase. Lexicons and PDS storage are deferred while the UX develops. Read [the current product contract](PRODUCT.md) before extending it.
 
 The authenticated app now carries the calibrated feed, focused threads, reply entry and Private/Public composer into real Snapback data. Account → Private audience manages the DIDs that can read and reply to private posts. Posts are server-authoritative; unpublished drafts sync owner-only, with a local recovery/pending-intent journal. See [permissions](PERMISSIONS.md) and [the product contract](PRODUCT.md). Public means signed-in Jera readers, not ATproto publication. New accounts start Private.

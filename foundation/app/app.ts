@@ -4,6 +4,7 @@ import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile } from './account-profile.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
 import { accountExperience } from './experience-store.ts';
+import { loadPublicIndex, publicPresentation } from './public-data.ts';
 
 const origin = 'http://127.0.0.1:4417';
 export const appId = 'studio.zojer.jera.exact';
@@ -15,7 +16,7 @@ function storageKey(value: string): string {
 }
 const sessionKey = storageKey(origin) + '-atproto-v1';
 const pendingKey = sessionKey + '-login';
-export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
+export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
 
 function randomToken(): string {
   return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -142,13 +143,31 @@ const sources: Sources = {
         const parentAuthor=p.parent?displayName(byId.get(p.parent)?.author||''):'';
         const elapsed=Math.max(0,now-p.at),minutes=Math.floor(elapsed/60000);
         const stamp=minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`;
-        return {id:p.id,canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
+        return {id:p.id,network:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
       });
       return {principal,posts,available:true};
     });} catch {return {principal:isActor(store,principal)?principal:'',posts:[],available:false};}
   },
+  loadPublicPosts: async ([principal,mode,limit,focus,now,browser],store,storage,native) => {
+    const empty={principal:'',posts:[],roots:[],more:false,ready:false,state:'inactive',syncedAt:0};
+    if(mode!=='public'||!isActor(store,principal))return empty;
+    return using(store,storage,native,now,browser,async db=>{
+      const indexed=await loadPublicIndex(transport(db,store,principal),limit,focus);
+      const profile=await postProfile(principal,storage,now);
+      actor(store,principal);
+      const name=profile.handle?profile.name:'You';
+      return {principal,roots:indexed.roots,more:indexed.more,ready:indexed.ready,state:indexed.state,syncedAt:indexed.syncedAt,
+        posts:indexed.rows.map(row=>{
+          const minutes=Math.floor(Math.max(0,now-row.at)/60000);
+          return {id:row.uri,network:true,...publicPresentation(row,principal),canDelete:false,deleted:false,parentAuthor:row.parent?name:'',parentPublic:!!row.parent,
+            publicReplies:0,readableReplies:0,root:row.root,parent:row.parent,principal,avatar:profile.avatar||'',audience:'',at:row.at,visibility:'public',
+            author:name,handle:profile.handle||'',initial:name.slice(0,1).toUpperCase(),body:row.body,stamp:minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`};
+        })};
+    });
+  },
   publishPost: async ([principal,mode,parent,body,revision,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
     try {
+      if(mode==='public'||parent.startsWith('at://'))throw new Error('Public posting is not available in Jera yet. Your draft is kept.');
       const result=await publish(transport(db,store,principal),draftsFor(store,storage,principal),mode==='public'?'public':'private',parent,revision,body);
       actor(store,principal); return {...result,principal,message:''};
     } catch(error) {

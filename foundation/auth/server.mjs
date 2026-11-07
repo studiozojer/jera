@@ -6,6 +6,7 @@ import { JoseKey } from '@atproto/jwk-jose';
 import { AuthStore } from './store.mjs';
 import { createHandler } from './service.mjs';
 import { createAccountSearch } from './accounts.mjs';
+import { createPublicIndexer, indexTransport } from './public-index.mjs';
 
 process.umask(0o077);
 const directory = resolve(process.env.JERA_AUTH_DATA ?? '.local/auth');
@@ -38,5 +39,12 @@ const server = createServer(createHandler({ client, store, publicOrigin, callbac
   snapbackOrigin: process.env.JERA_SNAPBACK_ORIGIN ?? 'http://127.0.0.1:4417' }));
 server.requestTimeout = 30000; server.headersTimeout = 10000;
 server.listen(Number(process.env.PORT ?? 4420), '127.0.0.1', () => console.log('Jera ATproto authorization ready on loopback.'));
+const publicIndexer = createPublicIndexer({
+  request: indexTransport(process.env.JERA_SNAPBACK_ORIGIN ?? 'http://127.0.0.1:4417', serviceToken),
+  resolveIdentity: (did, options) => client.identityResolver.resolve(did, options),
+});
+const indexTick = () => publicIndexer.tick().catch(() => console.error('Public index storage unavailable; retrying on the next tick.'));
+indexTick();
+const indexTimer = setInterval(indexTick, 60000); indexTimer.unref();
 const timer = setInterval(() => store.prune(), 60000); timer.unref();
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => server.close(() => { store.close(); process.exit(0); }));

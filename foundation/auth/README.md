@@ -12,6 +12,8 @@ Local discovery uses public `listRepos`, `describeRepo`, and optional Bluesky pr
 
 These sources are not a complete ATproto directory. Full handles and DIDs from other PDSes remain valid sign-in inputs even when absent from search. Selecting a suggestion only fills the handle; the official OAuth client still resolves and verifies identity before any session is issued.
 
+The service also hosts the bounded [Public index worker](../PUBLIC-INDEX.md), using the existing `service:atproto-auth` token to write derived records into Snapback. This is independent of account search: it registers no new identity, requests no additional OAuth scope and performs no PDS writes. The account registry and indexed content live in Snapback rather than the OAuth SQLite database. Keep this service single-process; its ingestion loop and the SDK refresh lock are local.
+
 Suggestions also return public avatar URLs: local profile blobs use the configured PDS's `getBlob` endpoint, while Bluesky images are restricted to its HTTPS avatar CDN. A duplicate Bluesky result can supply a missing local avatar without replacing the local handle. The client shows an initial if no image is available or loading fails. This adds no account permissions or PDS writes.
 
 ## Handoff and session custody

@@ -5,7 +5,7 @@ use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, radiusMd, radiusFull, minTouch
 use WhyteSm, WhyteXs, WhyteMd, QuietAction from "./dao.contract"
 use Button, Action from "./dao/actions.contract"
 use Confirmation from "./dao/overlays.contract"
-use Post, Author, PostAvatar, PostActions, canReplyInExperience from "./post.contract"
+use Post, PostContent, Author, PostAvatar, PostActions, canReplyInExperience from "./post.contract"
 use ReadingHeader, ThreadHeader, WriteButton, FeedComposer from "./chrome.contract"
 use ThreadHero, ThreadBranch, ThreadReplyEntry from "./thread.contract"
 
@@ -56,6 +56,14 @@ shape Timeline
   available: bool
   principal: string
   posts: Post[]
+shape PublicTimeline
+  principal: string
+  posts: Post[]
+  roots: string[]
+  more: bool
+  ready: bool
+  state: string
+  syncedAt: number
 shape Published
   state: string
   id: string
@@ -181,9 +189,11 @@ component App
   action sampleDataClock
     dataNow = time.epochAtZero + performanceNow()
   resource timeline = loadPosts(account.principal, page.navigationType != "", dataNow) as shape Timeline else empty()
-  derive posts = timeline.principal == account.principal ? timeline.posts : []
+  state publicLimit = 50
+  resource publicTimeline = loadPublicPosts(account.principal, mode, publicLimit, (top(nav).name == "thread" ? top(nav).params.id : ""), dataNow, page.navigationType != "") as shape PublicTimeline else empty()
+  derive posts = mode == "public" ? (publicTimeline.principal == account.principal ? publicTimeline.posts : []) : (timeline.principal == account.principal ? timeline.posts : [])
   derive visiblePosts = posts.filter(p => p.visibility == "public" or mode == "private")
-  derive feedPosts = sortBy(posts.filter(p => not p.deleted and p.visibility == mode and (p.parent == "" or (mode == "private" and p.parentPublic))), p => p.at, "desc")
+  derive feedPosts = sortBy(posts.filter(p => not p.deleted and p.visibility == mode and (mode == "public" ? publicTimeline.roots.includes(p.id) : (p.parent == "" or p.parentPublic))), p => p.at, "desc")
   state replyTo = ""
   state composeContextChanged = false
   state lastPosted = ""
@@ -238,6 +248,9 @@ component App
   mutation published as shape Published refreshes timeline then afterPost
   action refreshPosts
     refresh timeline
+    refresh publicTimeline
+  action morePublicPosts
+    publicLimit = publicLimit + 50
   state deleteTarget = ""
   state deleteActor = ""
   state deleteErrorShown = false
@@ -275,13 +288,15 @@ component App
   action dismiss
     nav = top(nav).name == "compose" and composeContextChanged ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : back(nav)
   action write
-    composeContextChanged = false
-    replyTo = ""
-    nav = push(nav, "/write")
+    if mode == "private"
+      composeContextChanged = false
+      replyTo = ""
+      nav = push(nav, "/write")
   action reply(id: string)
-    composeContextChanged = false
-    replyTo = id
-    nav = push(nav, "/write")
+    if mode == "private" and not id.startsWith("at://")
+      composeContextChanged = false
+      replyTo = id
+      nav = push(nav, "/write")
   action edit(value: string)
     if top(nav).name == "compose" and draftReady and not pending(published) and not pendingDraft
       let revision = editRevision + 1
@@ -388,7 +403,18 @@ component App
                   ReadingHeader(account=openAccount, avatar=profileAvatar, name=profileName, compact=compact, measure=measureFeedHeader, mode=mode, changeExperience=selectExperience, switchDisabled=(pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
                   column flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
                     column flex=1 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-color="bd.primary" padding-bottom=(compact ? "5rem" : "6rem")
-                      FeedComposer(write=write, avatar=profileAvatar, name=profileName)
+                      if mode == "private"
+                        FeedComposer(write=write, avatar=profileAvatar, name=profileName)
+                      else
+                        column padding=spaceLg() gap=spaceSm() border-bottom="1px solid bd.primary"
+                          row gap=spaceMd() justify-content="space-between" align-items="center" flex-wrap="wrap"
+                            text "Your Bluesky posts" class=WhyteSm testId="public-feed-title"
+                            Button(controlId="", label="Refresh", kind="ghost", size="medium", icon=none, disabled=pending(publicTimeline), busy=false, press=refreshPosts, testId="refresh-public")
+                          text "Read your posts and self-authored threads here. Write on Bluesky for now." class=WhyteXs color="tx.secondary"
+                          if publicTimeline.principal == account.principal and not publicTimeline.ready and publicTimeline.state != "error"
+                            text "Syncing your Bluesky posts…" class=WhyteXs color="tx.secondary" role="status" testId="public-sync-pending"
+                          if publicTimeline.principal == account.principal and publicTimeline.state == "error"
+                            text (publicTimeline.ready ? "Couldn’t refresh Bluesky. Showing your last synced posts." : "Couldn’t sync Bluesky yet. We’ll retry.") class=WhyteXs color="tx.secondary" role="status" testId="public-sync-error"
                       for item, index in feedPosts key=item.id
                         article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom="dao.space.xs" padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                           :hover
@@ -402,16 +428,21 @@ component App
                                 column gap="dao.space.xs"
                                   if item.parent != ""
                                     text `Private reply to ${item.parentAuthor}` class=WhyteXs color="tx.secondary"
-                                  text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
+                                  PostContent(post=item, bodyTestId=`body-${item.id}`)
                               PostActions(post=item, comments=(mode == "public" ? item.publicReplies : item.readableReplies), comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
-                      if feedPosts.length == 0 and timeline.available and not pending(timeline) and not failed(timeline)
+                      if mode == "public" and publicTimeline.more and publicTimeline.principal == account.principal
+                        Button(controlId="", label="Load more", kind="ghost", size="medium", icon=none, disabled=pending(publicTimeline), busy=false, press=morePublicPosts, testId="public-load-more")
+                      if mode == "public" and publicTimeline.ready and feedPosts.length == 0 and publicTimeline.principal == account.principal and not pending(publicTimeline)
+                        text "No top-level Bluesky posts yet." color="tx.secondary" class=WhyteSm padding=spaceXxl() testId="public-empty"
+                      if mode == "private" and feedPosts.length == 0 and timeline.available and not pending(timeline) and not failed(timeline)
                         text "Nothing here yet." color="tx.secondary" class=WhyteSm padding=spaceXxl()
-                      if failed(timeline) or (timeline.principal == account.principal and not timeline.available and not pending(timeline))
+                      if (mode == "private" and (failed(timeline) or (timeline.principal == account.principal and not timeline.available and not pending(timeline)))) or (mode == "public" and failed(publicTimeline))
                         column padding=spaceLg() gap=spaceSm()
                           text "Couldn’t load posts." color="tx.secondary" class=WhyteSm
                           Button(controlId="", label="Try again", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(timeline), press=refreshPosts, testId="retry-posts")
                       box height="env(safe-area-inset-bottom)" flex-shrink=0
-              WriteButton(write=write, compact=compact)
+              if mode == "private"
+                WriteButton(write=write, compact=compact)
             if account.principal == "" and not pending(account)
               scroll flex=1 min-height=0
                 column padding="48px 24px 24px" gap=16 max-width="44rem" margin="0 auto" width="100%" box-sizing="border-box"
@@ -455,9 +486,9 @@ component App
                 ThreadHeader(back=dismiss, compact=compact, measure=measureThreadHeader, mode=mode)
                 column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd()) padding-bottom=(compact ? "5rem" : "6rem")
                   column flex-shrink=0 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-bottom-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-bottom-style="solid" border-color="bd.primary" border-bottom-left-radius=(compact ? 0 : radiusFull()) border-bottom-right-radius=(compact ? 0 : radiusFull()) testId="thread-frame"
-                    if visiblePosts.filter(p => p.id == entry.params.id).length == 0 and timeline.available and not pending(timeline) and not failed(timeline)
+                    if visiblePosts.filter(p => p.id == entry.params.id).length == 0 and (mode == "private" ? timeline.available and not pending(timeline) and not failed(timeline) : publicTimeline.ready and not pending(publicTimeline) and not failed(publicTimeline))
                       text "Conversation unavailable." class=WhyteSm color="tx.secondary" padding=spaceXxl() testId="thread-unavailable"
-                    if failed(timeline) or (timeline.principal == account.principal and not timeline.available and not pending(timeline))
+                    if (mode == "private" and (failed(timeline) or (timeline.principal == account.principal and not timeline.available and not pending(timeline)))) or (mode == "public" and failed(publicTimeline))
                       Button(controlId="", label="Try loading again", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(timeline), press=refreshPosts, testId="retry-thread")
                     for focused in visiblePosts.filter(p => p.id == entry.params.id) key=focused.id
                       if focused.parent != ""
@@ -465,22 +496,25 @@ component App
                           button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(threadHeaderHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
                             text `Replying to ${parent.author}` color="tx.secondary" class=WhyteXs
                       ThreadHero(remove=requestDelete, post=focused, posts=visiblePosts, reply=reply, mode=mode, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
-                      if not focused.deleted
+                      if not focused.deleted and not focused.network
                         ThreadReplyEntry(post=focused, reply=reply, avatar=profileAvatar, name=profileName, clearance=(threadHeaderHeight + spaceSm()))
                       for child in visiblePosts.filter(p => p.parent == focused.id) key=child.id
                         ThreadBranch(remove=requestDelete, post=child, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
                   box height="env(safe-area-inset-bottom)" flex-shrink=0
-            WriteButton(write=write, compact=compact)
+            if mode == "private"
+              WriteButton(write=write, compact=compact)
         if entry.name == "compose" and account.principal != ""
           column navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber="visible" position="absolute" inset=0 background-color="experience.canvas" color="tx.primary" font-family="Whyte" padding=spaceXxl() gap=spaceXxl() box-sizing="border-box" overflow-y="auto"
             row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
               Button(controlId="back", label="Cancel", kind="ghost", size="medium", icon=none, disabled=pending(published), busy=false, press=dismiss, testId="cancel")
               text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
-              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(draft.trim() == "" or pending(experienceChanged) or not draftReady), busy=pending(published), press=post, testId="post")
-            if privateReply
+              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(mode == "public" or draft.trim() == "" or pending(experienceChanged) or not draftReady), busy=pending(published), press=post, testId="post")
+            if privateReply or mode == "private"
               text "Private" class=WhyteXs color="tx.secondary" aria-label="Reply visibility: Private" testId="reply-private-only"
             else
               ExperienceModeControl(idPrefix="experience", label="Post visibility", mode=mode, change=selectExperience, disabled=(not draftReady or pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
+            if mode == "public"
+              text "Public posting is not available in Jera yet. This draft is kept." class=WhyteXs color="tx.secondary" role="status"
             if not draftReady and not failed(openedDraft)
               text "Opening draft…" class=WhyteXs color="tx.secondary" role="status" testId="draft-opening"
             if failed(openedDraft)
