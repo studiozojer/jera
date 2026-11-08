@@ -317,6 +317,10 @@ query draftForDevice(deviceKey: text 26..26, scope: text 1..200):
   return socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope]
 query latestDraft(scope: text 1..200):
   return socialDrafts where .owner = viewer and .scope = scope last 1 by .at
+query earlierPublicDrafts(c: cursor ?):
+  return socialDrafts where .owner = viewer and .scope = 'root:public' and .body != '' last 100 by .at after c
+query earlierPublicDraft(id: socialDrafts):
+  return socialDrafts[id, owner = viewer, scope = 'root:public']
 mutation saveSocialDraft(deviceKey: text 26..26, scope: text 1..200, body: text <=12000, revision: int 0..9007199254740991):
   existing = socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope]
   if existing != null and existing.revision >= revision:

@@ -85,7 +85,7 @@ export async function allRows(request: Request, operation: string, args: Record<
   return rows;
 }
 
-function matchesPublication(post: PostRecord, payload: Posting, principal: string) {
+export function matchesPublication(post: PostRecord, payload: Posting, principal: string) {
   return typeof post.id==='string' && post.id!=='' && post.author===principal && post.intent===payload.intent &&
     (post.deleted ? post.body==='' : post.body===payload.body) && post.parent===payload.parent &&
     post.visibility===payload.visibility && post.audience===payload.audience;

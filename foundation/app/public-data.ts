@@ -2,6 +2,12 @@ import type { Request } from './social-data.ts';
 
 export type PublicMedia = { src: string; alt: string };
 export type IndexedPost = { uri: string; body: string; at: number; parent: string; root: string; record: string };
+// Preserve the protocol's edges. A missing parent is a context gap, never a
+// reason to silently attach a continuation directly to the root.
+export function publicParentGaps(rows: IndexedPost[]) {
+  const ids = new Set(rows.map(row => row.uri));
+  return new Set(rows.filter(row => row.parent && !ids.has(row.parent)).map(row => row.uri));
+}
 export function blueskyUrl(uri: string): string {
   const parts = /^at:\/\/(did:[^/]+)\/app\.bsky\.feed\.post\/([^/]+)$/.exec(uri);
   return parts ? `https://bsky.app/profile/${encodeURIComponent(parts[1])}/post/${encodeURIComponent(parts[2])}` : '';

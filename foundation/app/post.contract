@@ -11,6 +11,7 @@ shape PublicImage
 
 shape Post
   network: bool
+  missingParent: bool
   images: PublicImage[]
   sourceUrl: string
   embedLabel: string

@@ -1,8 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { loadPublicIndex, publicPresentation, blueskyUrl } from '../app/public-data.ts';
+import { loadPublicIndex, publicPresentation, publicParentGaps, blueskyUrl } from '../app/public-data.ts';
 
 const did = 'did:plc:' + 'a'.repeat(24), uri = `at://${did}/app.bsky.feed.post/first`;
+test('own continuations identify missing parents without altering protocol edges', () => {
+  const rows = [
+    { uri, parent: '', root: '' },
+    { uri: uri + '-normal', parent: uri, root: uri },
+    { uri: uri + '-gap', parent: uri + '-deleted', root: uri },
+    { uri: uri + '-descendant', parent: uri + '-gap', root: uri },
+    { uri: uri + '-foreign-gap', parent: 'at://did:plc:other/app.bsky.feed.post/reply', root: uri },
+  ];
+  const before = structuredClone(rows);
+  assert.deepEqual([...publicParentGaps(rows)], [uri + '-gap', uri + '-foreign-gap']);
+  assert.deepEqual(rows, before);
+});
 test('public reader renders stored text/media with a canonical source destination', () => {
   const result = publicPresentation({ uri, record: JSON.stringify({ text: '♍︎ ♍️', embed: {
     $type: 'app.bsky.embed.images', images: [{ alt: 'A synthetic drawing', image: { ref: { $link: 'bafyreiaaaaaaaa' } } }],

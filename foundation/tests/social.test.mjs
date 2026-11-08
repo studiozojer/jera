@@ -62,8 +62,15 @@ mutation probePostInsert(intent: text 26..26, body: text <=12000, deleted: bool)
   await a.mutate('saveSocialDraft',{deviceKey:draftDevice,scope:'root:public',body:'late older save',revision:2});
   assert.equal((await a.query('draftForDevice',{deviceKey:draftDevice,scope:'root:public'})).data.body,'Public ♍︎ ♍️ :virgo:');
   assert.equal((await b.query('draftForDevice',{deviceKey:draftDevice,scope:'root:public'})).data,null,'audience membership never shares unpublished drafts');
+  const earlier=(await a.query('earlierPublicDrafts')).data;
+  assert.equal(earlier.length,1);
+  assert.equal(earlier[0].body,'Public ♍︎ ♍️ :virgo:');
+  assert.equal((await a.query('earlierPublicDraft',{id:earlier[0].id})).data.id,earlier[0].id);
+  assert.equal((await b.query('earlierPublicDraft',{id:earlier[0].id})).data,null);
+  assert.deepEqual((await b.query('earlierPublicDrafts')).data,[]);
   const pub=(await a.mutate('publishPost',{body:'Public ♍︎ ♍️ :virgo:',visibility:'public',audience:null,parent:null,draftDevice,draftRevision:3,draftScope:'root:public'})).result;
   assert.equal((await a.query('draftForDevice',{deviceKey:draftDevice,scope:'root:public'})).data.body,'');
+  assert.deepEqual((await a.query('earlierPublicDrafts')).data,[],'retired cloud drafts are excluded from recovery');
   await a.mutate('saveSocialDraft',{deviceKey:draftDevice,scope:'root:public',body:'late draft after posting',revision:3});
   assert.equal((await a.query('draftForDevice',{deviceKey:draftDevice,scope:'root:public'})).data.body,'','late save cannot resurrect a posted draft');
   await a.mutate('saveSocialDraft',{deviceKey:draftDevice,scope:'root:private',body:'Unpublished private draft',revision:1});

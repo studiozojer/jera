@@ -94,6 +94,8 @@ const indexer = createPublicIndexer({
       row('root', did.includes('aaaa') ? 'My Bluesky post ♍︎ ♍️ :virgo:' : 'Another account’s Bluesky post', { embed: { $type: 'app.bsky.embed.images', images: [{ alt: 'Synthetic public image', image: { ref: { $link: 'bafyreiaaaaaaaa' } } }] } }),
       ...Array.from({ length: 50 }, (_, i) => row(`earlier-${i}`, `Earlier public post ${i + 1}`, { createdAt: '2026-11-06T00:00:00Z' })),
       row('selfreply', 'My own thread continuation', { reply: { parent: { uri: source('root'), cid: 'bafyreiaaaaaaaa' }, root: { uri: source('root'), cid: 'bafyreiaaaaaaaa' } } }),
+      row('gap-reply', 'Own reply after a missing parent', { reply: { parent: { uri: source('deleted-parent'), cid: 'bafyreiaaaaaaaa' }, root: { uri: source('root'), cid: 'bafyreiaaaaaaaa' } } }),
+      row('gap-child', 'Continuation below the gap', { reply: { parent: { uri: source('gap-reply'), cid: 'bafyreiaaaaaaaa' }, root: { uri: source('root'), cid: 'bafyreiaaaaaaaa' } } }),
     ] });
   },
 });

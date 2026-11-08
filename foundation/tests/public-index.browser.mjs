@@ -54,6 +54,9 @@ try {
   assert(geometry.every(row => row.source.top >= row.body.bottom + 8), 'source links must remain below the actual body text after fonts settle');
   await page.screenshot({ path: output + 'public-feed-phone.png' });
   await at(`post-row-${root}`).click(); await at(`thread-body-${root}`).waitFor(); await at(`thread-body-${ownReply}`).waitFor();
+  await at(`missing-parent-at://${ownerDid}/app.bsky.feed.post/gap-reply`).waitFor();
+  await at(`thread-body-at://${ownerDid}/app.bsky.feed.post/gap-reply`).waitFor();
+  await at(`thread-body-at://${ownerDid}/app.bsky.feed.post/gap-child`).waitFor();
   assert.equal(await at('reply').count(), 0); assert.equal(await at(`thread-reply-entry-${root}`).count(), 0);
   assert.equal(await at(`public-source-${root}`).getAttribute('href'), 'https://bsky.app/profile/did%3Aplc%3Aaaaaaaaaaaaaaaaaaaaaaaaa/post/root');
   await page.screenshot({ path: output + 'public-self-thread-phone.png' });

@@ -19,6 +19,7 @@ routes nav
     thread "/thread/:id"
     compose "/write"
     audience "/audience"
+    earlierDrafts "/earlier-drafts"
 
 shape Viewport
   pointer: string
@@ -100,6 +101,16 @@ shape Audience
   principal: string
   id: string
   members: AudienceMember[]
+shape EarlierDraft
+  id: string
+  body: string
+  revision: number
+  label: string
+  pending: bool
+shape EarlierDrafts
+  principal: string
+  items: EarlierDraft[]
+  available: bool
 
 style ManagementButton
   background-color = "bg.card"
@@ -281,11 +292,17 @@ component App
       send experienceChanged = changeExperience(account.principal, value, time.epochAtZero + performanceNow())
   action afterExperienceChange
     composeContextChanged = true
+    if recoveringEarlierDraft and top(nav).name == "earlierDrafts" and currentExperience.principal == account.principal
+      recoveringEarlierDraft = false
+      composeContextChanged = false
+      replyTo = ""
+      nav = push(back(nav), "/write")
   action follow(url: string)
     nav = top(nav).name == "compose" and composeContextChanged and url != "/write" ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : go(nav, url)
   action openThread(id: string)
     nav = push(nav, path("thread", id))
   action dismiss
+    recoveringEarlierDraft = false
     nav = top(nav).name == "compose" and composeContextChanged ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : back(nav)
   action write
     if mode == "private"
@@ -337,6 +354,22 @@ component App
     if h > 0
       threadHeaderHeight = h + (compact ? 0 : spaceSm())
   state audienceDid = ""
+  state recoveringEarlierDraft = false
+  resource earlierDrafts = loadEarlierDrafts(account.principal, top(nav).name == "earlierDrafts", dataNow, page.navigationType != "") as shape EarlierDrafts else empty()
+  action openEarlierDrafts
+    recoveringEarlierDraft = false
+    nav = push(back(nav), "/earlier-drafts")
+  action refreshEarlierDrafts
+    refresh earlierDrafts
+  action copyEarlierDraft(id: string, body: string, revision: number)
+    if earlierDrafts.principal == account.principal and not pending(experienceChanged)
+      recoveringEarlierDraft = true
+      send experienceChanged = copyEarlierDraft(account.principal, id, body, revision, time.epochAtZero + performanceNow(), page.navigationType != "")
+  action copyEarlierText(body: string)
+    copyText(body)
+  action openPrivateDraft
+    recoveringEarlierDraft = true
+    send experienceChanged = changeExperience(account.principal, "private", time.epochAtZero + performanceNow())
   resource audience = loadAudience(account.principal, page.navigationType != "", dataNow) as shape Audience else empty()
   mutation audienceGranted as shape Ack refreshes audience, timeline then afterAudienceGrant
   mutation audienceRevoked as shape Ack refreshes audience, timeline
@@ -359,6 +392,7 @@ component App
   action logout
     send signedOut = logout(time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterLogout
+    recoveringEarlierDraft = false
     nav = go(nav, "/")
     close("delete-post-confirmation")
     close("delete-post-error")
@@ -491,6 +525,8 @@ component App
                     if (mode == "private" and (failed(timeline) or (timeline.principal == account.principal and not timeline.available and not pending(timeline)))) or (mode == "public" and failed(publicTimeline))
                       Button(controlId="", label="Try loading again", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(timeline), press=refreshPosts, testId="retry-thread")
                     for focused in visiblePosts.filter(p => p.id == entry.params.id) key=focused.id
+                      if focused.network and focused.missingParent
+                        text "Earlier reply unavailable in this view" class=WhyteXs color="tx.secondary" padding=spaceLg() testId="missing-parent-context"
                       if focused.parent != ""
                         for parent in visiblePosts.filter(p => p.id == focused.parent) key=parent.id
                           button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(threadHeaderHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
@@ -500,6 +536,10 @@ component App
                         ThreadReplyEntry(post=focused, reply=reply, avatar=profileAvatar, name=profileName, clearance=(threadHeaderHeight + spaceSm()))
                       for child in visiblePosts.filter(p => p.parent == focused.id) key=child.id
                         ThreadBranch(remove=requestDelete, post=child, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                      for continuation in visiblePosts.filter(p => p.network and p.missingParent and p.root == focused.id and p.id != focused.id) key=continuation.id
+                        column gap=spaceSm() border-top="1px solid bd.primary"
+                          text "Earlier reply unavailable in this view" class=WhyteXs color="tx.secondary" padding=spaceLg() testId=`missing-parent-${continuation.id}`
+                          ThreadBranch(remove=requestDelete, post=continuation, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
                   box height="env(safe-area-inset-bottom)" flex-shrink=0
             if mode == "private"
               WriteButton(write=write, compact=compact)
@@ -552,7 +592,7 @@ component App
           // Web uses the dao-panel adapter for the same compact/regular presentation.
           column id="account-sheet" navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber=(viewport.width < 768 ? "visible" : "hidden") closedby="any" hatch="dao-panel" aria-label="Your account" testId="account-sheet" position="absolute" inset=0 overflow-y="auto" border-radius=24 background-color="bg.base" color="tx.primary" font-family="Whyte"
             button id="account-dismiss" press=closeAccount aria-label="Dismiss account menu" testId="account-dismiss" display="none" width=44 height=28
-            column gap=24 min-height="14rem" padding="32px 24px 24px" box-sizing="border-box"
+            column gap=24 min-height="14rem" flex-shrink=0 padding="32px 24px 24px" box-sizing="border-box"
               row gap=16 align-items="center" flex-wrap="wrap"
                 for owner in [account.principal] key=owner
                   AccountAvatar(src=profileAvatar, label=profileName, size="3.5rem", radius=8)
@@ -561,9 +601,38 @@ component App
                   if profileHandle != ""
                     text `@${profileHandle}` color="tx.secondary" max-width="100%" white-space="nowrap" overflow="hidden" text-overflow="ellipsis" testId="profile-handle"
               Button(controlId="", label="Private audience", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=openAudience, testId="private-audience")
+              Button(controlId="", label="Earlier public drafts", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=openEarlierDrafts, testId="earlier-public-drafts")
               button "Log out" press=logout disabled=pending(signedOut) aria-busy=pending(signedOut) testId="logout" appearance="none" class=ManagementButton width="100%" box-sizing="border-box" min-height=52 padding="14px 16px" border-width=0 border-radius=8 color="tx.primary" font-family="Whyte" font-size="1.125rem"
               if failed(signedOut)
                 text "Could not log out. Please try again." role="status" color="tx.secondary"
+        if entry.name == "earlierDrafts" and account.principal != ""
+          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 background-color="experience.canvas"
+            row padding=spaceLg() gap=spaceMd() align-items="center" flex-wrap="wrap"
+              Button(controlId="back", label="Back", kind="ghost", size="medium", icon=none, disabled=pending(experienceChanged), busy=false, press=dismiss, testId="earlier-drafts-back")
+              text "Earlier public drafts" class=WhyteMd role="heading" aria-level=1 min-width=0 flex=1 flex-basis="8rem"
+              Button(controlId="", label="Refresh", kind="ghost", size="medium", icon=none, disabled=pending(experienceChanged), busy=pending(earlierDrafts), press=refreshEarlierDrafts, testId="refresh-earlier-drafts")
+            scroll flex=1 min-height=0
+              column padding=spaceLg() gap=spaceLg() width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box"
+                text "These drafts predate the public reader. Copy one to private writing, or copy its text. Originals stay here; nothing is posted automatically." class=WhyteSm color="tx.secondary"
+                Button(controlId="", label="Open private draft", kind="ghost", size="medium", icon=none, disabled=pending(experienceChanged), busy=false, press=openPrivateDraft, testId="open-private-draft")
+                if pending(earlierDrafts)
+                  text "Loading drafts…" class=WhyteXs color="tx.secondary" role="status"
+                if failed(earlierDrafts) or (not pending(earlierDrafts) and not earlierDrafts.available)
+                  text "Synced drafts unavailable. Local copies are kept. Refresh to try again." class=WhyteXs color="tx.secondary" role="status" testId="earlier-drafts-offline"
+                if recoveringEarlierDraft and failed(experienceChanged)
+                  text (match failure(experienceChanged) { case some(f) => f.message, case none => "Could not copy the draft. The original is kept." }) class=WhyteSm color="tx.secondary" role="status" testId="earlier-drafts-error"
+                if earlierDrafts.principal == account.principal
+                  if earlierDrafts.items.length == 0 and earlierDrafts.available and not pending(earlierDrafts)
+                    text "No earlier public drafts." class=WhyteSm color="tx.secondary" testId="earlier-drafts-empty"
+                  for saved in earlierDrafts.items key=saved.id
+                    column gap=spaceMd() padding-top=spaceLg() padding-bottom=spaceLg() border-top="1px solid bd.primary" testId=`earlier-draft-${saved.id}`
+                      text saved.label class=WhyteXs color="tx.secondary"
+                      if saved.pending
+                        text "The original post is unconfirmed. Copying text will not retry it; check before posting again." class=WhyteXs color="tx.secondary"
+                      text saved.body class=WhyteSm white-space="pre-wrap"
+                      row gap=spaceSm() flex-wrap="wrap"
+                        Button(controlId="", label="Copy to private draft", kind="secondary", size="medium", icon=none, disabled=pending(experienceChanged), busy=false, press=copyEarlierDraft(saved.id, saved.body, saved.revision), testId=`recover-${saved.id}`)
+                        Button(controlId="", label="Copy text", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=copyEarlierText(saved.body), testId=`copy-earlier-${saved.id}`)
         if entry.name == "audience" and account.principal != ""
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 background-color="experience.canvas"
             row padding=spaceLg() gap=spaceMd() align-items="center" flex-wrap="wrap"

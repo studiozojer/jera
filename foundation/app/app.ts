@@ -4,7 +4,8 @@ import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile } from './account-profile.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
 import { accountExperience } from './experience-store.ts';
-import { loadPublicIndex, publicPresentation } from './public-data.ts';
+import { loadPublicIndex, publicPresentation, publicParentGaps } from './public-data.ts';
+import { earlierPublicDrafts, copyEarlierPublicDraft } from './earlier-drafts.ts';
 
 const origin = 'http://127.0.0.1:4417';
 export const appId = 'studio.zojer.jera.exact';
@@ -143,7 +144,7 @@ const sources: Sources = {
         const parentAuthor=p.parent?displayName(byId.get(p.parent)?.author||''):'';
         const elapsed=Math.max(0,now-p.at),minutes=Math.floor(elapsed/60000);
         const stamp=minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`;
-        return {id:p.id,network:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
+        return {id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
       });
       return {principal,posts,available:true};
     });} catch {return {principal:isActor(store,principal)?principal:'',posts:[],available:false};}
@@ -153,17 +154,34 @@ const sources: Sources = {
     if(mode!=='public'||!isActor(store,principal))return empty;
     return using(store,storage,native,now,browser,async db=>{
       const indexed=await loadPublicIndex(transport(db,store,principal),limit,focus);
+      const gaps=publicParentGaps(indexed.rows);
       const profile=await postProfile(principal,storage,now);
       actor(store,principal);
       const name=profile.handle?profile.name:'You';
       return {principal,roots:indexed.roots,more:indexed.more,ready:indexed.ready,state:indexed.state,syncedAt:indexed.syncedAt,
         posts:indexed.rows.map(row=>{
           const minutes=Math.floor(Math.max(0,now-row.at)/60000);
-          return {id:row.uri,network:true,...publicPresentation(row,principal),canDelete:false,deleted:false,parentAuthor:row.parent?name:'',parentPublic:!!row.parent,
+          return {id:row.uri,network:true,missingParent:gaps.has(row.uri),...publicPresentation(row,principal),canDelete:false,deleted:false,parentAuthor:row.parent&&!gaps.has(row.uri)?name:'',parentPublic:!!row.parent,
             publicReplies:0,readableReplies:0,root:row.root,parent:row.parent,principal,avatar:profile.avatar||'',audience:'',at:row.at,visibility:'public',
             author:name,handle:profile.handle||'',initial:name.slice(0,1).toUpperCase(),body:row.body,stamp:minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`};
         })};
     });
+  },
+  loadEarlierDrafts: async ([principal,active,now,browser],store,storage,native) => {
+    if(!active||!isActor(store,principal))return {principal:'',items:[],available:false};
+    const drafts=draftsFor(store,storage,principal);
+    let result;
+    try {result=await using(store,storage,native,now,browser,db=>earlierPublicDrafts(transport(db,store,principal),drafts));}
+    catch {result=await earlierPublicDrafts(async()=>{throw new Error('Offline');},drafts);}
+    actor(store,principal);return {principal,...result};
+  },
+  copyEarlierDraft: async ([principal,id,body,revision,now,browser],store,storage,native) => {
+    const experience=await experienceFor(store,storage,principal), drafts=draftsFor(store,storage,principal);
+    try {
+      await using(store,storage,native,now,browser,db=>copyEarlierPublicDraft(transport(db,store,principal),drafts,{id,body,revision}));
+    } catch(error) {reject('E_DRAFT',(error as Error).message||'Could not copy this draft. The original is kept.');}
+    actor(store,principal);await drafts.setMode('private');actor(store,principal);
+    return {principal,...experience.change('private',now)};
   },
   publishPost: async ([principal,mode,parent,body,revision,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
     try {
