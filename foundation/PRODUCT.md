@@ -1,5 +1,11 @@
 # Jera's product contract
 
+## Default Private uses a simple Post — November 8 acceptance
+
+David approves the simplified UI and asks to save it in the strata, disable `contribution.v1` for the default Private view and use a simple post lexicon with no extra fields. `post.v1` contains only `body`, preserving the earlier text-writing experience with an explicit versioned interpretation. `contracts/views/private.v1.json` permits/defaults only `post.v1` for new writing; historical reads remain inclusive. Contribution stays registered for historical records and other deliberately configured views.
+
+New private roots/replies use the trusted structured gateway with `post.v1`, keeping existing audience and reply rules. Local text drafts remain editable offline. When an unsealed structured draft is simplified, its complete original is first retained in a separate owner-only recovery branch; the active body-only copy keeps the same audience and a fresh intent. An uncertain publication remains sealed to its original payload and retries exactly. Existing posts are never rewritten. This updates the earlier “keep structured fields editable in the default composer” recovery UI, while retaining its no-data-loss requirement.
+
 ## View-owned composition — November 8 UX correction
 
 David clarifies that composing a view and choosing its audience belong outside the posting GUI. The overall view/feed determines the available lexicons; the composer may eventually offer a choice within that context and shows only lexicon-specific controls such as Contribution's Purpose. Purpose is not a universal contract field. The UI is simplified to ordinary Text writing, with the Public/Private switch in the surrounding interface. Existing structured drafts keep their original audience, exact lexicon, payload and fields; there is no silent downgrade or reassignment.

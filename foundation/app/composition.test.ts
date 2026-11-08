@@ -58,3 +58,52 @@ test('a cloud conflict in non-body fields is reported and keeps the complete loc
   await expect(syncScope(request,local,'root:private')).rejects.toThrow('newer cloud draft');
   expect((await local.get('root:private')).composition?.payload.purpose).toBe('reflect');
 });
+
+test('Private uses only the body-only post definition and retains earlier drafts across retirement',async()=>{
+  const {privateView,postDefinition}=await import('./private-definition.ts');
+  const {preparePrivateWriting}=await import('./private-writing.ts');
+  const {viewDefinition}=await import('../views/definition.mjs');
+  expect(viewDefinition(privateView).compose.lexicons.map((l:any)=>l.ref)).toEqual(['post.v1']);
+  expect(postDefinition).toEqual(lexicons.find(l=>l.ref==='post.v1'));
+  expect(formFields(newComposition(postDefinition,'owner-audience','Plain body'))).toEqual([]);
+  const source=JSON.parse(readFileSync(new URL('../contracts/views/private.v1.json',import.meta.url),'utf8'));
+  expect(privateView).toEqual(source);
+  const local=new Drafts(files(),'https://one.test',principal),c=composition();
+  await local.save('root:private',c.payload.body,1,c);
+  const original=await local.get('root:private');
+  const plain=(await preparePrivateWriting(local,'root:private'))!;
+  expect(plain.composition?.lexicon.ref).toBe('post.v1');
+  expect(plain.composition?.payload).toEqual({body:c.payload.body});
+  expect(plain.composition?.audience).toBe(c.audience);
+  const unchanged=editedComposition(plain.composition!,c.audience,plain.body,[]);
+  expect(unchanged).toEqual(plain.composition);
+  expect((await local.get(`retained:${original.intent}`)).composition).toEqual(c);
+  expect(await preparePrivateWriting(local,'root:private')).toEqual(plain);
+  let posted:any;
+  const request:Request=async(_kind,op)=>{if(op==='postForIntent')return {data:posted};throw new Error(op);};
+  const gateway=async(e:any)=>{posted={id:'plain',author:principal,intent:e.intent,body:e.payload.body,parent:null,visibility:'private',audience:e.audience,lexicon:e.lexicon.ref,lexiconDigest:e.lexicon.digest,payloadJson:JSON.stringify(e.payload)};return{state:'sent',result:posted};};
+  expect((await publish(request,local,'private','',plain.revision,plain.body,unchanged,gateway,postDefinition)).state).toBe('sent');
+  await beginDraft(request,local,'private','');
+  expect((await local.get(`retained:${original.intent}`)).composition).toEqual(c);
+  let retainedCloud:any;
+  await syncScope(async(_kind,op,args)=>{expect(op).toBe('saveStructuredDraft');retainedCloud=args;return{state:'sent',result:args};},local,`retained:${original.intent}`);
+  expect(JSON.parse(retainedCloud.compositionJson).composition).toEqual(c);
+});
+
+test('new plain posts use the gateway and a sealed Contribution is never converted',async()=>{
+  const {postDefinition}=await import('./private-definition.ts');
+  const {preparePrivateWriting}=await import('./private-writing.ts');
+  const local=new Drafts(files(),'https://one.test',principal);
+  await local.save('root:private','Simple ♍︎ ♍️',1);
+  const request:Request=async(_kind,op)=>{if(op==='ensureAudience')return {state:'sent',result:{id:'shared'}};throw new Error(op);};
+  let sent:any;
+  await publish(request,local,'private','',1,undefined,undefined,async e=>{sent=e;throw new Error('lost response');},postDefinition);
+  expect(sent.lexicon).toEqual({ref:postDefinition.ref,digest:postDefinition.digest});
+  expect(sent.payload).toEqual({body:'Simple ♍︎ ♍️'});
+  expect((await local.get('root:private')).sealed?.composition?.lexicon.ref).toBe('post.v1');
+  const earlier=new Drafts(files(),'https://two.test',principal),c=composition();
+  await earlier.save('root:private',c.payload.body,1,c);
+  await publish(request,earlier,'private','',1,undefined,undefined,async()=>{throw new Error('lost response');});
+  const sealed=await earlier.get('root:private');
+  expect(await preparePrivateWriting(earlier,'root:private')).toEqual(sealed);
+});

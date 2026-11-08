@@ -6,6 +6,8 @@ import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope,
 import { formFields, editedComposition, type Field } from './composition.ts';
 import { accountExperience } from './experience-store.ts';
 import { loadPublicIndex, publicPresentation, publicParentGaps } from './public-data.ts';
+import { preparePrivateWriting } from './private-writing.ts';
+import { postDefinition } from './private-definition.ts';
 import { earlierPublicDrafts, copyEarlierPublicDraft } from './earlier-drafts.ts';
 
 const origin = 'http://127.0.0.1:4417';
@@ -119,7 +121,8 @@ const sources: Sources = {
     const local=draftsFor(store,storage,principal);
     // No transport is opened for an ordinary unposted draft. An unavailable
     // publication lookup preserves the sealed draft, including while offline.
-    const draft=await beginDraft((kind,operation,args,id)=>using(store,storage,native,now,browser,db=>transport(db,store,principal)(kind,operation,args,id)),local,mode==='public'?'public':'private',parent);
+    let draft=await beginDraft((kind,operation,args,id)=>using(store,storage,native,now,browser,db=>transport(db,store,principal)(kind,operation,args,id)),local,mode==='public'?'public':'private',parent);
+    if(mode==='private')draft=await preparePrivateWriting(local,draftScope('private',parent))||draft;
     actor(store,principal);
     return {...draftEnvelope(principal,draftScope(mode==='public'?'public':'private',parent),draft),context};
   },
@@ -129,6 +132,7 @@ const sources: Sources = {
     const local=draftsFor(store,storage,principal);
     try {
       const synced=await using(store,storage,native,now,browser,db=>syncScope(transport(db,store,principal),local,scope));
+      if(mode==='private')synced.draft=await preparePrivateWriting(local,scope)||synced.draft;
       const {pendingMode,...saved}=draftEnvelope(principal,scope,synced.draft);return {...saved,priorRevision:synced.priorRevision,state:'sent',context};
     } catch {
       const draft=await local.get(scope);
@@ -218,7 +222,7 @@ const sources: Sources = {
         actor(store,principal);const raw=store.get(sessionKey);
         try {const result=await authRequest('/records/publish',envelope,db.session?.token);if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed.');return result;}
         catch(e){const code=(e as any).code||'';if(['INVALID_PAYLOAD','UNKNOWN_LEXICON','LEXICON_CHANGED','AUDIENCE_UNAVAILABLE','DIFFERENT_AUDIENCE','PARENT_UNAVAILABLE','PARENT_DELETED','INTENT_REUSE','E_INPUT'].includes(code))return {state:'failed',why:{message:(e as Error).message}};throw e;}
-      });
+      },postDefinition);
       actor(store,principal); return {...result,principal,message:''};
     } catch(error) {
       actor(store,principal);

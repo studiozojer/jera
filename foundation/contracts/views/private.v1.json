@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "private",
+  "version": 1,
+  "sources": [
+    "network"
+  ],
+  "select": {
+    "lexicons": []
+  },
+  "presentation": {
+    "order": "newest-first",
+    "group": "thread"
+  },
+  "compose": {
+    "destination": "network",
+    "audience": "private",
+    "lexicons": [
+      {
+        "ref": "post.v1",
+        "digest": "357161d483360602f84ec47750d4f7cbcfa5d8ed6bcdb9d2a35fd97a5f1b2710"
+      }
+    ],
+    "defaultLexicon": "post.v1"
+  }
+}

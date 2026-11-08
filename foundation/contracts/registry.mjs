@@ -13,7 +13,7 @@ const freeze = value => {
 };
 // Explicit catalog: a supported definition requires a reviewed deployment,
 // not a table migration. Published versions remain semantically immutable.
-const definitions = ['contribution.v1'].map(ref => JSON.parse(readFileSync(new URL(`./lexicons/${ref}.json`, import.meta.url), 'utf8')));
+const definitions = ['contribution.v1', 'post.v1'].map(ref => JSON.parse(readFileSync(new URL(`./lexicons/${ref}.json`, import.meta.url), 'utf8')));
 for (const definition of definitions) checkSchema(definition.schema);
 export const lexicons = freeze(definitions.map(definition => ({
   ref: definition.ref,

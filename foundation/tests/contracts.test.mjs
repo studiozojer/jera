@@ -143,6 +143,13 @@ mutation probeOwnerMember(audience: audiences, principal: principal):
   assert(!(await operator.client.query('availableAudiences')).data.some(a => a.id === own.id));
 
   const envelope = { intent: intentId(), lexicon, audience: shared.id, parent: null, payload };
+  const simpleDefinition=lexicons.find(l=>l.ref==='post.v1');
+  assert.equal(simpleDefinition.digest,'357161d483360602f84ec47750d4f7cbcfa5d8ed6bcdb9d2a35fd97a5f1b2710','post.v1 is immutable');
+  const simpleLexicon={ref:simpleDefinition.ref,digest:simpleDefinition.digest};
+  const simple=(await owner.gateway.publishRecord({...envelope,intent:intentId(),lexicon:simpleLexicon,payload:{body:'A simple post ♍︎ ♍️'}})).result;
+  assert.deepEqual((await owner.client.readRecord(simple.id)).payload,{body:'A simple post ♍︎ ♍️'});
+  await refused(owner.gateway.publishRecord({...envelope,intent:intentId(),lexicon:simpleLexicon,payload:{body:'No purpose field',purpose:'request'}}),'INVALID_PAYLOAD');
+  await owner.client.mutate('deletePost',{id:simple.id});
   const publish = (person, changes = {}) => person.gateway.publishRecord({ ...envelope, ...changes });
   await refused(publish(owner, { author: outsider.did }), 'E_INPUT');
   await refused(publish(owner, { payload: { ...payload, purpose: 'execute' } }), 'INVALID_PAYLOAD');

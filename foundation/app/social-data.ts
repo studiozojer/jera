@@ -1,4 +1,4 @@
-import { type Composition, compositionError } from './composition.ts';
+import { type Composition, type Definition, newComposition, compositionError } from './composition.ts';
 // Durable local drafts and posting intents; authoritative records/ACLs live in Snapback.
 // The host filesystem is account+origin scoped. A network timeout never means sent.
 export type Mode = 'private' | 'public';
@@ -118,7 +118,7 @@ export async function beginDraft(request: Request, drafts: Drafts, mode: Mode, p
   },true);
 }
 
-export async function publish(request: Request, drafts: Drafts, mode: Mode, parent: string, revision: number, body?: string, composition?:Composition, publishRecord?:(envelope:unknown)=>Promise<any>) {
+export async function publish(request: Request, drafts: Drafts, mode: Mode, parent: string, revision: number, body?: string, composition?:Composition, publishRecord?:(envelope:unknown)=>Promise<any>, defaultDefinition?:Definition) {
   const scope = draftScope(mode, parent);
   // Seal the exact payload before sending. A retry after a lost response uses
   // the same intent, audience and bytes, even after a process restart.
@@ -152,11 +152,15 @@ export async function publish(request: Request, drafts: Drafts, mode: Mode, pare
       if (response.state !== 'sent' || !response.result?.id) throw new Error('Could not prepare your private audience. Your draft is kept.');
       audience=response.result.id;
     }
+    if (!draft.composition && defaultDefinition && mode === 'private') {
+      draft={...draft,composition:newComposition(defaultDefinition,audience!,draft.body)};
+      const invalid=compositionError(draft.composition!);if(invalid)throw new Error(invalid);
+    }
     const payload: Posting = {intent:draft.intent, body:draft.body, visibility:mode, audience, parent:parent||null, draftDevice:await drafts.device(), draftRevision:draft.cloudRevision||0, draftScope:scope,...(draft.composition?{composition:draft.composition}:{})};
     draft=await drafts.use(v => {
       const current=v.drafts[scope];
       if (!current || current.revision !== revision || current.body !== payload.body) throw new Error('The draft changed before posting.');
-      if (!current.sealed) {payload.draftRevision=current.cloudRevision||0;current.sealed=payload;}
+      if (!current.sealed) {payload.draftRevision=current.cloudRevision||0;current.composition=payload.composition;current.sealed=payload;}
       return current;
     },true);
   }

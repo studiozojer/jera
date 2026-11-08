@@ -1,0 +1,16 @@
+{
+  "ref": "post.v1",
+  "title": "Post",
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["body"],
+    "properties": {
+      "body": { "type": "string", "minLength": 1, "maxLength": 12000, "nonBlank": true }
+    }
+  },
+  "presentation": {
+    "bodyField": "body",
+    "fields": { "body": { "label": "Post", "control": "text" } }
+  }
+}

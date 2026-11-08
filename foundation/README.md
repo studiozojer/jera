@@ -1,5 +1,7 @@
 # Jera foundation
 
+**Simple Private posts — November 8:** David approves the simplified composer. The default Private writing policy now permits only body-only `post.v1`; Contribution is disabled there. Earlier unsealed structured drafts are retained privately before a simple copy is shown, preserving the original audience; sealed retries and historical posts are unchanged. [RECORDS.md](RECORDS.md) describes the lexicon and recovery boundary.
+
 **View/composer foundation — November 8:** the composer returns to simple Text writing, with audience selection outside it and lexicon choice downstream of the overall view. Existing Contribution drafts retain their original audience and editable fields. [VIEWS.md](VIEWS.md) describes the new portable definition, read-only Snapback/folder adapters and local observation CLI; generic view creation and app integration are next. [RECORDS.md](RECORDS.md) retains the trusted structured write boundary. This is local branch implementation, not production deployment or an autonomous operator.
 
 Latest delivery handoff: [November 6 checkpoint](CHECKPOINT.md), including deployed state, dependency patches, phone build and verification limits.

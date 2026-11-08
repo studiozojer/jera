@@ -14,11 +14,16 @@ import { lexicons } from '../contracts/registry.mjs';
 import { randomBytes } from 'node:crypto';
 import { createPublicIndexer, indexTransport } from '../auth/public-index.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
-const directory = await mkdtemp(join(tmpdir(), 'jera-browser-'));
-await mkdir(join(directory, 'snapback'));
-await copyFile(root + 'snapback/schema.q', join(directory, 'snapback/schema.q'));
+// A local preview can refresh the gateway while keeping its existing fixture
+// backend alive. Normal Exact tests always create and clean up their own store.
+const attached = process.env.JERA_FIXTURE_DIRECTORY;
+const directory = attached || await mkdtemp(join(tmpdir(), 'jera-browser-'));
+if (!attached) {
+  await mkdir(join(directory, 'snapback'));
+  await copyFile(root + 'snapback/schema.q', join(directory, 'snapback/schema.q'));
+}
 const port = Number(process.env.PORT ?? '4417'), upstream = `http://127.0.0.1:${port + 1}`;
-const child = spawn(`${root}node_modules/.bin/snapback4`, ['dev', '--port', String(port + 1), '--no-watch', '--unsafe-dev-doors'], { cwd: directory, stdio: 'inherit' });
+const child = attached ? null : spawn(`${root}node_modules/.bin/snapback4`, ['dev', '--port', String(port + 1), '--no-watch', '--unsafe-dev-doors'], { cwd: directory, stdio: 'inherit' });
 const store = new AuthStore(':memory:');
 let fixtureServiceToken;
 const callbacks = ['studio.zojer.jera.exact:/oauth'];
@@ -46,6 +51,9 @@ fetcher: async (url, options) => {
   return fetch(url, options);
 } });
 const server = createServer(async (req, res) => {
+  if (attached && (req.url === '/seed' || req.url.startsWith('/dev/'))) {
+    res.writeHead(403, {'content-type':'application/json'});res.end(JSON.stringify({error:'An attached preview cannot be reseeded.'}));return;
+  }
   // Test control only: recover a complete draft authored on another device.
   if (req.method === 'POST' && req.url === '/dev/structured-draft') {
     try {
@@ -118,6 +126,9 @@ const indexer = createPublicIndexer({
   },
 });
 const indexTimer = setInterval(() => indexer.tick().catch(() => {}), 200); indexTimer.unref();
-for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => { server.closeAllConnections(); server.close(); child.kill(signal); });
-child.on('error', error => { console.error(error.message); process.exitCode = 1; });
-child.on('exit', async code => { server.close(); store.close(); await rm(directory, { recursive: true, force: true }); process.exit(code ?? 0); });
+for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => {
+  clearInterval(indexTimer); server.closeAllConnections(); server.close();
+  if (child) child.kill(signal); else { store.close(); process.exit(0); }
+});
+child?.on('error', error => { console.error(error.message); process.exitCode = 1; });
+child?.on('exit', async code => { server.close(); store.close(); await rm(directory, { recursive: true, force: true }); process.exit(code ?? 0); });

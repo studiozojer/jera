@@ -30,7 +30,8 @@ export function editedComposition(previous:Composition, audience:string, body:st
   if(fields.length!==known.length || known.some(f=>!fields.some(v=>v.name===f.name))) throw new Error('The form changed. Your draft is kept.');
   for(const field of fields) payload[field.name]=field.control==='references'?field.references.map(r=>({uri:r.uri,...(r.revision?{revision:r.revision}:{})})):field.value;
   // JSON removes absent optional revisions; no user text is normalized.
-  return {...previous,audience,payload:JSON.parse(JSON.stringify(payload)),referenceIds:Object.fromEntries(fields.filter(f=>f.control==='references').map(f=>[f.name,f.references.map(r=>r.id)]))};
+  const referenceIds=Object.fromEntries(fields.filter(f=>f.control==='references').map(f=>[f.name,f.references.map(r=>r.id)]));
+  return {...previous,audience,payload:JSON.parse(JSON.stringify(payload)),...(Object.keys(referenceIds).length || previous.referenceIds ? {referenceIds} : {})};
 }
 export function compositionError(c:Composition):string {
   if(!c.audience)return 'Choose an audience.';

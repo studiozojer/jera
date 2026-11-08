@@ -29,11 +29,12 @@ test "ordinary writing inherits Private without configuration controls"
   expect text "composer" == "A simple thought ♍︎ ♍️"
   tap "post"
   clock settle
+  expect state published.message == ""
   expect state posts.length == 1
   expect state posts.0 .body == "A simple thought ♍︎ ♍️"
 
 
-test "an existing structured draft retains its context and fields"
+test "an earlier Contribution draft becomes simple writing without widening its audience"
   request POST "/dev/structured-draft" {}
   fail fetch "https://public.api.bsky.app/"
   type "handle" "owner.test"
@@ -45,29 +46,27 @@ test "an existing structured draft retains its context and fields"
   clock settle
   clock +1000
   clock data
-  expect state editorFormat == "contribution.v1"
+  expect state editorFormat == "post.v1"
   expect tree missing "composer-format"
   expect tree missing "composer-audience"
-  expect text "saved-audience" == "Only me"
-  expect state editorFields.0 .value == "reflect"
-  expect text "reference-0-uri" == "repo:notes/north-star.yao"
-  expect text "reference-0-revision" == "abc123"
-  type "field-purpose" "archive"
-  clock settle
+  expect tree missing "field-purpose"
+  expect tree missing "add-reference"
+  expect text "composer" == "A focused thought ♍︎ ♍️"
   tap "cancel"
   reload
   clock settle
   tap "feed-write"
   clock settle
-  expect state editorFields.0 .value == "archive"
-  expect text "reference-0-uri" == "repo:notes/north-star.yao"
-  screenshot ".exact/composer-recovered.png"
+  expect state editorFormat == "post.v1"
+  expect tree missing "field-purpose"
+  screenshot ".exact/composer-simple-post.png"
   tap "post"
   clock settle
+  expect state published.message == ""
   expect state posts.length == 1
-  expect state posts.0 .purpose == "archive"
+  expect state posts.0 .purpose == ""
   expect state posts.0 .audienceLabel == "Only me"
-  expect state posts.0 .references.0 .revision == "abc123"
+  expect state posts.0 .references.length == 0
   tap "reply"
   clock settle
   expect tree missing "field-purpose"

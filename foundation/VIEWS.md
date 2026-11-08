@@ -2,7 +2,11 @@
 
 A view supplies the context for reading and new writing. Audience selection belongs in view creation, outside the posting GUI. The view constrains which lexicons can be used and supplies a default; the chosen lexicon supplies its fields. `purpose` belongs only to `contribution.v1`, not to this contract or every post. “View” is the working name, pending product calibration.
 
-This increment implements a portable definition, two read-only source adapters, an evaluator and a local CLI. The generic definition does not yet drive the app's feed or composer. The app retains its existing Public/Private navigation and simple Text composer; earlier structured drafts retain their saved audience/lexicon and editable fields. View creation and an optional lexicon chooser within a configured view are later UI work. There is no general indexer factory, operator delivery queue or automatic publication here.
+This increment implements a portable definition, two read-only source adapters, an evaluator and a local CLI. The generic definition does not yet drive the app's feed or composer. The app retains its existing Public/Private navigation and simple body editor; earlier structured drafts are privately retained before a body-only copy is shown, with the same audience. View creation and an optional lexicon chooser within a configured view are later UI work. There is no general indexer factory, operator delivery queue or automatic publication here.
+
+## Default Private policy
+
+`contracts/views/private.v1.json` is the first authored default: one logical Snapback source, inclusive authorized reads and body-only `post.v1` as its sole permitted/default writing lexicon. The app consumes this policy/definition for private draft preparation and publication. It still uses its existing feed query and resolves the shared Private audience or inherited reply audience through existing operations; generic source evaluation and a view-creation interface remain separate. Contribution stays available to historical records and other explicitly configured views. [RECORDS.md](RECORDS.md) explains preservation of earlier structured drafts and sealed retries.
 
 ## Portable definition
 

@@ -601,9 +601,9 @@ component App
               Button(controlId="back", label="Cancel", kind="ghost", size="medium", icon=none, disabled=pending(published), busy=false, press=dismiss, testId="cancel")
               text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
               Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(mode == "public" or draft.trim() == "" or pending(experienceChanged) or not draftReady or not audienceReady), busy=pending(published), press=post, testId="post")
-            if mode == "private" and editorFormat == "text"
+            if mode == "private" and (editorFormat == "text" or editorFormat == "post.v1")
               text "Private" class=WhyteXs color="tx.secondary" aria-label="Writing in Private" testId="reply-private-only"
-            if editorFormat != "text" and draftReady
+            if editorFormat != "text" and editorFormat != "post.v1" and draftReady
               column gap=spaceSm() width="100%" max-width="44rem" align-self="center" testId="composition-settings"
                 text editorFormat class=WhyteXs color="tx.secondary" testId="saved-format"
                 if audienceReady
@@ -649,7 +649,7 @@ component App
                   text `Replying to ${recipient.author}` color="tx.secondary" class=WhyteXs testId="reply-recipient"
                   text recipient.body class=WhyteSm white-space="pre-wrap" line-clamp=3 testId="reply-context"
             textarea id="composer" maxlength=12000 disabled=(pending(experienceChanged) or pending(published) or pendingDraft or not draftReady) value=draft input=edit placeholder=(replyTo == "" ? "What's on your mind?" : "Continue the conversation…") aria-label=(replyTo == "" ? "Write a post" : "Write a reply") testId="composer" outline="none" rows=8 min-height=224 width="100%" box-sizing="border-box" padding-top=spaceSm() padding-bottom=spaceSm() border-width=0 background-color="transparent" color="tx.primary" font-family="Whyte" class=WhyteSm resize="none"
-            if editorFormat != "text" and draftReady
+            if editorFormat != "text" and editorFormat != "post.v1" and draftReady
               column gap=spaceMd() width="100%" max-width="44rem" align-self="center"
                 for field in editorFields key=field.name
                   if field.control == "references"
