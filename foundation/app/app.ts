@@ -3,7 +3,7 @@ import { Snapback, refused } from './snapback4/snapback.ts';
 import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile } from './account-profile.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
-import { formFields, newComposition, editedComposition, type Definition, type Field } from './composition.ts';
+import { formFields, editedComposition, type Field } from './composition.ts';
 import { accountExperience } from './experience-store.ts';
 import { loadPublicIndex, publicPresentation, publicParentGaps } from './public-data.ts';
 import { earlierPublicDrafts, copyEarlierPublicDraft } from './earlier-drafts.ts';
@@ -16,11 +16,12 @@ function storageKey(value: string): string {
   if (value === 'http://127.0.0.1:4417') return 'jera-http-127.0.0.1-4417';
   // A second explicit fixture binding permits isolated worktree verification.
   if (value === 'http://127.0.0.1:4437') return 'jera-http-127.0.0.1-4437';
+  if (value === 'http://127.0.0.1:4457') return 'jera-http-127.0.0.1-4457';
   throw new Error('Unconfigured Jera backend: add an origin-specific storage key and grant before using it.');
 }
 const sessionKey = storageKey(origin) + '-atproto-v1';
 const pendingKey = sessionKey + '-login';
-export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
+export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
 
 function randomToken(): string {
   return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -84,53 +85,25 @@ async function postProfile(principal:string,storage:Storage,now:number){
   profileCache.set(principal,{at:now,profile});return profile;
 }
 function draftEnvelope(principal:string,scope:string,draft:Awaited<ReturnType<Drafts['get']>>){return{principal,scope,body:draft.body,revision:draft.revision,pendingMode:draft.sealed?.visibility||'',format:draft.composition?.lexicon.ref||'text',audienceId:draft.composition?.audience||'',fields:draft.composition?formFields(draft.composition):[]};}
-async function catalog(db:Snapback,store:Store,principal:string):Promise<Definition[]> {
-  actor(store,principal);const raw=store.get(sessionKey);
-  const response=await fetch(`${origin}/records/lexicons`,{headers:{authorization:`Bearer ${db.session?.token}`},exactTimeout:15000});
-  const result=await response.json();
-  if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed.');
-  if(!response.ok||!Array.isArray(result.lexicons))reject('E_NETWORK','Could not load writing formats.');
-  return result.lexicons;
-}
 async function editedDraft(local:Drafts,scope:string,audience:string,body:string,fields:Field[]){
   const saved=await local.get(scope);
   return saved.composition?editedComposition(saved.composition,audience,body,fields):undefined;
 }
 const sources: Sources = {
-  loadComposerOptions: async ([principal,active,parent,now,browser],store,storage,native) => {
-    if(!active||!isActor(store,principal))return {principal:'',formats:[],audiences:[]};
+  loadWritingContext: async ([principal,active,audienceId,parent,now,browser],store,storage,native) => {
+    const unavailable={principal,audienceId,audienceLabel:'',available:false};
+    if(!active||!audienceId||!isActor(store,principal))return unavailable;
     return using(store,storage,native,now,browser,async db=>{
-      const definitions=await catalog(db,store,principal);
       const request=transport(db,store,principal);
       const all=await allRows(request,'availableAudiences');
-      const parentPost=parent?(await request('q','postById',{id:parent})).data:null;
-      const audiences=all.filter(a=>parentPost?.visibility==='private'?a.id===parentPost.audience:a.owner===principal).sort((a,b)=>a.name.localeCompare(b.name));
-      return {principal,formats:[{value:'text',label:'Text'},...definitions.map(d=>({value:d.ref,label:d.definition.title}))],audiences:audiences.map(a=>({value:a.id,label:a.kind==='owner'?(a.name==='Only me'?'Only me':`${a.name} · only you`):`${a.name} · shared`}))};
+      const parentResult=parent?await request('q','postById',{id:parent}):null;
+      if(parentResult && (!parentResult.complete || !parentResult.data || parentResult.data.deleted))return unavailable;
+      const parentPost=parentResult?.data;
+      const audience=all.find(a=>a.id===audienceId && (parentPost?.visibility==='private'?a.id===parentPost.audience:a.owner===principal));
+      if(!audience)return unavailable;
+      return {principal,audienceId,audienceLabel:audience.kind==='owner'?(audience.name==='Only me'?'Only me':`${audience.name} · only you`):`${audience.name} · shared`,available:true};
     });
   },
-  changeFormat: async ([principal,mode,parent,context,format,body,revision,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
-    const local=draftsFor(store,storage,principal), scope=draftScope(mode as Mode,parent), request=transport(db,store,principal);
-    const old=await local.get(scope);
-    if(old.sealed)throw new Error('Confirm the pending post before changing its format.');
-    let composition=old.composition?.lexicon.ref===format?old.composition:old.alternatives?.[format];
-    if(format!=='text' && !composition){
-      const selected=(await catalog(db,store,principal)).find(d=>d.ref===format);
-      if(!selected)throw new Error('This format is no longer available. Your draft is kept.');
-      let audience='';
-      if(parent){const p=(await request('q','postById',{id:parent})).data;if(!p||p.deleted)throw new Error('The original post is unavailable.');audience=p.audience||'';}
-      if(!audience){const a=await request('m','createAudience',{name:'Only me',kind:'owner'},newIntent());if(a.state!=='sent')throw new Error('Could not create your owner-only audience.');audience=a.result.id;}
-      const shared=await request('m','ensureAudience',{},newIntent());if(shared.state!=='sent')throw new Error('Could not load your shared audience.');
-      composition=newComposition(selected,audience,body);
-    }
-    if(composition)composition={...composition,payload:{...composition.payload,[composition.definition.presentation.bodyField]:body}};
-    const saved=await local.use(v=>{
-      const current=v.drafts[scope];
-      if(current?.sealed || (current?.revision||0)>=revision)throw new Error('Your draft changed. Try changing the format again.');
-      const alternatives={...current?.alternatives};if(current?.composition)alternatives[current.composition.lexicon.ref]=current.composition;
-      return v.drafts[scope]={...(current||old),body,revision,composition:format==='text'?undefined:composition,alternatives};
-    },true);
-    actor(store,principal);return {...draftEnvelope(principal,scope,saved),context};
-  }),
   experienceSnapshot: async ([principal],store,storage) => {
     if(!isActor(store,principal))return {principal:'',mode:'private',revision:0};
     try {const state=(await experienceFor(store,storage,principal)).getSnapshot();return isActor(store,principal)?{principal,...state}:{principal:'',mode:'private',revision:0};}

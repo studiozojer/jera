@@ -112,10 +112,11 @@ shape Audience
   principal: string
   id: string
   members: AudienceMember[]
-shape ComposerOptions
+shape WritingContext
   principal: string
-  formats: FieldOption[]
-  audiences: FieldOption[]
+  audienceId: string
+  audienceLabel: string
+  available: bool
 
 shape EarlierDraft
   id: string
@@ -231,9 +232,8 @@ component App
   state editorFormat = "text"
   state editorAudience = ""
   state editorFields: ComposerField[] = []
-  resource composerOptions = loadComposerOptions(account.principal, top(nav).name == "compose", replyTo, dataNow, page.navigationType != "") as shape ComposerOptions else empty()
-  mutation formatChanged as shape OpenedDraft refreshes composerOptions then afterFormatChange
-  derive audienceReady = editorFormat == "text" or (composerOptions.principal == account.principal and not failed(composerOptions) and composerOptions.audiences.filter(a => a.value == editorAudience).length == 1)
+  resource writingContext = loadWritingContext(account.principal, top(nav).name == "compose", editorAudience, replyTo, dataNow, page.navigationType != "") as shape WritingContext else empty()
+  derive audienceReady = editorFormat == "text" or (writingContext.principal == account.principal and writingContext.audienceId == editorAudience and not failed(writingContext) and writingContext.available)
   state editorText = ""
   state editRevision = 0
   state editorPendingMode = ""
@@ -265,7 +265,7 @@ component App
   mutation draftSaved as shape SavedDraft queue
   mutation cloudSynced as shape CloudDraft then afterCloudSync
   mutation draftsSynced as shape Ack
-  task syncEditingDraft when top(nav).name == "compose" and account.principal != "" and editorContext == editorKey and draftReady and not pending(draftSaved) and not pending(published) and not pending(formatChanged) and not pendingDraft key=`${editorKey}|${editRevision}`
+  task syncEditingDraft when top(nav).name == "compose" and account.principal != "" and editorContext == editorKey and draftReady and not pending(draftSaved) and not pending(published) and not pendingDraft key=`${editorKey}|${editRevision}`
     after(800, syncCurrentDraft)
   action syncCurrentDraft
     send cloudSynced = syncDraft(account.principal, mode, replyTo, editorKey, time.epochAtZero + performanceNow(), page.navigationType != "")
@@ -348,26 +348,6 @@ component App
       editorText = value
       editRevision = revision
       send draftSaved = saveDraft(account.principal, mode, replyTo, value, revision, editorAudience, editorFields)
-  action chooseFormat(value: string)
-    if value != editorFormat and draftReady and not pendingDraft and not pending(published) and not pending(formatChanged)
-      send formatChanged = changeFormat(account.principal, mode, replyTo, editorKey, value, editorText, editRevision + 1, time.epochAtZero + performanceNow(), page.navigationType != "")
-  action afterFormatChange
-    match formatChanged
-      case some(result)
-        if result.context == editorKey and result.principal == account.principal
-          editorFormat = result.format
-          editorAudience = result.audienceId
-          editorFields = result.fields
-          editorText = result.body
-          editRevision = result.revision
-      case none
-        editorContext = editorContext
-  action chooseAudience(value: string)
-    if draftReady and not privateReply and not pendingDraft and not pending(published)
-      editorAudience = value
-      let revision = editRevision + 1
-      editRevision = revision
-      send draftSaved = saveDraft(account.principal, mode, replyTo, editorText, revision, value, editorFields)
   action editField(name: string, value: string)
     let fields = editorFields.map(f => f.name == name ? ComposerField(f, value=value) : f)
     editorFields = fields
@@ -620,30 +600,21 @@ component App
             row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
               Button(controlId="back", label="Cancel", kind="ghost", size="medium", icon=none, disabled=pending(published), busy=false, press=dismiss, testId="cancel")
               text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
-              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(mode == "public" or draft.trim() == "" or pending(experienceChanged) or not draftReady or pending(formatChanged) or not audienceReady), busy=pending(published), press=post, testId="post")
-            if privateReply or mode == "private"
-              text "Private" class=WhyteXs color="tx.secondary" aria-label="Reply visibility: Private" testId="reply-private-only"
-            else
-              ExperienceModeControl(idPrefix="experience", label="Post visibility", mode=mode, change=selectExperience, disabled=(not draftReady or pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
-            if mode == "private" and draftReady
+              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(mode == "public" or draft.trim() == "" or pending(experienceChanged) or not draftReady or not audienceReady), busy=pending(published), press=post, testId="post")
+            if mode == "private" and editorFormat == "text"
+              text "Private" class=WhyteXs color="tx.secondary" aria-label="Writing in Private" testId="reply-private-only"
+            if editorFormat != "text" and draftReady
               column gap=spaceSm() width="100%" max-width="44rem" align-self="center" testId="composition-settings"
-                if composerOptions.principal == account.principal
-                  FieldPicker(label="Format", value=editorFormat, options=composerOptions.formats, disabled=(pendingDraft or pending(published) or pending(formatChanged)), change=chooseFormat, testId="composer-format")
-                if failed(composerOptions)
-                  text "Formats and audiences are unavailable. Your saved draft is kept." class=WhyteXs color="tx.secondary" role="status"
-                if failed(formatChanged)
-                  text (match failure(formatChanged) { case some(f) => f.message, case none => "Couldn’t change format. Your draft is kept." }) class=WhyteXs color="tx.secondary" role="status" testId="format-error"
-                if editorFormat != "text"
-                  FieldPicker(label="Audience", value=editorAudience, options=composerOptions.audiences, disabled=(privateReply or pendingDraft or pending(published) or pending(formatChanged)), change=chooseAudience, testId="composer-audience")
-                  if not audienceReady
-                    text "Reconnect or choose an available audience before posting. Your saved audience is kept." class=WhyteXs color="tx.secondary" role="status"
-                  if privateReply
-                    text "Replies stay with the original audience." class=WhyteXs color="tx.secondary"
-                  for field in editorFields key=field.name
-                    if field.control == "select"
-                      FieldPicker(label=field.label, value=field.value, options=field.options, disabled=(pendingDraft or pending(published) or pending(formatChanged)), change=editField(field.name), testId=`field-${field.name}`)
-                    if field.control == "text"
-                      FieldText(label=field.label, value=field.value, hint="", error="", placeholder="", disabled=(pendingDraft or pending(published) or pending(formatChanged)), edit=editField(field.name), submit=saveCurrentDraft, testId=`field-${field.name}`)
+                text editorFormat class=WhyteXs color="tx.secondary" testId="saved-format"
+                if audienceReady
+                  text writingContext.audienceLabel class=WhyteXs color="tx.secondary" testId="saved-audience"
+                else
+                  text "This draft’s audience is unavailable. Your draft is kept." class=WhyteXs color="tx.secondary" role="status"
+                for field in editorFields key=field.name
+                  if field.control == "select"
+                    FieldPicker(label=field.label, value=field.value, options=field.options, disabled=(pendingDraft or pending(published)), change=editField(field.name), testId=`field-${field.name}`)
+                  if field.control == "text"
+                    FieldText(label=field.label, value=field.value, hint="", error="", placeholder="", disabled=(pendingDraft or pending(published)), edit=editField(field.name), submit=saveCurrentDraft, testId=`field-${field.name}`)
             if mode == "public"
               text "Public posting is not available in Jera yet. This draft is kept." class=WhyteXs color="tx.secondary" role="status"
             if not draftReady and not failed(openedDraft)
@@ -677,7 +648,7 @@ component App
                 column gap=spaceSm() border-left="1px solid bd.primary" padding-left=spaceMd()
                   text `Replying to ${recipient.author}` color="tx.secondary" class=WhyteXs testId="reply-recipient"
                   text recipient.body class=WhyteSm white-space="pre-wrap" line-clamp=3 testId="reply-context"
-            textarea id="composer" maxlength=12000 disabled=(pending(experienceChanged) or pending(published) or pendingDraft or not draftReady or pending(formatChanged)) value=draft input=edit placeholder=(replyTo == "" ? "What's on your mind?" : "Continue the conversation…") aria-label=(replyTo == "" ? "Write a post" : "Write a reply") testId="composer" outline="none" rows=8 min-height=224 width="100%" box-sizing="border-box" padding-top=spaceSm() padding-bottom=spaceSm() border-width=0 background-color="transparent" color="tx.primary" font-family="Whyte" class=WhyteSm resize="none"
+            textarea id="composer" maxlength=12000 disabled=(pending(experienceChanged) or pending(published) or pendingDraft or not draftReady) value=draft input=edit placeholder=(replyTo == "" ? "What's on your mind?" : "Continue the conversation…") aria-label=(replyTo == "" ? "Write a post" : "Write a reply") testId="composer" outline="none" rows=8 min-height=224 width="100%" box-sizing="border-box" padding-top=spaceSm() padding-bottom=spaceSm() border-width=0 background-color="transparent" color="tx.primary" font-family="Whyte" class=WhyteSm resize="none"
             if editorFormat != "text" and draftReady
               column gap=spaceMd() width="100%" max-width="44rem" align-self="center"
                 for field in editorFields key=field.name
@@ -686,10 +657,10 @@ component App
                       text field.label class=WhyteXs color="tx.secondary"
                       for ref, i in field.references key=ref.id
                         column gap=spaceSm()
-                          FieldText(label="Source", value=ref.uri, hint="", error="", placeholder="Link or source identifier", disabled=(pendingDraft or pending(published) or pending(formatChanged)), edit=editReference(field.name, i, "uri"), submit=saveCurrentDraft, testId=`reference-${i}-uri`)
-                          FieldText(label="Revision (optional)", value=ref.revision, hint="", error="", placeholder="", disabled=(pendingDraft or pending(published) or pending(formatChanged)), edit=editReference(field.name, i, "revision"), submit=saveCurrentDraft, testId=`reference-${i}-revision`)
-                          Button(controlId="", label="Remove reference", kind="ghost", size="medium", icon=none, disabled=(pendingDraft or pending(published) or pending(formatChanged)), busy=false, press=removeReference(field.name, i), testId=`remove-reference-${i}`)
-                      Button(controlId="", label="Add reference", kind="ghost", size="medium", icon=none, disabled=(field.references.length >= field.maxItems or pendingDraft or pending(published) or pending(formatChanged)), busy=false, press=addReference(field.name), testId="add-reference")
+                          FieldText(label="Source", value=ref.uri, hint="", error="", placeholder="Link or source identifier", disabled=(pendingDraft or pending(published)), edit=editReference(field.name, i, "uri"), submit=saveCurrentDraft, testId=`reference-${i}-uri`)
+                          FieldText(label="Revision (optional)", value=ref.revision, hint="", error="", placeholder="", disabled=(pendingDraft or pending(published)), edit=editReference(field.name, i, "revision"), submit=saveCurrentDraft, testId=`reference-${i}-revision`)
+                          Button(controlId="", label="Remove reference", kind="ghost", size="medium", icon=none, disabled=(pendingDraft or pending(published)), busy=false, press=removeReference(field.name, i), testId=`remove-reference-${i}`)
+                      Button(controlId="", label="Add reference", kind="ghost", size="medium", icon=none, disabled=(field.references.length >= field.maxItems or pendingDraft or pending(published)), busy=false, press=addReference(field.name), testId="add-reference")
         if entry.name == "account"
           // UIKit owns the sheet, including its safe area and interactive dismissal.
           // Web uses the dao-panel adapter for the same compact/regular presentation.

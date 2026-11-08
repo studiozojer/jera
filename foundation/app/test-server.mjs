@@ -9,6 +9,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AuthStore } from '../auth/store.mjs';
 import { createHandler, digest } from '../auth/service.mjs';
+import { JeraClient, intentId } from '../scripts/client.mjs';
+import { lexicons } from '../contracts/registry.mjs';
 import { randomBytes } from 'node:crypto';
 import { createPublicIndexer, indexTransport } from '../auth/public-index.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -44,6 +46,22 @@ fetcher: async (url, options) => {
   return fetch(url, options);
 } });
 const server = createServer(async (req, res) => {
+  // Test control only: recover a complete draft authored on another device.
+  if (req.method === 'POST' && req.url === '/dev/structured-draft') {
+    try {
+      const token=execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'atproto-auth'], {cwd:directory,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+      const service=new JeraClient(upstream,token);
+      const {session}=await service.request('/auth/session',{principal:'did:plc:'+'a'.repeat(24),days:1});
+      const owner=new JeraClient(upstream,session.token);
+      const audience=(await owner.mutate('createAudience',{name:'Only me',kind:'owner'})).result.id;
+      const {ref,digest,definition}=lexicons[0];
+      const body='A focused thought ♍︎ ♍️';
+      const composition={lexicon:{ref,digest},audience,definition,payload:{purpose:'reflect',body,references:[{uri:'repo:notes/north-star.yao',revision:'abc123'}]}};
+      await owner.mutate('saveStructuredDraft',{deviceKey:intentId(),scope:'root:private',body,compositionJson:JSON.stringify({composition,alternatives:{}}),revision:7});
+      res.writeHead(200,{'content-type':'application/json'});res.end('{}');
+    } catch {res.writeHead(500);res.end('Fixture setup failed.');}
+    return;
+  }
   if (req.url.startsWith('/oauth/') || req.url.startsWith('/records/') || req.url === '/auth/refresh') {
     // Discovery runs before /oauth/start. Admit only the ephemeral loopback
     // test carrier here; production keeps its explicit callback allowlist.

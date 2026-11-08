@@ -1,6 +1,6 @@
 # Jera foundation
 
-**Structured-post foundation — November 8:** [RECORDS.md](RECORDS.md) describes the first internal lexicon, validated post envelope, owner-only/shared audiences and authenticated API/CLI. Existing posts and drafts retain their paths. The composer now offers Contribution: choose an audience, purpose and optional references from the versioned definition, with complete private draft recovery. Text remains available for existing writing. Feed adapters and the autonomous operator are subsequent milestones; this is branch implementation, not a production deployment.
+**View/composer foundation — November 8:** the composer returns to simple Text writing, with audience selection outside it and lexicon choice downstream of the overall view. Existing Contribution drafts retain their original audience and editable fields. [VIEWS.md](VIEWS.md) describes the new portable definition, read-only Snapback/folder adapters and local observation CLI; generic view creation and app integration are next. [RECORDS.md](RECORDS.md) retains the trusted structured write boundary. This is local branch implementation, not production deployment or an autonomous operator.
 
 Latest delivery handoff: [November 6 checkpoint](CHECKPOINT.md), including deployed state, dependency patches, phone build and verification limits.
 
