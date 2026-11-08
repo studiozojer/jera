@@ -4,6 +4,8 @@ Jera uses existing ATproto accounts. The native app accepts a handle or DID and 
 
 The server issues a Snapback session whose principal is the verified DID. There is no email mapping, new user table, password signup or guest login. Snapback remains the authoritative private application store.
 
+The service also mounts the authenticated `/records/lexicons` and `/records/publish` endpoints described in [RECORDS.md](../RECORDS.md). It validates versioned application payloads and commits them with the existing server-only credential; Snapback rechecks the bound author's current audience permissions. Deploy the service together with its `contracts/` and `scripts/client.mjs` dependencies and the corresponding schema/Caddy route changes. The browser/CLI never receives that credential.
+
 ## Account discovery
 
 The sign-in field offers suggestions after two characters and a 250 ms pause. `/oauth/accounts` combines Bluesky's public `app.bsky.actor.searchActorsTypeahead` index with a small cached directory of public accounts on `JERA_PDS_ORIGIN` (default `https://pds.jera.ink`). Search text is sent to Bluesky; this does not send drafts or authenticate an account. There is no separate network indexer or persistent account table.

@@ -1,5 +1,9 @@
 # Jera's product contract
 
+## Structured application posts — November 8 direction
+
+David accepts a small feed definition, stable post envelope with experimental versioned payloads, and an operator loop of receiving, understanding, choosing a response/proposal, checking the mandate, acting, verifying and retaining the outcome. He authorizes the first roadmap milestone: structured posting with separate owner-only/shared audiences and the same trusted validation for app and agent writes. The application lexicon is internal to Snapback; ATproto publication remains deferred. Read [RECORDS.md](RECORDS.md) for the implemented write boundary, encoding, compatibility and validation evidence. This first milestone is API/CLI infrastructure; the generated composer, feed adapters, autonomous operator and provenance receipts remain later work. “The reply is the conversational result; the provenance is a linked, inspectable record of the work” is accepted direction for that later loop.
+
 This is the current acceptance contract, based on David's direction, his authentication correction on 2026-10-31 and his simple-social-loop clarification on 2026-11-01. Earlier agent-authored plans that deferred ATproto identity are superseded. Keep implementation evidence separate from decisions about what Jera is.
 
 ## Own-posts Public index — November 7 direction
@@ -57,7 +61,7 @@ Drafts remain private until explicit posting. Posting here means contribution to
 
 Start with explicit private drafts. Snapback is the authoritative store for captured ideas, shared private armillary modules and most application data during the initial UX iterations. It is not merely an index of PDS records. User input does not go onto ATproto in this phase. Sharing inside Jera follows backend module permissions; capture itself does not authorize broader sharing or publication.
 
-ATproto supplies existing-account authorization and verified DID identity now. Lexicons, PDS storage and permissioned ATproto storage are deferred until the UX makes the record shapes clearer. Their absence is accepted initial scope, not a foundation defect. Do not gate private capture on designing public records or implement automatic publication/migration.
+ATproto supplies existing-account authorization and verified DID identity now. ATproto lexicons, PDS storage and permissioned ATproto storage are deferred until the UX makes the record shapes clearer. Their absence is accepted initial scope, not a foundation defect. The November 8 application lexicons in RECORDS.md evolve Snapback records independently. Do not gate private capture on designing public records or implement automatic publication/migration.
 
 Future publication requires an explicit user action and its own record/visibility design. Preserve source text, attribution and stable internal IDs so that design can evolve without pretending today's backend records already have AT URIs. Check current permissioned-data capabilities before a future integration; a membership check cannot make a public PDS record private.
 
@@ -71,7 +75,7 @@ Keep protocol integration evidence separate from backend tests, compilation, ins
 
 ## Current implementation and acceptance status
 
-The app now authorizes an existing ATproto account through the official OAuth SDK, and the server mints Snapback sessions with the verified DID as principal. Password/guest signup is disabled. Its lack of Jera lexicons and PDS writes matches the clarified initial scope. Real-backend and handoff tests pass; browser tests simulate the provider explicitly. Production discovery/PAR reaches the real authorization UI. David reported successful real-account phone login and arrival at the signed-in screen on 2026-11-01. This is account-holder evidence of login and callback completion; relaunch, verified-DID review and the private-capture journey remain separate acceptance checks.
+The app authorizes an existing ATproto account through the official OAuth SDK, and the server mints Snapback sessions with the verified DID as principal. Password/guest signup is disabled. ATproto record writes remain outside the clarified initial scope; the November 8 branch adds internal application lexicons through RECORDS.md. Real-backend and handoff tests pass; browser tests simulate the provider explicitly. Production discovery/PAR reaches the real authorization UI. David reported successful real-account phone login and arrival at the signed-in screen on 2026-11-01. This is account-holder evidence of login and callback completion; relaunch, verified-DID review and the private-capture journey remain separate acceptance checks.
 
 Legacy backend records and local password-era files remain preserved, without email-to-DID reassignment. Old password sessions were revoked; new app credentials and drafts use a separate versioned namespace. Retain useful capture, membership, queue, build and deployment work. Do not reset production or infer ownership from an email/handle match.
 

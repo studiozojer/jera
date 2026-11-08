@@ -44,7 +44,7 @@ fetcher: async (url, options) => {
   return fetch(url, options);
 } });
 const server = createServer(async (req, res) => {
-  if (req.url.startsWith('/oauth/') || req.url === '/auth/refresh') {
+  if (req.url.startsWith('/oauth/') || req.url.startsWith('/records/') || req.url === '/auth/refresh') {
     // Discovery runs before /oauth/start. Admit only the ephemeral loopback
     // test carrier here; production keeps its explicit callback allowlist.
     if (typeof req.headers.origin === 'string') {

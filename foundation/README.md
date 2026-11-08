@@ -1,5 +1,7 @@
 # Jera foundation
 
+**Structured-post foundation — November 8:** [RECORDS.md](RECORDS.md) describes the first internal lexicon, validated post envelope, owner-only/shared audiences and authenticated API/CLI. Existing posts and drafts retain their paths. The generated composer and autonomous operator are subsequent milestones; this is branch implementation, not a production deployment.
+
 Latest delivery handoff: [November 6 checkpoint](CHECKPOINT.md), including deployed state, dependency patches, phone build and verification limits.
 
 **Public index implementation — November 7:** the new [own-posts Public reader](PUBLIC-INDEX.md) stores a rebuildable Bluesky index in Snapback, with a bounded PDS polling worker in the identity service. It reads the signed-in DID’s top-level posts and self-authored continuations. Public is read-only in this slice; private posting remains available. This is implementation/review state, not evidence that the deployed November 6 client has changed. The dated delivery notes below describe that earlier release.

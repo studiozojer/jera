@@ -260,9 +260,10 @@ mutation removeObsoletePublicRecord(id: publicIndexRecords): server
 table audiences:
   owner: principal
   name: text 1..80
+  kind: enum('owner', 'shared') default 'shared'
   unique owner, name
-  immutable owner, name
-  read <- .owner = viewer or exists audienceMembers[.id, viewer]
+  immutable owner, name, kind
+  read <- .owner = viewer or exists audienceMembers[.id, viewer] or viewer = 'service:atproto-auth'
   insert <- .owner = viewer
   online only
 
@@ -274,9 +275,9 @@ table audienceMembers:
   unique audience, principal
   cap 500 by audience
   immutable audience, principal, owner
-  read <- .owner = viewer or .principal = viewer
-  insert <- exists audiences[.audience, owner = viewer] and .owner = viewer
-  update <- exists audiences[.audience, owner = viewer]
+  read <- .owner = viewer or .principal = viewer or viewer = 'service:atproto-auth'
+  insert <- exists audiences[.audience, owner = viewer, kind = 'shared'] and .owner = viewer
+  update <- exists audiences[.audience, owner = viewer, kind = 'shared']
   delete <- exists audiences[.audience, owner = viewer]
   online only
 
@@ -285,16 +286,19 @@ table posts:
   intent: text 26..26
   unique author, intent
   body: text <=12000
+  lexicon: text 1..200 ?
+  lexiconDigest: text 64..64 ?
+  payloadJson: text 1..65536 ?
   deleted: bool default false
   visibility: enum('public', 'private')
   audience: audiences ?
   parent: posts ?
   root: posts ?
   at: time default now
-  immutable author, intent, visibility, audience, parent, root, at
-  read <- .visibility = 'public' or exists audiences[.audience, owner = viewer] or exists audienceMembers[.audience, viewer]
-  insert <- .author = viewer and not .deleted and .body != ''
-  update (old, next) <- old.author = viewer and next.deleted and next.body = ''
+  immutable author, intent, visibility, audience, parent, root, at, lexicon, lexiconDigest
+  read <- .visibility = 'public' or exists audiences[.audience, owner = viewer] or exists audienceMembers[.audience, viewer] or viewer = 'service:atproto-auth'
+  insert <- not .deleted and .body != '' and ((.author = viewer and .lexicon = null and .lexiconDigest = null and .payloadJson = null) or (viewer = 'service:atproto-auth' and .lexicon != null and .lexiconDigest != null and .payloadJson != null and .visibility = 'private' and .audience != null))
+  update (old, next) <- old.author = viewer and next.deleted and next.body = '' and next.payloadJson = null
   online only
 
 -- Unpublished drafts never share the posted audience. Each device keeps a
@@ -335,6 +339,15 @@ query postForIntent(intent: text 26..26):
   return posts[author = viewer, intent = intent]
 query audienceList():
   return audiences where .owner = viewer and .name = 'Private' first 1 by .id
+query availableAudiences(c: cursor ?):
+  return audiences first 100 by .id after c
+mutation createAudience(name: text 1..80, kind: enum('owner', 'shared')):
+  require trim(name) != '' else EMPTY_AUDIENCE_NAME
+  require name != 'Private' else RESERVED_AUDIENCE_NAME
+  insert audiences { owner: viewer, name, kind } if absent
+  a = audiences[owner = viewer, name = name] ! else AUDIENCE_UNAVAILABLE
+  require a.kind = kind else AUDIENCE_KIND_CONFLICT
+  return a
 query audienceMembersList(audience: audiences, c: cursor ?):
   require exists audiences[audience, owner = viewer] else NOT_OWNER
   return audienceMembers where .audience = audience and .owner = viewer first 100 by .principal after c
@@ -343,6 +356,7 @@ mutation ensureAudience():
   return audiences[owner = viewer, name = 'Private'] ! else AUDIENCE_UNAVAILABLE
 mutation setAudienceMember(audience: audiences, principal: principal, access: enum('read', 'reply')):
   require exists audiences[audience, owner = viewer] else NOT_OWNER
+  require exists audiences[audience, kind = 'shared'] else OWNER_ONLY_AUDIENCE
   require principal != viewer else OWNER_MEMBERSHIP
   return upsert audienceMembers[audience, principal] { owner: viewer, access }
 mutation removeAudienceMember(audience: audiences, principal: principal):
@@ -355,12 +369,13 @@ mutation removeAudienceMember(audience: audiences, principal: principal):
 mutation deletePost(id: posts):
   -- The named update rule authorizes the old author, including when a private
   -- audience has revoked their read access. No hidden content is returned.
-  update posts[id] { body: '', deleted: true }
+  update posts[id] { body: '', payloadJson: null, deleted: true }
   return { id, deleted: true }
 mutation publishPost(intent: text 26..26, body: text 1..12000, visibility: enum('public', 'private'), audience: audiences ?, parent: posts ?, draftDevice: text 26..26 ?, draftRevision: int 0..9007199254740991 ?, draftScope: text 1..200 ?):
   require trim(body) != '' else EMPTY_POST
   prior = posts[author = viewer, intent = intent]
   if prior != null:
+    require prior.lexicon = null else INTENT_REUSE
     require (prior.deleted or prior.body = body) and prior.visibility = visibility and prior.audience = audience and prior.parent = parent else INTENT_REUSE
     return prior
   root = null
@@ -384,3 +399,28 @@ mutation publishPost(intent: text 26..26, body: text 1..12000, visibility: enum(
     if draft = null or (draft.revision <= draftRevision and draft.body = body):
       upsert socialDrafts[owner = viewer, deviceKey = draftDevice, scope = draftScope] { owner: viewer, deviceKey: draftDevice, scope: draftScope, body: '', revision: draftRevision + 1, at: now }
   return posted
+
+-- The authenticated gateway validates the exact lexicon and payload before
+-- calling this mutation. User sessions cannot supply arbitrary structured JSON.
+-- The service rechecks record/audience permissions atomically for the bound DID.
+mutation commitStructuredPost(author: principal, intent: text 26..26, audience: audiences, parent: posts ?, lexicon: text 1..200, lexiconDigest: text 64..64, payloadJson: text 1..65536, body: text 1..12000): server
+  require viewer = 'service:atproto-auth' else RECORD_GATEWAY_REQUIRED
+  require trim(body) != '' else EMPTY_POST
+  a = audiences[audience] ! else AUDIENCE_UNAVAILABLE
+  require a.owner = author or (parent != null and a.kind = 'shared' and exists audienceMembers[audience = audience, principal = author, access = 'reply']) else AUDIENCE_UNAVAILABLE
+  prior = posts[author = author, intent = intent]
+  if prior != null:
+    require prior.lexicon = lexicon and prior.lexiconDigest = lexiconDigest and prior.visibility = 'private' and prior.audience = audience and prior.parent = parent else INTENT_REUSE
+    require prior.deleted or (prior.payloadJson = payloadJson and prior.body = body) else INTENT_REUSE
+    return prior
+  root = null
+  if parent != null:
+    p = posts[parent] ! else PARENT_UNAVAILABLE
+    require p.visibility = 'public' or exists audiences[p.audience, owner = author] or exists audienceMembers[audience = p.audience, principal = author] else PARENT_UNAVAILABLE
+    require not p.deleted else PARENT_DELETED
+    if p.visibility = 'private':
+      require p.audience = audience else DIFFERENT_AUDIENCE
+    if a.owner != author:
+      require p.audience = audience else REPLY_NOT_ALLOWED
+    root = p.root if p.root != null else p.id
+  return insert posts { author, intent, body, visibility: 'private', audience, parent, root, lexicon, lexiconDigest, payloadJson }

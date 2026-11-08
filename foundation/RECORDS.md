@@ -1,0 +1,65 @@
+# Structured posts — first contract milestone
+
+Jera's internal structured posts use the existing Snapback `posts` table and verified DID identities. They are private application records, not ATproto repository records. `contribution.v1` is the first application lexicon: `purpose` (`archive`, `reflect`, `request`), `body` and `references`. The composer remains on the existing text-post path until the next milestone.
+
+## Definition and envelope
+
+`contracts/lexicons/contribution.v1.json` owns the payload schema and presentation hints. `contracts/validate.mjs` interprets a bounded vocabulary of objects with explicit fields, strings, enums and arrays. Validation rejects unknown fields and unsupported schema keywords; it never normalizes content or silently drops fields. A supported definition can be added to the explicit registry without altering the post table. New executable widgets/processors still need implementation.
+
+Definitions are immutable versions. The catalog supplies a SHA-256 digest of sorted-key canonical JSON, including the schema and presentation metadata. A record request must name both the version and digest. Retain old definitions when adding new versions; the pinned digest test prevents silently editing v1. This is application versioning, not an ATproto lexicon registry.
+
+An authenticated `GET /records/lexicons` returns `{lexicons: [{ref, digest, definition}]}`. `POST /records/publish` accepts exactly:
+
+```json
+{
+  "intent": "<persisted 26-character intent>",
+  "lexicon": {"ref": "contribution.v1", "digest": "<catalog digest>"},
+  "audience": "<audience id>",
+  "parent": null,
+  "payload": {
+    "purpose": "reflect",
+    "body": "Keep my original wording.",
+    "references": [{"uri": "repo:notes/example.yao", "revision": "<source revision>"}]
+  }
+}
+```
+
+`parent` can be omitted or identify an accessible post. References are attributed source identifiers; storing one does not fetch it, verify its contents or grant access to it. There is no provenance run receipt yet. Author, time, root, visibility and record ID are assigned by the trusted path. Client-supplied author/time/visibility fields are rejected. This first structured endpoint writes only to explicit private audiences; public-network publishing is separate work.
+
+The resulting envelope retains existing post fields plus `lexicon`, `lexiconDigest` and the decoded `payload`. `body` is a compatibility projection from the validated payload so existing readers and threads can display it. Old posts have null lexicon/payload metadata and retain their exact IDs, authors, content and audience. No synthetic version is assigned to historical text.
+
+## Trusted write boundary
+
+The identity service mounts the record routes behind its existing origin checks. It verifies the caller's Snapback session and OAuth authority, validates the exact lexicon/payload, then uses its existing server-only `service:atproto-auth` credential to call `commitStructuredPost`. That mutation checks the actual author's current audience/reply permissions transactionally. Only that service can insert structured payloads. The normal text mutation cannot accept them, and table rules reject direct user insertion of lexicon metadata or payloads. Production Caddy routes `/records/*` to the identity service and blocks external access to the restricted commit mutation.
+
+This service is a trusted write authority, already responsible for verified session minting and public-index ingestion. Its credential remains loopback/server-only. The application and CLI receive no service token. Deploying this change requires the schema, complete identity-service code (including `contracts/` and `scripts/client.mjs`) and route configuration together; no production rollout occurs just by committing the branch.
+
+Structured payloads are stored as `payloadJson: text 1..65536 ?`, with a 65,536-byte canonical JSON admission limit at the gateway. `contracts/records.mjs` projects this into an object-shaped envelope. Direct generated Snapback queries expose the storage field; the portable projection and `JeraClient.readRecord` expose the application envelope. `readRecord` refuses incomplete reads rather than reporting them as missing.
+
+Why text: pinned Snapback Quarry cannot inspect arbitrary JSON fields. In Snapback core `3653cae`, `rows/disclosed.rs` also reserves `max_bytes * 256` for a private JSON column's decode. A 65,536-byte JSON declaration exhausted the 16 MiB read budget even for a tiny legacy post; list reads and point reads showed different outcomes. Canonical text reduces that reservation while preserving the same validated logical payload. The real-store upgrade test retains point-read checks and a full-size Unicode payload. No SDK behavior is patched for this feature.
+
+## Audience and reply semantics
+
+`createAudience(name, kind)` creates an owner-bound named audience. `kind` is immutable: `owner` prohibits membership grants at the mutation and table boundaries; `shared` permits the owner's existing `read`/`reply` grants. `availableAudiences(c)` pages readable audiences. The old `audienceList` and `ensureAudience` retain their single `Private` audience behavior for the current client; that name is reserved from the new creation operation. Existing audiences adopt `shared`, preserving all existing members.
+
+An audience owner may start a root post. A member with reply access may reply within that audience; read-only members cannot contribute. Private descendants preserve the parent's audience. A public legacy parent can receive a private branch in the replying owner's audience. A cross-audience private reply is rejected. Membership revocation immediately affects subsequent reads, writes and publication retries. Original authors retain tombstone deletion of their own replies after losing read access.
+
+## Intents, deletion and drafts
+
+Persist the complete envelope and its intent before sending. `(author, intent)` identifies the logical write. Each gateway HTTP attempt uses a fresh internal transport receipt so the mutation rechecks current access and content rather than returning a cached service response. Concurrent requests and retries after a lost response converge on one row. A changed payload, audience, parent or lexicon under a live intent is rejected. JSON object property order is canonicalized before comparison.
+
+Deletion clears the live row's body and serialized payload while preserving identity, lexicon metadata, audience and thread edges. An original-intent retry returns the tombstone and never restores content. Once deleted, the old payload is unavailable for comparison; a retry still checks author/intent, audience, parent and exact lexicon. This is live-record deletion, not a promise to erase backups or framework operation receipts.
+
+Structured publishing does not retire text-only drafts. The forthcoming structured composer must persist its complete payload and explicitly coordinate its own draft lifecycle. Existing text posting/draft retirement keeps its existing transaction and recovery behavior.
+
+The tested compatibility direction is old store → new schema. Rolling the backend schema back after creating owner-only audiences is not a safe undo: the old schema cannot enforce their new policy, and it does not understand structured payloads. Keep the new backend boundary when rolling back only the UI; review a separate data-preserving transition before any backend rollback.
+
+## Clients and evidence
+
+The existing `JeraClient` adds `publishRecord(envelope)` and `readRecord(id)`. With `JERA_ORIGIN` and the independently authenticated account's `JERA_TOKEN` set, the CLI accepts `node scripts/agent.mjs publish record envelope.json`; the file must already contain its stable intent. The CLI prints that intent before sending and uses the same gateway as the future composer. The real-store integration test executes this command with a synthetic account and envelope.
+
+`tests/contracts.test.mjs` checks full prior-schema adoption, exact payload retention, invalid payload/version/digest/identity rejection, direct mutation/table bypass attempts, owner-only policy, separate audience isolation, independent operator attribution, legacy replies, concurrent retries, lost responses, revocation, deletion and restart. Its OAuth refresh is simulated; storage, sessions and the HTTP handler are real. The full historical schema fixture is captured from Jera `37454f0` so the adoption test does not generate its expected starting state from the new implementation.
+
+For concurrent worktree verification, the fixture entry point allows Exact to select an isolated backend with `EXACT_BACKEND_ORIGIN=http://127.0.0.1:4437 bun exact.mjs test web --json` from `foundation/app`. That explicit local origin has separate credential-storage keys and grants; the default fixture remains on port 4417. Use the pinned Bun toolchain from the project setup.
+
+This milestone supplies structured storage/API/CLI behavior. Generated composition, feed definitions/adapters, autonomous subscriptions and provenance receipts are subsequent milestones, not activated by this change.

@@ -13,11 +13,13 @@ export const appId = 'studio.zojer.jera.exact';
 function storageKey(value: string): string {
   if (value === 'https://snapback.jera.ink') return 'jera-https-snapback-jera-ink';
   if (value === 'http://127.0.0.1:4417') return 'jera-http-127.0.0.1-4417';
+  // A second explicit fixture binding permits isolated worktree verification.
+  if (value === 'http://127.0.0.1:4437') return 'jera-http-127.0.0.1-4437';
   throw new Error('Unconfigured Jera backend: add an origin-specific storage key and grant before using it.');
 }
 const sessionKey = storageKey(origin) + '-atproto-v1';
 const pendingKey = sessionKey + '-login';
-export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
+export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
 
 function randomToken(): string {
   return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
