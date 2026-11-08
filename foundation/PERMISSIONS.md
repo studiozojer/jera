@@ -1,6 +1,6 @@
 # Posted audiences and private drafts
 
-The November 8 [structured-post contract](RECORDS.md) adds separately stored `owner` and `shared` audiences. Owner-only audiences cannot acquire members; existing audiences adopt `shared` and preserve their current membership. The current UI still manages its legacy `Private` audience; the new named audiences and lexicon payloads are exposed through the API/CLI before the composer milestone.
+The November 8 [structured-post contract](RECORDS.md) adds separately stored `owner` and `shared` audiences. Owner-only audiences cannot acquire members; existing audiences adopt `shared` and preserve their current membership. The Contribution composer selects among owner-bound audiences for roots and fixes private replies to their parent’s audience. It creates an owner-only `Only me` audience and retains the existing shared `Private` audience. Account → Private audience manages that shared audience’s members; arbitrary named-group administration remains available through the API. Text drafts retain their existing shared-Private behavior. Draft payloads always remain owner-only, regardless of the selected posting audience.
 
 The authenticated Jera app uses the existing Snapback backend and verified ATproto DID sessions. Public posts are readable by signed-in Jera accounts. They are not published to ATproto. Private posts reference an audience; the first account UI is a list of DIDs allowed to read and reply. New accounts start in Private, with only their owner until members are added.
 

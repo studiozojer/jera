@@ -1,9 +1,10 @@
+import { type Composition, compositionError } from './composition.ts';
 // Durable local drafts and posting intents; authoritative records/ACLs live in Snapback.
 // The host filesystem is account+origin scoped. A network timeout never means sent.
 export type Mode = 'private' | 'public';
-export type PostRecord = { id: string; author: string; body: string; deleted: boolean; visibility: Mode; audience: string | null; parent: string | null; root: string | null; at: number; intent: string };
-export type Posting = { intent: string; body: string; visibility: Mode; audience: string | null; parent: string | null; draftDevice?: string; draftRevision?: number; draftScope?: string };
-export type Draft = { body: string; revision: number; intent: string; sealed: Posting | null; posted?: string; syncedRevision?: number; cloudRevision?: number };
+export type PostRecord = { id: string; author: string; body: string; deleted: boolean; visibility: Mode; audience: string | null; parent: string | null; root: string | null; at: number; intent: string; lexicon?:string|null; lexiconDigest?:string|null; payloadJson?:string|null };
+export type Posting = { intent: string; body: string; visibility: Mode; audience: string | null; parent: string | null; draftDevice?: string; draftRevision?: number; draftScope?: string; composition?:Composition };
+export type Draft = { body: string; revision: number; intent: string; sealed: Posting | null; posted?: string; syncedRevision?: number; cloudRevision?: number; composition?:Composition; alternatives?:Record<string,Composition> };
 type Vault = { version: 1; principal: string; origin: string; mode: Mode; device: string; drafts: Record<string, Draft> };
 export type Files = { readFile(path: string): Promise<ArrayBuffer>; atomicWriteFile(path: string, data: Uint8Array): Promise<unknown>; readdir(path: string): Promise<string[]> };
 export type Request = (kind: 'q' | 'm', operation: string, args: Record<string, unknown>, id?: string) => Promise<any>;
@@ -55,13 +56,13 @@ export class Drafts {
     }
   }
   get(scope: string) { return this.use(v => v.drafts[scope] ?? emptyDraft()); }
-  save(scope: string, body: string, revision: number) {
-    if (body.length > 12000 || !Number.isSafeInteger(revision) || revision < 1) throw new Error('Invalid draft.');
+  save(scope: string, body: string, revision: number, composition?:Composition) {
+    if ([...body].length > 12000 || !Number.isSafeInteger(revision) || revision < 1) throw new Error('Invalid draft.');
     return this.use(v => {
       const old = v.drafts[scope] ?? emptyDraft();
       if (revision <= old.revision) return old;
       if (old.sealed) throw new Error('Confirm the pending post before changing its text.');
-      if (revision > old.revision) v.drafts[scope] = {...old, body, revision};
+      if (revision > old.revision) v.drafts[scope] = {...old, body, revision, composition};
       return v.drafts[scope] ?? old;
     }, true);
   }
@@ -85,10 +86,15 @@ export async function allRows(request: Request, operation: string, args: Record<
   return rows;
 }
 
+function equalJSON(a:unknown,b:unknown):boolean {
+  if(a===b)return true;
+  if(!a||!b||typeof a!=='object'||typeof b!=='object'||Array.isArray(a)!==Array.isArray(b))return false;
+  const keys=Object.keys(a);return keys.length===Object.keys(b).length&&keys.every(k=>Object.hasOwn(b,k)&&equalJSON((a as any)[k],(b as any)[k]));
+}
 export function matchesPublication(post: PostRecord, payload: Posting, principal: string) {
   return typeof post.id==='string' && post.id!=='' && post.author===principal && post.intent===payload.intent &&
     (post.deleted ? post.body==='' : post.body===payload.body) && post.parent===payload.parent &&
-    post.visibility===payload.visibility && post.audience===payload.audience;
+    post.visibility===payload.visibility && post.audience===payload.audience && (!payload.composition || (post.lexicon===payload.composition.lexicon.ref && post.lexiconDigest===payload.composition.lexicon.digest && (post.deleted || equalJSON(JSON.parse(post.payloadJson||'null'),payload.composition.payload))));
 }
 
 // Opening a writing session is the retirement boundary. A confirmed post is
@@ -112,7 +118,7 @@ export async function beginDraft(request: Request, drafts: Drafts, mode: Mode, p
   },true);
 }
 
-export async function publish(request: Request, drafts: Drafts, mode: Mode, parent: string, revision: number, body?: string) {
+export async function publish(request: Request, drafts: Drafts, mode: Mode, parent: string, revision: number, body?: string, composition?:Composition, publishRecord?:(envelope:unknown)=>Promise<any>) {
   const scope = draftScope(mode, parent);
   // Seal the exact payload before sending. A retry after a lost response uses
   // the same intent, audience and bytes, even after a process restart.
@@ -122,8 +128,8 @@ export async function publish(request: Request, drafts: Drafts, mode: Mode, pare
   // saves cannot overwrite this revision, and sealed retries retain their payload.
   if (body !== undefined && !draft.sealed) {
     revision=Math.max(1,revision);
-    draft=await drafts.save(scope,body,revision);
-    if (draft.revision!==revision || draft.body!==body) throw new Error('The draft changed before posting. Your text is kept.');
+    draft=await drafts.save(scope,body,revision,composition);
+    if (draft.revision!==revision || draft.body!==body || !equalJSON(draft.composition,composition)) throw new Error('The draft changed before posting. Your text is kept.');
   }
   if (!draft.sealed) {
     if (draft.revision !== revision || !draft.body.trim()) throw new Error('Wait for your draft to finish saving.');
@@ -136,12 +142,17 @@ export async function publish(request: Request, drafts: Drafts, mode: Mode, pare
         audience=p.audience;
       }
     }
+    if(draft.composition){
+      const invalid=compositionError(draft.composition);if(invalid)throw new Error(invalid);
+      if(audience && audience!==draft.composition.audience)throw new Error('Replies keep the original audience.');
+      audience=draft.composition.audience;
+    }
     if (mode === 'private' && !audience) {
       const response = await request('m','ensureAudience',{},newIntent());
       if (response.state !== 'sent' || !response.result?.id) throw new Error('Could not prepare your private audience. Your draft is kept.');
       audience=response.result.id;
     }
-    const payload: Posting = {intent:draft.intent, body:draft.body, visibility:mode, audience, parent:parent||null, draftDevice:await drafts.device(), draftRevision:draft.cloudRevision||0, draftScope:scope};
+    const payload: Posting = {intent:draft.intent, body:draft.body, visibility:mode, audience, parent:parent||null, draftDevice:await drafts.device(), draftRevision:draft.cloudRevision||0, draftScope:scope,...(draft.composition?{composition:draft.composition}:{})};
     draft=await drafts.use(v => {
       const current=v.drafts[scope];
       if (!current || current.revision !== revision || current.body !== payload.body) throw new Error('The draft changed before posting.');
@@ -151,7 +162,7 @@ export async function publish(request: Request, drafts: Drafts, mode: Mode, pare
   }
   const payload=draft.sealed!;
   try {
-    const response=await request('m','publishPost',payload,payload.intent);
+    const response=payload.composition ? await publishRecord!({intent:payload.intent,lexicon:payload.composition.lexicon,audience:payload.audience,parent:payload.parent,payload:payload.composition.payload,draft:{device:payload.draftDevice,revision:payload.draftRevision,scope:payload.draftScope}}) : await request('m','publishPost',payload,payload.intent);
     if (response.state === 'failed') {
       await drafts.use(v => {const d=v.drafts[scope]; if(d?.sealed?.intent===payload.intent){d.sealed=null;d.intent=newIntent();}},true);
       throw Object.assign(new Error(response.why?.message || 'Could not post. Your draft is kept.'), {definite:true});
@@ -189,7 +200,7 @@ export async function syncScope(request: Request, drafts: Drafts, scope: string)
         if(current.revision===0 && !current.body && !current.sealed) {
           // Cloud and editor revisions have different jobs. Pulling must not
           // advance the editor's counter while its user is already typing.
-          v.drafts[scope]={...current,body:latest.body,syncedRevision:0,cloudRevision:own?latest.revision:0};
+          v.drafts[scope]={...current,body:latest.body,...(latest.compositionJson?JSON.parse(latest.compositionJson):{}),syncedRevision:0,cloudRevision:own?latest.revision:0};
         }
         return v.drafts[scope]||current;
       },true);
@@ -202,18 +213,19 @@ export async function syncScope(request: Request, drafts: Drafts, scope: string)
       // Reserve before networking so publication can tombstone all outstanding
       // saves, even one whose response has not arrived yet.
       d.cloudRevision=(d.cloudRevision||0)+1;
-      return {body:d.body,editorRevision:d.revision,cloudRevision:d.cloudRevision};
+      return {body:d.body,compositionJson:d.composition||d.alternatives?JSON.stringify({composition:d.composition,alternatives:d.alternatives}):null,editorRevision:d.revision,cloudRevision:d.cloudRevision};
     },true);
     if(sending){
-      const response=await request('m','saveSocialDraft',{deviceKey:device,scope,body:sending.body,revision:sending.cloudRevision},newIntent());
+      const response=await request('m',sending.compositionJson?'saveStructuredDraft':'saveSocialDraft',{deviceKey:device,scope,body:sending.body,revision:sending.cloudRevision,...(sending.compositionJson?{compositionJson:sending.compositionJson}:{})},newIntent());
       if(response.state!=='sent'||!response.result)throw new Error('Draft sync is waiting for a connection.');
-      await drafts.use(v=>{const d=v.drafts[scope];if(d){d.cloudRevision=Math.max(d.cloudRevision||0,response.result.revision);if(d.revision===sending.editorRevision&&d.body===sending.body&&response.result.body===sending.body)d.syncedRevision=sending.editorRevision;}},true);
-      if(response.result.body!==sending.body){
+      await drafts.use(v=>{const d=v.drafts[scope];if(d){d.cloudRevision=Math.max(d.cloudRevision||0,response.result.revision);if(d.revision===sending.editorRevision&&d.body===sending.body&&response.result.body===sending.body&&(response.result.compositionJson??null)===sending.compositionJson)d.syncedRevision=sending.editorRevision;}},true);
+      if(response.result.body!==sending.body || (response.result.compositionJson??null)!==sending.compositionJson){
         const current=await drafts.get(scope);
         // The server already retired the active cloud branch on publication.
         // Its empty tombstone is compatible with our retained posted cache.
         const publishedTombstone=current.posted && current.sealed && response.result.body==='' && response.result.revision>=(current.sealed.draftRevision||0)+1;
-        if(current.body!==response.result.body && !publishedTombstone)throw new Error('A newer cloud draft was kept; your local copy is preserved too.');
+        const currentJson=current.composition||current.alternatives?JSON.stringify({composition:current.composition,alternatives:current.alternatives}):null;
+        if((current.body!==response.result.body || currentJson!==(response.result.compositionJson??null)) && !publishedTombstone)throw new Error('A newer cloud draft was kept; your local copy is preserved too.');
       }
     }
   }

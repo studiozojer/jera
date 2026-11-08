@@ -152,6 +152,17 @@ mutation probeOwnerMember(audience: audiences, principal: principal):
   const raw = { author: owner.did, intent: envelope.intent, audience: shared.id, parent: null, lexicon: lexicon.ref, lexiconDigest: lexicon.digest, payloadJson: JSON.stringify(payload), body: payload.body };
   await refused(owner.client.mutate('commitStructuredPost', raw), 'RECORD_GATEWAY_REQUIRED');
   await refused(owner.client.mutate('probeStructuredInsert', { author: owner.did, intent: intentId(), audience: shared.id, payloadJson: JSON.stringify(payload) }), 'E_RULE');
+  const structuredDevice = intentId();
+  const draftArgs = { deviceKey: structuredDevice, scope: 'root:private', body: payload.body, compositionJson: JSON.stringify({ payload, lexicon }), revision: 3 };
+  await owner.client.mutate('saveStructuredDraft', draftArgs);
+  assert.equal((await outsider.client.query('draftForDevice', { deviceKey: structuredDevice, scope: 'root:private' })).data, null);
+  const draftPost = { intent: intentId(), draft: { device: structuredDevice, scope: 'root:private', revision: 3 } };
+  await publish(owner, draftPost);
+  const tombstone = (await owner.client.query('draftForDevice', { deviceKey: structuredDevice, scope: 'root:private' })).data;
+  assert.equal(tombstone.body, ''); assert.equal(tombstone.compositionJson, null); assert.equal(tombstone.revision, 4);
+  const delayed = (await owner.client.mutate('saveStructuredDraft', draftArgs)).result;
+  assert.equal(delayed.body, ''); assert.equal(delayed.compositionJson, null);
+  await refused(publish(owner, { intent: intentId(), draft: { device: structuredDevice, scope: 'root:private', revision: -1 } }), 'E_INPUT');
   const before = Date.now();
   const posted = (await publish(owner)).result;
   assert.equal(posted.author, owner.did); assert(posted.at >= before && posted.at <= Date.now());

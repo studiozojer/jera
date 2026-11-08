@@ -1,0 +1,97 @@
+fresh
+epoch now
+size 390x844
+
+test "a lexicon shapes a durable post and its reply"
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "owner.test"
+  clock data
+  tap "login"
+  authorize
+  clock settle
+  tap "feed-write"
+  clock settle
+  type "composer" "A focused thought ♍︎ ♍️"
+  clock settle
+  type "composer-format" "contribution.v1"
+  clock settle
+  expect tree has "composer-audience"
+  expect tree has "field-purpose"
+  type "field-purpose" "reflect"
+  clock settle
+  screenshot ".exact/composer-narrow.png"
+  resize 1100x850
+  screenshot ".exact/composer-wide.png"
+  resize 390x844
+  tap "add-reference"
+  type "reference-0-uri" "repo:notes/north-star.yao"
+  type "reference-0-revision" "abc123"
+  clock settle
+  tap "cancel"
+  clock settle
+  reload
+  clock settle
+  tap "feed-write"
+  clock settle
+  expect state editorFormat == "contribution.v1"
+  expect state editorFields.0 .value == "reflect"
+  expect text "reference-0-uri" == "repo:notes/north-star.yao"
+  expect text "reference-0-revision" == "abc123"
+  type "composer-format" "text"
+  clock settle
+  expect tree missing "field-purpose"
+  type "composer-format" "contribution.v1"
+  clock settle
+  expect state editorFields.0 .value == "reflect"
+  expect text "reference-0-uri" == "repo:notes/north-star.yao"
+  tap "post"
+  clock settle
+  expect state posts.length == 1
+  expect state posts.0 .body == "A focused thought ♍︎ ♍️"
+  expect state posts.0 .purpose == "reflect"
+  expect state posts.0 .audienceLabel == "Only me"
+  expect state posts.0 .references.0 .revision == "abc123"
+  screenshot ".exact/contribution-result.png"
+  tap "reply"
+  clock settle
+  type "composer-format" "contribution.v1"
+  clock settle
+  expect disabled "composer-audience"
+  type "field-purpose" "request"
+  type "composer" "Please consider this."
+  tap "post"
+  clock settle
+  expect state posts.length == 2
+
+
+test "a contribution can use the shared audience"
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "owner.test"
+  clock data
+  tap "login"
+  authorize
+  clock settle
+  tap "feed-write"
+  clock settle
+  type "composer-format" "contribution.v1"
+  clock settle
+  type "composer-audience" "Private · shared"
+  type "field-purpose" "archive"
+  type "composer" "Historical source for the shared library."
+  clock settle
+  tap "post"
+  clock settle
+  expect state posts.length == 1
+  expect state posts.0 .audienceLabel == "Private · shared"
+  expect state posts.0 .purpose == "archive"
+  tap "write"
+  clock settle
+  type "composer-format" "contribution.v1"
+  clock settle
+  type "field-purpose" "request"
+  type "composer" "A new request with an inspectable source."
+  tap "add-reference"
+  type "reference-0-uri" "repo:notes/north-star.yao"
+  type "reference-0-revision" "abc123"
+  clock settle
+  screenshot ".exact/composer-references.png"

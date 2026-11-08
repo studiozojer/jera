@@ -1,0 +1,15 @@
+use FieldOption from "./dao/fields.contract"
+
+shape ComposerReference
+  id: string
+  uri: string
+  revision: string
+
+shape ComposerField
+  name: string
+  label: string
+  control: string
+  maxItems: number
+  value: string
+  options: FieldOption[]
+  references: ComposerReference[]

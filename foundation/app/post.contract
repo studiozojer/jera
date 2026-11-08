@@ -9,7 +9,15 @@ shape PublicImage
   src: string
   alt: string
 
+shape SourceReference
+  id: string
+  uri: string
+  revision: string
+
 shape Post
+  audienceLabel: string
+  purpose: string
+  references: SourceReference[]
   network: bool
   missingParent: bool
   images: PublicImage[]
@@ -56,7 +64,7 @@ component Author
         text post.author class=WhyteSm
         text post.stamp color="tx.secondary" class=WhyteXs
         if post.visibility == "private"
-          text "Private" color="tx.secondary" class=WhyteXs
+          text post.audienceLabel color="tx.secondary" class=WhyteXs
       // Keep the author line at reading height; the full menu target extends
       // into the surrounding space without adding a blank line below the name.
       if not post.deleted
@@ -95,8 +103,12 @@ component PostContent
     bodyTestId: string
   view
     column gap=spaceMd()
+      if post.purpose != ""
+        text (post.purpose == "archive" ? "Archive" : post.purpose == "reflect" ? "Reflection" : "Request") class=WhyteXs color="tx.secondary" testId=`purpose-${post.id}`
       if post.body != ""
         text post.body class=WhyteSm white-space="pre-wrap" testId=bodyTestId
+      for ref, i in post.references key=ref.id
+        text (ref.revision == "" ? ref.uri : `${ref.uri} · ${ref.revision}`) class=WhyteXs color="tx.secondary" overflow-wrap="anywhere" testId=`post-reference-${i}`
       for image, i in post.images key=image.src
         image image.src alt=image.alt aria-label=image.alt width="100%" max-height="32rem" object-fit="contain" border-radius=radiusMd() testId=`public-image-${i}`
       if post.embedLabel != ""

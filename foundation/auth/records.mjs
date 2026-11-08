@@ -29,11 +29,14 @@ export function createRecordHandler({ authenticate, snapbackOrigin, serviceToken
       if (req.method === 'GET' && pathname === '/records/lexicons') return send(res, 200, { lexicons });
       if (req.method !== 'POST' || pathname !== '/records/publish') return send(res, 404, { denied: { code: 'E_NOT_FOUND', message: 'Not found.' } });
       const input = await readRequest(req);
-      if (!plain(input) || Object.keys(input).some(key => !['intent', 'lexicon', 'audience', 'parent', 'payload'].includes(key))
+      if (!plain(input) || Object.keys(input).some(key => !['intent', 'lexicon', 'audience', 'parent', 'payload', 'draft'].includes(key))
         || !id(input.intent) || !id(input.audience) || (input.parent !== null && input.parent !== undefined && !id(input.parent))
         || !plain(input.lexicon) || Object.keys(input.lexicon).some(key => !['ref', 'digest'].includes(key))) reject('E_INPUT', 'Invalid post envelope.');
+      if (input.draft !== undefined && (!plain(input.draft) || Object.keys(input.draft).some(key => !['device', 'revision', 'scope'].includes(key))
+        || !id(input.draft.device) || !Number.isSafeInteger(input.draft.revision) || input.draft.revision < 0 || input.draft.revision >= Number.MAX_SAFE_INTEGER
+        || typeof input.draft.scope !== 'string' || !input.draft.scope.length || input.draft.scope.length > 200)) reject('E_INPUT', 'Invalid draft reference.');
       const record = validateRecord(input.lexicon, input.payload);
-      const args = { author, intent: input.intent, audience: input.audience, parent: input.parent ?? null, ...record };
+      const args = { author, intent: input.intent, audience: input.audience, parent: input.parent ?? null, ...record, draftDevice: input.draft?.device ?? null, draftRevision: input.draft?.revision ?? null, draftScope: input.draft?.scope ?? null };
       // Each HTTP attempt rechecks permissions/content in the mutation instead
       // of replaying a stale service receipt. (author,intent) deduplicates rows.
       const response = await fetcher(`${snapbackOrigin}/m/commitStructuredPost`, {

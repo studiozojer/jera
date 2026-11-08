@@ -1,6 +1,6 @@
 # Jera foundation
 
-**Structured-post foundation — November 8:** [RECORDS.md](RECORDS.md) describes the first internal lexicon, validated post envelope, owner-only/shared audiences and authenticated API/CLI. Existing posts and drafts retain their paths. The generated composer and autonomous operator are subsequent milestones; this is branch implementation, not a production deployment.
+**Structured-post foundation — November 8:** [RECORDS.md](RECORDS.md) describes the first internal lexicon, validated post envelope, owner-only/shared audiences and authenticated API/CLI. Existing posts and drafts retain their paths. The composer now offers Contribution: choose an audience, purpose and optional references from the versioned definition, with complete private draft recovery. Text remains available for existing writing. Feed adapters and the autonomous operator are subsequent milestones; this is branch implementation, not a production deployment.
 
 Latest delivery handoff: [November 6 checkpoint](CHECKPOINT.md), including deployed state, dependency patches, phone build and verification limits.
 

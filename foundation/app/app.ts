@@ -3,6 +3,7 @@ import { Snapback, refused } from './snapback4/snapback.ts';
 import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile } from './account-profile.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
+import { formFields, newComposition, editedComposition, type Definition, type Field } from './composition.ts';
 import { accountExperience } from './experience-store.ts';
 import { loadPublicIndex, publicPresentation, publicParentGaps } from './public-data.ts';
 import { earlierPublicDrafts, copyEarlierPublicDraft } from './earlier-drafts.ts';
@@ -82,8 +83,54 @@ async function postProfile(principal:string,storage:Storage,now:number){
   if(profileCache.size>256)profileCache.clear();
   profileCache.set(principal,{at:now,profile});return profile;
 }
-function draftEnvelope(principal:string,scope:string,draft:Awaited<ReturnType<Drafts['get']>>){return{principal,scope,body:draft.body,revision:draft.revision,pendingMode:draft.sealed?.visibility||''};}
+function draftEnvelope(principal:string,scope:string,draft:Awaited<ReturnType<Drafts['get']>>){return{principal,scope,body:draft.body,revision:draft.revision,pendingMode:draft.sealed?.visibility||'',format:draft.composition?.lexicon.ref||'text',audienceId:draft.composition?.audience||'',fields:draft.composition?formFields(draft.composition):[]};}
+async function catalog(db:Snapback,store:Store,principal:string):Promise<Definition[]> {
+  actor(store,principal);const raw=store.get(sessionKey);
+  const response=await fetch(`${origin}/records/lexicons`,{headers:{authorization:`Bearer ${db.session?.token}`},exactTimeout:15000});
+  const result=await response.json();
+  if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed.');
+  if(!response.ok||!Array.isArray(result.lexicons))reject('E_NETWORK','Could not load writing formats.');
+  return result.lexicons;
+}
+async function editedDraft(local:Drafts,scope:string,audience:string,body:string,fields:Field[]){
+  const saved=await local.get(scope);
+  return saved.composition?editedComposition(saved.composition,audience,body,fields):undefined;
+}
 const sources: Sources = {
+  loadComposerOptions: async ([principal,active,parent,now,browser],store,storage,native) => {
+    if(!active||!isActor(store,principal))return {principal:'',formats:[],audiences:[]};
+    return using(store,storage,native,now,browser,async db=>{
+      const definitions=await catalog(db,store,principal);
+      const request=transport(db,store,principal);
+      const all=await allRows(request,'availableAudiences');
+      const parentPost=parent?(await request('q','postById',{id:parent})).data:null;
+      const audiences=all.filter(a=>parentPost?.visibility==='private'?a.id===parentPost.audience:a.owner===principal).sort((a,b)=>a.name.localeCompare(b.name));
+      return {principal,formats:[{value:'text',label:'Text'},...definitions.map(d=>({value:d.ref,label:d.definition.title}))],audiences:audiences.map(a=>({value:a.id,label:a.kind==='owner'?(a.name==='Only me'?'Only me':`${a.name} · only you`):`${a.name} · shared`}))};
+    });
+  },
+  changeFormat: async ([principal,mode,parent,context,format,body,revision,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+    const local=draftsFor(store,storage,principal), scope=draftScope(mode as Mode,parent), request=transport(db,store,principal);
+    const old=await local.get(scope);
+    if(old.sealed)throw new Error('Confirm the pending post before changing its format.');
+    let composition=old.composition?.lexicon.ref===format?old.composition:old.alternatives?.[format];
+    if(format!=='text' && !composition){
+      const selected=(await catalog(db,store,principal)).find(d=>d.ref===format);
+      if(!selected)throw new Error('This format is no longer available. Your draft is kept.');
+      let audience='';
+      if(parent){const p=(await request('q','postById',{id:parent})).data;if(!p||p.deleted)throw new Error('The original post is unavailable.');audience=p.audience||'';}
+      if(!audience){const a=await request('m','createAudience',{name:'Only me',kind:'owner'},newIntent());if(a.state!=='sent')throw new Error('Could not create your owner-only audience.');audience=a.result.id;}
+      const shared=await request('m','ensureAudience',{},newIntent());if(shared.state!=='sent')throw new Error('Could not load your shared audience.');
+      composition=newComposition(selected,audience,body);
+    }
+    if(composition)composition={...composition,payload:{...composition.payload,[composition.definition.presentation.bodyField]:body}};
+    const saved=await local.use(v=>{
+      const current=v.drafts[scope];
+      if(current?.sealed || (current?.revision||0)>=revision)throw new Error('Your draft changed. Try changing the format again.');
+      const alternatives={...current?.alternatives};if(current?.composition)alternatives[current.composition.lexicon.ref]=current.composition;
+      return v.drafts[scope]={...(current||old),body,revision,composition:format==='text'?undefined:composition,alternatives};
+    },true);
+    actor(store,principal);return {...draftEnvelope(principal,scope,saved),context};
+  }),
   experienceSnapshot: async ([principal],store,storage) => {
     if(!isActor(store,principal))return {principal:'',mode:'private',revision:0};
     try {const state=(await experienceFor(store,storage,principal)).getSnapshot();return isActor(store,principal)?{principal,...state}:{principal:'',mode:'private',revision:0};}
@@ -105,14 +152,14 @@ const sources: Sources = {
   },
   syncDraft: async ([principal,mode,parent,context,now,browser],store,storage,native) => {
     const scope=draftScope(mode==='public'?'public':'private',parent);
-    if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,priorRevision:0,state:'pending',context};
+    if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,priorRevision:0,state:'pending',context,format:'text',audienceId:'',fields:[]};
     const local=draftsFor(store,storage,principal);
     try {
       const synced=await using(store,storage,native,now,browser,db=>syncScope(transport(db,store,principal),local,scope));
-      return {principal,scope,body:synced.draft.body,revision:synced.draft.revision,priorRevision:synced.priorRevision,state:'sent',context};
+      const {pendingMode,...saved}=draftEnvelope(principal,scope,synced.draft);return {...saved,priorRevision:synced.priorRevision,state:'sent',context};
     } catch {
       const draft=await local.get(scope);
-      return {principal:isActor(store,principal)?principal:'',scope,body:draft.body,revision:draft.revision,priorRevision:draft.revision,state:'pending',context};
+      const {pendingMode,...saved}=draftEnvelope(isActor(store,principal)?principal:'',scope,draft);return {...saved,priorRevision:draft.revision,state:'pending',context};
     }
   },
   syncAllDrafts: async ([principal,now,browser],store,storage,native) => {
@@ -122,9 +169,9 @@ const sources: Sources = {
       return {state:'sent',id:''};
     } catch {return {state:'pending',id:''};}
   },
-  saveDraft: async ([principal,mode,parent,body,revision],store,storage) => {
+  saveDraft: async ([principal,mode,parent,body,revision,audience,fields],store,storage) => {
     const scope=draftScope(mode==='public'?'public':'private',parent);
-    const draft=await draftsFor(store,storage,principal).save(scope,body,revision); actor(store,principal);
+    const local=draftsFor(store,storage,principal);const draft=await local.save(scope,body,revision,await editedDraft(local,scope,audience,body,fields)); actor(store,principal);
     return draftEnvelope(principal,scope,draft);
   },
   loadPosts: async ([principal,browser,now],store,storage,native) => {
@@ -132,6 +179,8 @@ const sources: Sources = {
     try {return await using(store,storage,native,now,browser,async db=>{
       const request=transport(db,store,principal);
       const newest=await allRows(request,'postsList') as PostRecord[];
+      const audiences=await allRows(request,'availableAudiences');
+      const audienceNames=new Map(audiences.map(a=>[a.id,a.kind==='owner'?'Only me':a.name==='Private'?'Private · shared':a.name+' · shared']));
       const records=[...newest].sort((a,b)=>a.at-b.at || a.id.localeCompare(b.id));
       const ids=[...new Set(newest.slice(0,100).map(p=>p.author))].slice(0,24);
       const profiles=new Map(await Promise.all(ids.map(async did=>[did,await postProfile(did,storage,now)] as const)));
@@ -146,7 +195,9 @@ const sources: Sources = {
         const parentAuthor=p.parent?displayName(byId.get(p.parent)?.author||''):'';
         const elapsed=Math.max(0,now-p.at),minutes=Math.floor(elapsed/60000);
         const stamp=minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`;
-        return {id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
+        let detail={purpose:'',references:[] as {id:string;uri:string;revision:string}[]};
+        if(!p.deleted&&p.lexicon==='contribution.v1'&&p.payloadJson){const value=JSON.parse(p.payloadJson);detail={purpose:value.purpose,references:value.references.map((r:any,i:number)=>({id:`${p.id}-${i}`,uri:r.uri,revision:r.revision||''}))};}
+        return {...detail,audienceLabel:audienceNames.get(p.audience)||'Private',id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
       });
       return {principal,posts,available:true};
     });} catch {return {principal:isActor(store,principal)?principal:'',posts:[],available:false};}
@@ -163,7 +214,7 @@ const sources: Sources = {
       return {principal,roots:indexed.roots,more:indexed.more,ready:indexed.ready,state:indexed.state,syncedAt:indexed.syncedAt,
         posts:indexed.rows.map(row=>{
           const minutes=Math.floor(Math.max(0,now-row.at)/60000);
-          return {id:row.uri,network:true,missingParent:gaps.has(row.uri),...publicPresentation(row,principal),canDelete:false,deleted:false,parentAuthor:row.parent&&!gaps.has(row.uri)?name:'',parentPublic:!!row.parent,
+          return {purpose:'',references:[],audienceLabel:'',id:row.uri,network:true,missingParent:gaps.has(row.uri),...publicPresentation(row,principal),canDelete:false,deleted:false,parentAuthor:row.parent&&!gaps.has(row.uri)?name:'',parentPublic:!!row.parent,
             publicReplies:0,readableReplies:0,root:row.root,parent:row.parent,principal,avatar:profile.avatar||'',audience:'',at:row.at,visibility:'public',
             author:name,handle:profile.handle||'',initial:name.slice(0,1).toUpperCase(),body:row.body,stamp:minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`};
         })};
@@ -185,10 +236,16 @@ const sources: Sources = {
     actor(store,principal);await drafts.setMode('private');actor(store,principal);
     return {principal,...experience.change('private',now)};
   },
-  publishPost: async ([principal,mode,parent,body,revision,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+  publishPost: async ([principal,mode,parent,body,revision,audience,fields,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
     try {
       if(mode==='public'||parent.startsWith('at://'))throw new Error('Public posting is not available in Jera yet. Your draft is kept.');
-      const result=await publish(transport(db,store,principal),draftsFor(store,storage,principal),mode==='public'?'public':'private',parent,revision,body);
+      const local=draftsFor(store,storage,principal);
+      const composition=await editedDraft(local,draftScope(mode as Mode,parent),audience,body,fields);
+      const result=await publish(transport(db,store,principal),local,mode==='public'?'public':'private',parent,revision,body,composition,async envelope=>{
+        actor(store,principal);const raw=store.get(sessionKey);
+        try {const result=await authRequest('/records/publish',envelope,db.session?.token);if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed.');return result;}
+        catch(e){const code=(e as any).code||'';if(['INVALID_PAYLOAD','UNKNOWN_LEXICON','LEXICON_CHANGED','AUDIENCE_UNAVAILABLE','DIFFERENT_AUDIENCE','PARENT_UNAVAILABLE','PARENT_DELETED','INTENT_REUSE','E_INPUT'].includes(code))return {state:'failed',why:{message:(e as Error).message}};throw e;}
+      });
       actor(store,principal); return {...result,principal,message:''};
     } catch(error) {
       actor(store,principal);

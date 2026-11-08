@@ -1,6 +1,6 @@
 # Structured posts — first contract milestone
 
-Jera's internal structured posts use the existing Snapback `posts` table and verified DID identities. They are private application records, not ATproto repository records. `contribution.v1` is the first application lexicon: `purpose` (`archive`, `reflect`, `request`), `body` and `references`. The composer remains on the existing text-post path until the next milestone.
+Jera's internal structured posts use the existing Snapback `posts` table and verified DID identities. They are private application records, not ATproto repository records. `contribution.v1` is the first application lexicon: `purpose` (`archive`, `reflect`, `request`), `body` and `references`. The composer offers the existing Text path and a Contribution format generated from this versioned definition. Selecting Contribution reveals audience, purpose and reference controls; publication uses the same trusted gateway as the CLI.
 
 ## Definition and envelope
 
@@ -24,7 +24,7 @@ An authenticated `GET /records/lexicons` returns `{lexicons: [{ref, digest, defi
 }
 ```
 
-`parent` can be omitted or identify an accessible post. References are attributed source identifiers; storing one does not fetch it, verify its contents or grant access to it. There is no provenance run receipt yet. Author, time, root, visibility and record ID are assigned by the trusted path. Client-supplied author/time/visibility fields are rejected. This first structured endpoint writes only to explicit private audiences; public-network publishing is separate work.
+`parent` can be omitted or identify an accessible post. The composer may also supply `draft: {device, revision, scope}`: an owner-bound device branch reference used to retire its private cloud draft in the same transaction as publication. Other callers can omit it. References are attributed source identifiers; storing one does not fetch it, verify its contents or grant access to it. There is no provenance run receipt yet. Author, time, root, visibility and record ID are assigned by the trusted path. Client-supplied author/time/visibility fields are rejected. This first structured endpoint writes only to explicit private audiences; public-network publishing is separate work.
 
 The resulting envelope retains existing post fields plus `lexicon`, `lexiconDigest` and the decoded `payload`. `body` is a compatibility projection from the validated payload so existing readers and threads can display it. Old posts have null lexicon/payload metadata and retain their exact IDs, authors, content and audience. No synthetic version is assigned to historical text.
 
@@ -50,7 +50,11 @@ Persist the complete envelope and its intent before sending. `(author, intent)` 
 
 Deletion clears the live row's body and serialized payload while preserving identity, lexicon metadata, audience and thread edges. An original-intent retry returns the tombstone and never restores content. Once deleted, the old payload is unavailable for comparison; a retry still checks author/intent, audience, parent and exact lexicon. This is live-record deletion, not a promise to erase backups or framework operation receipts.
 
-Structured publishing does not retire text-only drafts. The forthcoming structured composer must persist its complete payload and explicitly coordinate its own draft lifecycle. Existing text posting/draft retirement keeps its existing transaction and recovery behavior.
+Without a draft reference, structured publication leaves drafts alone. With a reference, the commit atomically clears the matching author's cloud branch through the reserved cloud revision. An already newer branch is kept. Old delayed saves cannot overwrite this tombstone. Existing text posting/draft retirement keeps its transaction and recovery behavior.
+
+The composer extends the account/origin-scoped local journal with the selected audience, exact lexicon/digest, complete payload and its definition. Local saves do not wait for networking. The owner-only `socialDrafts.compositionJson` field synchronizes that snapshot and retained format alternatives; it is separate from the audience of a published post. Switching back to Text preserves the structured alternative, and choosing that format again restores its fields while retaining the current body. A fresh device adopts the complete draft with its own publishing intent. Reference-row identifiers belong to the form snapshot, never the published payload.
+
+The exact envelope is sealed before calling the gateway. Ambiguous outcomes remain sealed across restart and keep their original intent; definitive refusals retain the editable payload. A successful receipt is followed by an authoritative record check. The posted cache is retained until the next explicit opening confirms the record and retires the draft. All content fields, including non-body changes, participate in synchronization and publication checks.
 
 The tested compatibility direction is old store → new schema. Rolling the backend schema back after creating owner-only audiences is not a safe undo: the old schema cannot enforce their new policy, and it does not understand structured payloads. Keep the new backend boundary when rolling back only the UI; review a separate data-preserving transition before any backend rollback.
 
@@ -62,4 +66,8 @@ The existing `JeraClient` adds `publishRecord(envelope)` and `readRecord(id)`. W
 
 For concurrent worktree verification, the fixture entry point allows Exact to select an isolated backend with `EXACT_BACKEND_ORIGIN=http://127.0.0.1:4437 bun exact.mjs test web --json` from `foundation/app`. That explicit local origin has separate credential-storage keys and grants; the default fixture remains on port 4417. Use the pinned Bun toolchain from the project setup.
 
-This milestone supplies structured storage/API/CLI behavior. Generated composition, feed definitions/adapters, autonomous subscriptions and provenance receipts are subsequent milestones, not activated by this change.
+The browser composer uses daoUI's existing native select and text-field expressions. Purpose options, labels and reference bounds come from the definition; unsupported controls refuse editing instead of dropping data. `app/record-validation.js` is a generated copy of the portable validator, refreshed with `node scripts/sync-record-contracts.mjs`; a test requires byte-for-byte parity with the canonical source. Exact bundles app-local sources, so this explicit distribution step keeps both runtimes on the same validator.
+
+New structured roots offer owner-bound audiences, including Only me and the existing shared Private audience. Private replies keep their parent's audience. Missing or revoked audience options block new publication while retaining the draft. The existing Text option and old drafts keep their previous shared-Private behavior. Contribution posts display purpose and source references alongside their body, and private posts name their audience. The catalog may add supported fields without a new form implementation; richer widgets and arbitrary lexicon-specific readers still require explicit code.
+
+Feed definitions/adapters, autonomous subscriptions and provenance receipts are subsequent milestones. This composer does not execute requests or publish to ATproto.
