@@ -1,5 +1,7 @@
 # Own-posts Public index
 
+**Superseded as the default Public view — November 8:** David restores the main Snapback public posts. This index implementation and its source records are retained for later explicit views. The app no longer reads it by default, and PDS polling requires `JERA_ENABLE_BLUESKY_INDEX=1`; the default is off. ATproto authentication/profile lookup remains separate. See PRODUCT.md and RECORDS.md for current Public behavior.
+
 David selected this first public-network slice on November 7, 2026: index the logged-in DID’s Bluesky posts, show top-level posts in Public, and retain self-authored continuations. Other people’s replies, likes, reposts, discovery and personalized ranking remain later work. Snapback stores and queries this rebuildable index; the author’s PDS remains authoritative. This changes Public reading. It does not enable ATproto publishing or migrate private records.
 
 ## Data and execution

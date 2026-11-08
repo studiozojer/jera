@@ -1,5 +1,13 @@
 # Jera's product contract
 
+## Public returns to Snapback — November 8 correction
+
+David asks to replace the own-Bluesky-posts Public reader with the main Snapback public posts he used in the earlier version. Public now reads Snapback `posts`, displays existing public roots and replies, and permits new body-only `post.v1` posts/replies. Public means readable by authenticated Jera users; it is not ATproto publication. Private membership and no-widening reply rules remain enforced.
+
+Older untyped public posts need no content migration: their IDs, authors, timestamps, text, audiences and thread links remain authoritative and readable. They are not relabeled or rewritten as `post.v1`. New structured public posts use the existing gateway with an explicit null audience; omission is rejected. The gateway derives public/private from the audience and the mutation checks the parent/access boundary. The backend schema/gateway must be updated together to enable this new write path; that is distinct from migrating existing records.
+
+The Bluesky adapter/index code and stored index records remain available for later views, but this default view no longer reads them. The optional identity-service PDS polling worker is disabled unless `JERA_ENABLE_BLUESKY_INDEX=1` is explicitly configured. Existing ATproto login and optional profile/account lookup remain separate from feed ingestion.
+
 ## Default Private uses a simple Post — November 8 acceptance
 
 David approves the simplified UI and asks to save it in the strata, disable `contribution.v1` for the default Private view and use a simple post lexicon with no extra fields. `post.v1` contains only `body`, preserving the earlier text-writing experience with an explicit versioned interpretation. `contracts/views/private.v1.json` permits/defaults only `post.v1` for new writing; historical reads remain inclusive. Contribution stays registered for historical records and other deliberately configured views.

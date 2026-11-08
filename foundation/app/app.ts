@@ -5,7 +5,6 @@ import { loadAccountProfile } from './account-profile.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
 import { formFields, editedComposition, type Field } from './composition.ts';
 import { accountExperience } from './experience-store.ts';
-import { loadPublicIndex, publicPresentation, publicParentGaps } from './public-data.ts';
 import { preparePrivateWriting } from './private-writing.ts';
 import { postDefinition } from './private-definition.ts';
 import { earlierPublicDrafts, copyEarlierPublicDraft } from './earlier-drafts.ts';
@@ -89,7 +88,7 @@ async function postProfile(principal:string,storage:Storage,now:number){
 function draftEnvelope(principal:string,scope:string,draft:Awaited<ReturnType<Drafts['get']>>){return{principal,scope,body:draft.body,revision:draft.revision,pendingMode:draft.sealed?.visibility||'',format:draft.composition?.lexicon.ref||'text',audienceId:draft.composition?.audience||'',fields:draft.composition?formFields(draft.composition):[]};}
 async function editedDraft(local:Drafts,scope:string,audience:string,body:string,fields:Field[]){
   const saved=await local.get(scope);
-  return saved.composition?editedComposition(saved.composition,audience,body,fields):undefined;
+  return saved.composition?editedComposition(saved.composition,saved.composition.audience===null?null:audience,body,fields):undefined;
 }
 const sources: Sources = {
   loadWritingContext: async ([principal,active,audienceId,parent,now,browser],store,storage,native) => {
@@ -179,24 +178,6 @@ const sources: Sources = {
       return {principal,posts,available:true};
     });} catch {return {principal:isActor(store,principal)?principal:'',posts:[],available:false};}
   },
-  loadPublicPosts: async ([principal,mode,limit,focus,now,browser],store,storage,native) => {
-    const empty={principal:'',posts:[],roots:[],more:false,ready:false,state:'inactive',syncedAt:0};
-    if(mode!=='public'||!isActor(store,principal))return empty;
-    return using(store,storage,native,now,browser,async db=>{
-      const indexed=await loadPublicIndex(transport(db,store,principal),limit,focus);
-      const gaps=publicParentGaps(indexed.rows);
-      const profile=await postProfile(principal,storage,now);
-      actor(store,principal);
-      const name=profile.handle?profile.name:'You';
-      return {principal,roots:indexed.roots,more:indexed.more,ready:indexed.ready,state:indexed.state,syncedAt:indexed.syncedAt,
-        posts:indexed.rows.map(row=>{
-          const minutes=Math.floor(Math.max(0,now-row.at)/60000);
-          return {purpose:'',references:[],audienceLabel:'',id:row.uri,network:true,missingParent:gaps.has(row.uri),...publicPresentation(row,principal),canDelete:false,deleted:false,parentAuthor:row.parent&&!gaps.has(row.uri)?name:'',parentPublic:!!row.parent,
-            publicReplies:0,readableReplies:0,root:row.root,parent:row.parent,principal,avatar:profile.avatar||'',audience:'',at:row.at,visibility:'public',
-            author:name,handle:profile.handle||'',initial:name.slice(0,1).toUpperCase(),body:row.body,stamp:minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`};
-        })};
-    });
-  },
   loadEarlierDrafts: async ([principal,active,now,browser],store,storage,native) => {
     if(!active||!isActor(store,principal))return {principal:'',items:[],available:false};
     const drafts=draftsFor(store,storage,principal);
@@ -215,13 +196,13 @@ const sources: Sources = {
   },
   publishPost: async ([principal,mode,parent,body,revision,audience,fields,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
     try {
-      if(mode==='public'||parent.startsWith('at://'))throw new Error('Public posting is not available in Jera yet. Your draft is kept.');
+      if(parent.startsWith('at://'))throw new Error('Bluesky replies are not available in this view. Your draft is kept.');
       const local=draftsFor(store,storage,principal);
       const composition=await editedDraft(local,draftScope(mode as Mode,parent),audience,body,fields);
       const result=await publish(transport(db,store,principal),local,mode==='public'?'public':'private',parent,revision,body,composition,async envelope=>{
         actor(store,principal);const raw=store.get(sessionKey);
         try {const result=await authRequest('/records/publish',envelope,db.session?.token);if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed.');return result;}
-        catch(e){const code=(e as any).code||'';if(['INVALID_PAYLOAD','UNKNOWN_LEXICON','LEXICON_CHANGED','AUDIENCE_UNAVAILABLE','DIFFERENT_AUDIENCE','PARENT_UNAVAILABLE','PARENT_DELETED','INTENT_REUSE','E_INPUT'].includes(code))return {state:'failed',why:{message:(e as Error).message}};throw e;}
+        catch(e){const code=(e as any).code||'';if(['INVALID_PAYLOAD','UNKNOWN_LEXICON','LEXICON_CHANGED','AUDIENCE_UNAVAILABLE','DIFFERENT_AUDIENCE','PARENT_UNAVAILABLE','PARENT_DELETED','CANNOT_WIDEN_AUDIENCE','REPLY_NOT_ALLOWED','INTENT_REUSE','E_INPUT'].includes(code))return {state:'failed',why:{message:(e as Error).message}};throw e;}
       },postDefinition);
       actor(store,principal); return {...result,principal,message:''};
     } catch(error) {

@@ -107,3 +107,20 @@ test('new plain posts use the gateway and a sealed Contribution is never convert
   const sealed=await earlier.get('root:private');
   expect(await preparePrivateWriting(earlier,'root:private')).toEqual(sealed);
 });
+
+
+test('Public uses body-only posts, null audience and exact retry semantics',async()=>{
+  const {publicView,postDefinition}=await import('./private-definition.ts');
+  expect(publicView).toEqual(JSON.parse(readFileSync(new URL('../contracts/views/public.v1.json',import.meta.url),'utf8')));
+  expect(publicView.compose.lexicons).toEqual([{ref:postDefinition.ref,digest:postDefinition.digest}]);
+  const local=new Drafts(files(),'https://public.test',principal);await local.save('root:public','Public ♍︎',1);
+  let sent:any,posted:any,attempt=0;
+  const gateway=async(e:any)=>{if(sent)expect(e).toEqual(sent);sent=e;posted={id:'public',author:principal,intent:e.intent,body:e.payload.body,parent:null,visibility:'public',audience:null,lexicon:e.lexicon.ref,lexiconDigest:e.lexicon.digest,payloadJson:JSON.stringify(e.payload)};if(++attempt===1)throw new Error('lost response');return{state:'sent',result:posted};};
+  const request:Request=async(_kind,op)=>{if(op==='postForIntent')return{data:posted};throw new Error(op);};
+  expect((await publish(request,local,'public','',1,undefined,undefined,gateway,postDefinition)).state).toBe('pending');
+  expect(sent.audience).toBeNull();expect(sent.payload).toEqual({body:'Public ♍︎'});
+  const saved=await local.get('root:public');expect(editedComposition(saved.composition!,null,saved.body,[])).toEqual(saved.composition);
+  expect((await publish(request,local,'public','',1,undefined,undefined,gateway,postDefinition)).state).toBe('sent');
+  const privateDraft=new Drafts(files(),'https://public.test',principal),c=composition();await privateDraft.save('root:public',c.payload.body,1,c);
+  await expect(publish(request,privateDraft,'public','',1,undefined,undefined,gateway,postDefinition)).rejects.toThrow('saved audience');
+});

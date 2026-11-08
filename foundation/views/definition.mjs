@@ -18,7 +18,8 @@ export function viewDefinition(input) {
   name(input.id);
   if (!Array.isArray(input.sources) || !input.sources.length || input.sources.length > 16 || new Set(input.sources).size !== input.sources.length) throw new Error('Expected distinct source bindings.');
   input.sources.forEach(name);
-  fields(input.select, ['lexicons']);
+  fields(input.select, ['lexicons', 'visibility'], ['lexicons']);
+  if (input.select.visibility !== undefined && !['public', 'private', 'all'].includes(input.select.visibility)) throw new Error('Unsupported visibility selection.');
   if (!Array.isArray(input.select.lexicons) || input.select.lexicons.length > 32) throw new Error('Invalid lexicon selection.');
   input.select.lexicons.forEach(exactLexicon);
   fields(input.presentation, ['order', 'group']);

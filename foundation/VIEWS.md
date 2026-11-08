@@ -4,9 +4,11 @@ A view supplies the context for reading and new writing. Audience selection belo
 
 This increment implements a portable definition, two read-only source adapters, an evaluator and a local CLI. The generic definition does not yet drive the app's feed or composer. The app retains its existing Public/Private navigation and simple body editor; earlier structured drafts are privately retained before a body-only copy is shown, with the same audience. View creation and an optional lexicon chooser within a configured view are later UI work. There is no general indexer factory, operator delivery queue or automatic publication here.
 
-## Default Private policy
+## Default writing policies
 
 `contracts/views/private.v1.json` is the first authored default: one logical Snapback source, inclusive authorized reads and body-only `post.v1` as its sole permitted/default writing lexicon. The app consumes this policy/definition for private draft preparation and publication. It still uses its existing feed query and resolves the shared Private audience or inherited reply audience through existing operations; generic source evaluation and a view-creation interface remain separate. Contribution stays available to historical records and other explicitly configured views. [RECORDS.md](RECORDS.md) explains preservation of earlier structured drafts and sealed retries.
+
+`contracts/views/public.v1.json` adds the Snapback Public default, selects only `visibility: public`, and uses the same `post.v1`. An audience binding `{source: "network", id: null}` resolves explicit Public writing. A null audience is not a missing configuration or a grant to publish to ATproto. Historical untyped public records remain included. The app currently uses its established Snapback query/visibility projection; general view composition UI remains future work.
 
 ## Portable definition
 
@@ -29,7 +31,7 @@ This increment implements a portable definition, two read-only source adapters, 
 }
 ```
 
-`schemaVersion` selects the contract vocabulary; `id` and `version` identify this authored view revision. Logical source names resolve in runtime bindings. Empty `select.lexicons` includes all authorized observations; otherwise it accepts exact `{ref,digest}` pairs. A file observation or historical untyped post has no synthetic lexicon and does not match a typed filter. Selection happens after source authorization. V1 supports no arbitrary query language, scripts or processors.
+`schemaVersion` selects the contract vocabulary; `id` and `version` identify this authored view revision. Logical source names resolve in runtime bindings. Empty `select.lexicons` includes all authorized observations; otherwise it accepts exact `{ref,digest}` pairs. A file observation or historical untyped post has no synthetic lexicon and does not match a typed filter. An optional `select.visibility` (`public`, `private`, `all`) narrows observations after source authorization; a local file has no Snapback visibility and is excluded by a public/private filter. Omission means all authorized observations. Selection never broadens source access. V1 supports no arbitrary query language, scripts or processors.
 
 `presentation` requests newest-first ordering with a deterministic identity tie-break. `group` is `thread` or `none`; the evaluator returns the hint and source-qualified parent edges, without inventing missing parents or implementing a GUI. `compose: null` makes a read-only view. Otherwise composition names one destination and audience binding, permitted exact lexicons, and a default among them. These are writing constraints/defaults, independent of read selection; they never grant posting, membership or tool authority. A resolved writing context is reported as `bound`, not as authorized. A future writer must validate the selected definition and recheck current destination/audience/reply rights through the existing trusted gateway.
 

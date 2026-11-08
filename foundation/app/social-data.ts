@@ -144,6 +144,7 @@ export async function publish(request: Request, drafts: Drafts, mode: Mode, pare
     }
     if(draft.composition){
       const invalid=compositionError(draft.composition);if(invalid)throw new Error(invalid);
+      if((mode==='public') !== (draft.composition.audience===null))throw new Error('The saved audience does not match this writing context. Your draft is kept.');
       if(audience && audience!==draft.composition.audience)throw new Error('Replies keep the original audience.');
       audience=draft.composition.audience;
     }
@@ -152,8 +153,8 @@ export async function publish(request: Request, drafts: Drafts, mode: Mode, pare
       if (response.state !== 'sent' || !response.result?.id) throw new Error('Could not prepare your private audience. Your draft is kept.');
       audience=response.result.id;
     }
-    if (!draft.composition && defaultDefinition && mode === 'private') {
-      draft={...draft,composition:newComposition(defaultDefinition,audience!,draft.body)};
+    if (!draft.composition && defaultDefinition) {
+      draft={...draft,composition:newComposition(defaultDefinition,audience,draft.body)};
       const invalid=compositionError(draft.composition!);if(invalid)throw new Error(invalid);
     }
     const payload: Posting = {intent:draft.intent, body:draft.body, visibility:mode, audience, parent:parent||null, draftDevice:await drafts.device(), draftRevision:draft.cloudRevision||0, draftScope:scope,...(draft.composition?{composition:draft.composition}:{})};

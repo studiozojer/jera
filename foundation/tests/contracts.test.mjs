@@ -79,6 +79,7 @@ test('real store: legacy adoption, gateway validation, two audience kinds, attri
   const oldIntent = intentId(), deviceKey = intentId();
   const oldArgs = { intent: oldIntent, body: 'Legacy original', visibility: 'private', audience: oldAudience.id, parent: null };
   const oldPost = (await owner.client.mutate('publishPost', oldArgs)).result;
+  const oldPublic=(await owner.client.mutate('publishPost',{intent:intentId(),body:'Historical public post',visibility:'public',audience:null,parent:null})).result;
   assert.equal((await owner.client.query('postById', { id: oldPost.id })).data.body, 'Legacy original', 'pre-upgrade row is readable');
   await owner.client.mutate('saveSocialDraft', { deviceKey, scope: 'root:private', body: 'Unpublished original', revision: 7 });
 
@@ -143,6 +144,8 @@ mutation probeOwnerMember(audience: audiences, principal: principal):
   assert(!(await operator.client.query('availableAudiences')).data.some(a => a.id === own.id));
 
   const envelope = { intent: intentId(), lexicon, audience: shared.id, parent: null, payload };
+  const preservedPublic=await outsider.client.readRecord(oldPublic.id);
+  assert.equal(preservedPublic.body,'Historical public post');assert.equal(preservedPublic.lexicon,null);assert.equal(preservedPublic.id,oldPublic.id);
   const simpleDefinition=lexicons.find(l=>l.ref==='post.v1');
   assert.equal(simpleDefinition.digest,'357161d483360602f84ec47750d4f7cbcfa5d8ed6bcdb9d2a35fd97a5f1b2710','post.v1 is immutable');
   const simpleLexicon={ref:simpleDefinition.ref,digest:simpleDefinition.digest};
@@ -150,6 +153,22 @@ mutation probeOwnerMember(audience: audiences, principal: principal):
   assert.deepEqual((await owner.client.readRecord(simple.id)).payload,{body:'A simple post ♍︎ ♍️'});
   await refused(owner.gateway.publishRecord({...envelope,intent:intentId(),lexicon:simpleLexicon,payload:{body:'No purpose field',purpose:'request'}}),'INVALID_PAYLOAD');
   await owner.client.mutate('deletePost',{id:simple.id});
+  const publicEnvelope={...envelope,intent:intentId(),lexicon:simpleLexicon,audience:null,payload:{body:'A public structured post'}};
+  const publicPost=(await owner.gateway.publishRecord(publicEnvelope)).result;
+  assert.equal(publicPost.visibility,'public');assert.equal(publicPost.audience,null);
+  assert.equal((await outsider.client.readRecord(publicPost.id)).body,publicEnvelope.payload.body);
+  assert.equal((await owner.gateway.publishRecord(publicEnvelope)).result.id,publicPost.id);
+  const publicReply=(await outsider.gateway.publishRecord({...publicEnvelope,intent:intentId(),parent:oldPublic.id,payload:{body:'Reply to an old public post'}})).result;
+  assert.equal(publicReply.parent,oldPublic.id);assert.equal(publicReply.root,oldPublic.id);
+  const privateBranch=(await owner.gateway.publishRecord({...publicEnvelope,intent:intentId(),audience:own.id,parent:publicPost.id})).result;
+  assert.equal((await outsider.client.query('postById',{id:privateBranch.id})).data,null);
+  await refused(owner.gateway.publishRecord({...publicEnvelope,intent:intentId(),parent:privateBranch.id}),'CANNOT_WIDEN_AUDIENCE');
+  await refused(owner.gateway.publishRecord({...publicEnvelope,audience:shared.id}),'INTENT_REUSE');
+  const omittedAudience={...publicEnvelope,intent:intentId()};delete omittedAudience.audience;
+  await refused(owner.gateway.publishRecord(omittedAudience),'E_INPUT');
+  await owner.client.mutate('deletePost',{id:publicPost.id});
+  assert.equal((await owner.gateway.publishRecord(publicEnvelope)).result.deleted,true);
+
   const publish = (person, changes = {}) => person.gateway.publishRecord({ ...envelope, ...changes });
   await refused(publish(owner, { author: outsider.did }), 'E_INPUT');
   await refused(publish(owner, { payload: { ...payload, purpose: 'execute' } }), 'INVALID_PAYLOAD');

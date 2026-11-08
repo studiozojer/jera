@@ -30,7 +30,7 @@ export function createRecordHandler({ authenticate, snapbackOrigin, serviceToken
       if (req.method !== 'POST' || pathname !== '/records/publish') return send(res, 404, { denied: { code: 'E_NOT_FOUND', message: 'Not found.' } });
       const input = await readRequest(req);
       if (!plain(input) || Object.keys(input).some(key => !['intent', 'lexicon', 'audience', 'parent', 'payload', 'draft'].includes(key))
-        || !id(input.intent) || !id(input.audience) || (input.parent !== null && input.parent !== undefined && !id(input.parent))
+        || !id(input.intent) || (input.audience !== null && !id(input.audience)) || (input.parent !== null && input.parent !== undefined && !id(input.parent))
         || !plain(input.lexicon) || Object.keys(input.lexicon).some(key => !['ref', 'digest'].includes(key))) reject('E_INPUT', 'Invalid post envelope.');
       if (input.draft !== undefined && (!plain(input.draft) || Object.keys(input.draft).some(key => !['device', 'revision', 'scope'].includes(key))
         || !id(input.draft.device) || !Number.isSafeInteger(input.draft.revision) || input.draft.revision < 0 || input.draft.revision >= Number.MAX_SAFE_INTEGER

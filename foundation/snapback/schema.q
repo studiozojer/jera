@@ -297,7 +297,7 @@ table posts:
   at: time default now
   immutable author, intent, visibility, audience, parent, root, at, lexicon, lexiconDigest
   read <- .visibility = 'public' or exists audiences[.audience, owner = viewer] or exists audienceMembers[.audience, viewer] or viewer = 'service:atproto-auth'
-  insert <- not .deleted and .body != '' and ((.author = viewer and .lexicon = null and .lexiconDigest = null and .payloadJson = null) or (viewer = 'service:atproto-auth' and .lexicon != null and .lexiconDigest != null and .payloadJson != null and .visibility = 'private' and .audience != null))
+  insert <- not .deleted and .body != '' and ((.author = viewer and .lexicon = null and .lexiconDigest = null and .payloadJson = null) or (viewer = 'service:atproto-auth' and .lexicon != null and .lexiconDigest != null and .payloadJson != null and ((.visibility = 'private' and .audience != null) or (.visibility = 'public' and .audience = null))))
   update (old, next) <- old.author = viewer and next.deleted and next.body = '' and next.payloadJson = null
   online only
 
@@ -410,14 +410,16 @@ mutation publishPost(intent: text 26..26, body: text 1..12000, visibility: enum(
 -- The authenticated gateway validates the exact lexicon and payload before
 -- calling this mutation. User sessions cannot supply arbitrary structured JSON.
 -- The service rechecks record/audience permissions atomically for the bound DID.
-mutation commitStructuredPost(author: principal, intent: text 26..26, audience: audiences, parent: posts ?, lexicon: text 1..200, lexiconDigest: text 64..64, payloadJson: text 1..65536, body: text 1..12000, draftDevice: text 26..26 ?, draftRevision: int 0..9007199254740990 ?, draftScope: text 1..200 ?): server
+mutation commitStructuredPost(author: principal, intent: text 26..26, audience: audiences ?, parent: posts ?, lexicon: text 1..200, lexiconDigest: text 64..64, payloadJson: text 1..65536, body: text 1..12000, draftDevice: text 26..26 ?, draftRevision: int 0..9007199254740990 ?, draftScope: text 1..200 ?): server
   require viewer = 'service:atproto-auth' else RECORD_GATEWAY_REQUIRED
   require trim(body) != '' else EMPTY_POST
-  a = audiences[audience] ! else AUDIENCE_UNAVAILABLE
-  require a.owner = author or (parent != null and a.kind = 'shared' and exists audienceMembers[audience = audience, principal = author, access = 'reply']) else AUDIENCE_UNAVAILABLE
+  visibility = 'public' if audience = null else 'private'
+  if audience != null:
+    a = audiences[audience] ! else AUDIENCE_UNAVAILABLE
+    require a.owner = author or (parent != null and a.kind = 'shared' and exists audienceMembers[audience = audience, principal = author, access = 'reply']) else AUDIENCE_UNAVAILABLE
   prior = posts[author = author, intent = intent]
   if prior != null:
-    require prior.lexicon = lexicon and prior.lexiconDigest = lexiconDigest and prior.visibility = 'private' and prior.audience = audience and prior.parent = parent else INTENT_REUSE
+    require prior.lexicon = lexicon and prior.lexiconDigest = lexiconDigest and prior.visibility = visibility and prior.audience = audience and prior.parent = parent else INTENT_REUSE
     require prior.deleted or (prior.payloadJson = payloadJson and prior.body = body) else INTENT_REUSE
     return prior
   root = null
@@ -426,11 +428,12 @@ mutation commitStructuredPost(author: principal, intent: text 26..26, audience: 
     require p.visibility = 'public' or exists audiences[p.audience, owner = author] or exists audienceMembers[audience = p.audience, principal = author] else PARENT_UNAVAILABLE
     require not p.deleted else PARENT_DELETED
     if p.visibility = 'private':
+      require audience != null else CANNOT_WIDEN_AUDIENCE
       require p.audience = audience else DIFFERENT_AUDIENCE
-    if a.owner != author:
+    if audience != null and not exists audiences[audience, owner = author]:
       require p.audience = audience else REPLY_NOT_ALLOWED
     root = p.root if p.root != null else p.id
-  posted = insert posts { author, intent, body, visibility: 'private', audience, parent, root, lexicon, lexiconDigest, payloadJson }
+  posted = insert posts { author, intent, body, visibility, audience, parent, root, lexicon, lexiconDigest, payloadJson }
   if draftDevice != null and draftRevision != null and draftScope != null:
     draft = socialDrafts[owner = author, deviceKey = draftDevice, scope = draftScope]
     if draft = null or draft.revision <= draftRevision:

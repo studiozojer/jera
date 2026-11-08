@@ -54,6 +54,17 @@ const server = createServer(async (req, res) => {
   if (attached && (req.url === '/seed' || req.url.startsWith('/dev/'))) {
     res.writeHead(403, {'content-type':'application/json'});res.end(JSON.stringify({error:'An attached preview cannot be reseeded.'}));return;
   }
+  // Historical public records remain untyped and readable without rewriting.
+  if (req.method === 'POST' && req.url === '/dev/legacy-public') {
+    try {
+      const token=execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'atproto-auth'], {cwd:directory,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+      const {session}=await new JeraClient(upstream,token).request('/auth/session',{principal:'did:plc:'+'b'.repeat(24),days:1});
+      const author=new JeraClient(upstream,session.token);
+      await author.mutate('publishPost',{intent:intentId(),body:'An earlier public Snapback post',visibility:'public',audience:null,parent:null});
+      res.writeHead(200,{'content-type':'application/json'});res.end('{}');
+    } catch {res.writeHead(500);res.end('Fixture setup failed.');}
+    return;
+  }
   // Test control only: recover a complete draft authored on another device.
   if (req.method === 'POST' && req.url === '/dev/structured-draft') {
     try {
@@ -125,7 +136,7 @@ const indexer = createPublicIndexer({
     ] });
   },
 });
-const indexTimer = setInterval(() => indexer.tick().catch(() => {}), 200); indexTimer.unref();
+const indexTimer = process.env.JERA_ENABLE_BLUESKY_INDEX === '1' ? setInterval(() => indexer.tick().catch(() => {}), 200) : null; indexTimer?.unref();
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => {
   clearInterval(indexTimer); server.closeAllConnections(); server.close();
   if (child) child.kill(signal); else { store.close(); process.exit(0); }

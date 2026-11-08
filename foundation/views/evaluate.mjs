@@ -9,7 +9,7 @@ export function runtimeBindings(config) {
   for (const [key, binding] of Object.entries(config.sources)) { name(key); sourceBinding(binding); }
   for (const [key, audience] of Object.entries(config.audiences)) {
     name(key); fields(audience, ['source', 'id']); name(audience.source);
-    if (typeof audience.id !== 'string' || !audience.id || audience.id.length > 200 || config.sources[audience.source]?.type !== 'snapback') throw new Error('Invalid audience binding.');
+    if ((audience.id !== null && (typeof audience.id !== 'string' || !audience.id || audience.id.length > 200)) || config.sources[audience.source]?.type !== 'snapback') throw new Error('Invalid audience binding.');
   }
   return structuredClone(config);
 }
@@ -41,7 +41,7 @@ export async function evaluateView(input, config, previous = null, env = process
     if (!binding) { statuses.push({ source, state: 'unavailable' }); continue; }
     try {
       const snapshot = await (binding.type === 'snapback' ? snapbackSnapshot(source, binding, env) : folderSnapshot(source, binding));
-      const selected = snapshot.filter(r => !definition.select.lexicons.length || definition.select.lexicons.some(l => l.ref === r.lexicon?.ref && l.digest === r.lexicon.digest));
+      const selected = snapshot.filter(r => (!definition.select.visibility || definition.select.visibility === 'all' || r.access.visibility === definition.select.visibility) && (!definition.select.lexicons.length || definition.select.lexicons.some(l => l.ref === r.lexicon?.ref && l.digest === r.lexicon.digest)));
       const revisions = Object.fromEntries(selected.map(r => [r.key, r.revision]));
       const old = prior.sources[source] || {};
       for (const row of selected) if (old[row.key] !== row.revision) changes.push({ kind: 'upsert', key: row.key, revision: row.revision });

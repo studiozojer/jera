@@ -106,6 +106,8 @@ test('real store: mixed sources, RLS, exact payloads, deletion, revocation and r
   assert.ok(!JSON.stringify(run.output).includes('Owner secret'));
   assert.deepEqual(run.output.records.find(r=>r.id===structured.id).record.payload,payload);
   assert.equal(run.output.writing.audienceId,audience);
+  const publicOnly=await evaluateView({...view,select:{lexicons:[],visibility:'public'}},config,null,env);
+  assert.deepEqual(publicOnly.output.records,[],'Public view excludes authorized private posts and local files');
   const first=run.checkpoint;
   const narrowed=await evaluateView({...view,select:{lexicons:[lexicon]}},config,null,env);
   assert.equal(narrowed.output.records.length,1);assert.equal(narrowed.output.records[0].id,structured.id);

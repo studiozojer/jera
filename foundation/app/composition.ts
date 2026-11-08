@@ -3,7 +3,7 @@ import { checkSchema, validatePayload } from './record-validation.js';
 export type Reference = { id: string; uri: string; revision: string };
 export type Field = { name: string; label: string; control: string; maxItems: number; value: string; options: {value:string;label:string}[]; references: Reference[] };
 export type Definition = { ref: string; digest: string; definition: any; referenceIds?:Record<string,string[]> };
-export type Composition = { lexicon: { ref: string; digest: string }; audience: string; payload: Record<string, any>; definition: any; referenceIds?:Record<string,string[]> };
+export type Composition = { lexicon: { ref: string; digest: string }; audience: string | null; payload: Record<string, any>; definition: any; referenceIds?:Record<string,string[]> };
 export function formFields(composition: Composition): Field[] {
   const {schema,presentation}=composition.definition;
   checkSchema(schema);
@@ -17,14 +17,14 @@ export function formFields(composition: Composition): Field[] {
     throw new Error('This format needs a newer composer. Your draft is kept.');
   });
 }
-export function newComposition(selected:Definition,audience:string,body:string):Composition {
+export function newComposition(selected:Definition,audience:string|null,body:string):Composition {
   const definition=selected.definition, payload:Record<string,any>={};
   for(const [name,raw] of Object.entries(definition.schema.properties)) payload[name]=(raw as any).type==='array'?[]:'';
   payload[definition.presentation.bodyField]=body;
   const result={lexicon:{ref:selected.ref,digest:selected.digest},audience,payload,definition};
   formFields(result); return result;
 }
-export function editedComposition(previous:Composition, audience:string, body:string, fields:Field[]):Composition {
+export function editedComposition(previous:Composition, audience:string|null, body:string, fields:Field[]):Composition {
   const payload:Record<string,any>={...previous.payload,[previous.definition.presentation.bodyField]:body};
   const known=formFields(previous);
   if(fields.length!==known.length || known.some(f=>!fields.some(v=>v.name===f.name))) throw new Error('The form changed. Your draft is kept.');
@@ -34,7 +34,7 @@ export function editedComposition(previous:Composition, audience:string, body:st
   return {...previous,audience,payload:JSON.parse(JSON.stringify(payload)),...(Object.keys(referenceIds).length || previous.referenceIds ? {referenceIds} : {})};
 }
 export function compositionError(c:Composition):string {
-  if(!c.audience)return 'Choose an audience.';
+  if(c.audience!==null&&!c.audience)return 'Choose an audience.';
   try { validatePayload(c.definition.schema,c.payload); return ''; } catch(e) {
     const name=(e as Error).message.match(/^payload\.([^.[ :]+)/)?.[1];
     const field=name?c.definition.schema.properties[name]:null, label=name?(c.definition.presentation.fields[name]?.label||name):'Post';

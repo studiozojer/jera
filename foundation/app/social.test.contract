@@ -51,7 +51,8 @@ test "a real stored post and draft survive relaunch"
   expect state posts.length == 2
   expect state posts.0 .body == "A durable thought ♍︎ ♍️ :virgo:"
 
-test "public reading has a distinct source and no publishing controls"
+test "Public reads historical Snapback posts and supports new posts and replies"
+  request POST "/dev/legacy-public" {}
   fail fetch "https://public.api.bsky.app/"
   type "handle" "owner.test"
   clock data
@@ -60,13 +61,47 @@ test "public reading has a distinct source and no publishing controls"
   clock settle
   tap "header-experience-public"
   clock settle
-  expect tree has "public-feed-title"
-  expect tree has "refresh-public"
-  expect tree missing "feed-write"
-  expect tree missing "write"
+  expect state feedPosts.length == 1
+  expect state feedPosts.0 .body == "An earlier public Snapback post"
+  screenshot ".exact/snapback-public-history.png"
+  expect tree missing "public-feed-title"
+  expect tree has "feed-write"
+  tap "feed-write"
+  clock settle
+  expect tree has "writing-public"
+  type "composer" "New public Snapback post ♍︎ ♍️"
+  screenshot ".exact/snapback-public-composer.png"
+  tap "post"
+  clock settle
+  expect state published.message == ""
+  expect state posts.length == 2
+  expect state posts.1 .visibility == "public"
+  tap "reply"
+  clock settle
+  type "composer" "A public reply"
+  tap "post"
+  clock settle
+  expect state posts.length == 3
+  expect state posts.2 .visibility == "public"
+  reload
+  clock settle
+  expect state posts.length == 3
+  tap "back"
+  clock settle
   tap "header-experience-private"
   clock settle
-  expect tree has "feed-write"
+  expect state feedPosts.length == 0
+  tap "feed-write"
+  clock settle
+  type "composer" "A private post stays private"
+  tap "post"
+  clock settle
+  tap "back"
+  clock settle
+  tap "header-experience-public"
+  clock settle
+  expect state feedPosts.length == 2
+  expect state visiblePosts.length == 3
 
 test "a private audience grants and revokes DID access through the real store"
   fail fetch "https://public.api.bsky.app/"
