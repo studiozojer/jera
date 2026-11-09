@@ -1,53 +1,21 @@
-# Jera entry point
+# Jera — Exact + Snapback
 
-Jera's current implementation direction is the Exact + Snapback rewrite in `foundation/`. For that work, read `foundation/AGENTS.md` and `foundation/PRODUCT.md`; the Expo-specific guidance below applies to the historical root app. Both local and EAS native build paths are authorized for Jera. Existing ATproto accounts and verified DIDs are required for the rewrite; the separate password login has been replaced with OAuth and DID-bound backend sessions; interactive phone acceptance remains required. Do not defer ATproto identity because a framework starter supplies another login mechanism.
+Carry the standing lexicon-shaped UI north star in `PRODUCT.md` into every Jera session. Private/public are parallel experiences with shared base contracts and contextual variation; do not equate experience mode with a lexicon ID or infer backend permissions from a visual selector. Prototype context and live access/publication evidence remain distinct.
 
-**Jera design north star (David, 2026-11-04): the lexicon being interacted with influences the UI.** Carry this into every Jera session. Preserve recognizable shared structure while allowing content meaning, available operations and experience context to shape its expression. Private and public are parallel experiences beginning with common components; they may evolve deliberately as use reveals different needs. Read `foundation/PRODUCT.md` and the composed commons' current Jera direction before extending that relationship. Fractal architecture is a useful conditional lens for recurring contracts across scales, not a requirement to construct a recursive framework.
+For UI construction, adaptation or review, use the composed commons' `skills/daoui-design/SKILL.md`, then daoUI's canonical entry and the relevant component/pattern sources. Resolve the commons and daoUI from the workspace composition rather than guessing relative paths from this worktree. The current design direction and history live at `projects/jera/README.md` and `projects/jera/STRATA.爻` within that commons. When uncomposed, use documented source copies and report missing shared context. The first product proof is a post and an independent operator's attributable reply; keep the operator's reasoning/runtime separate from Jera's interface.
 
-For UI construction, adaptation or review in the composed workspace, read `skills/daoui-design/SKILL.md` relative to the composed zojercommons root, then the actual daoUI repository entry and relevant family guidance. Discover bindings through the workspace composition; do not assume a worktree's sibling paths resolve like the main checkout. The current Jera design entry and strata are `projects/jera/README.md` and `projects/jera/STRATA.爻` in that commons. In a standalone checkout, use the documented source copies/provenance and state any missing shared guidance. Keep the first experience focused on posts and attributable replies; Jera is the interface, while operator reasoning and memory strategy remain separable.
+Read `PRODUCT.md` before changing identity, schemas, storage, publication or the first user journey. Jera is an ATproto app: existing-account authorization and verified DID identity are required. Password and guest signup are disabled; keep the official OAuth verification and DID-bound session boundary. Full phone authorization remains an explicit acceptance gate. Do not promote agent-authored assumptions into user decisions or report technical build/storage checks as product acceptance. If the `atproto-development` skill is available, use it for these protocol boundaries; the contract here remains authoritative when the skill is absent.
 
-Read `README.md` and the current design in `../../zojercommons/projects/jera/specs/2026-10-08-composer-and-posts-design.md` when composed. The evolving north star is `../../operators/kepler/athanor/astrology-atproto-north-star.md`. Prioritize typing quality and preserve exact symbol representations. Relative paths resolve from this repo. User content is local-only in the current prototype; do not silently add network publishing or import Kepler’s account credentials.
+This repository contains the Exact + Snapback Jera app. The obsolete Expo implementation was removed; Git history retains it. Read README.md. Pin Exact via ../tooling/exact2 relative to app/ and Snapback through package.json/bun.lock. Use Bun 1.4.2. Do not modify SDK sources to work around an application defect. The two diagnosed upstream native compilation defects have a recorded compatibility patch in patches/README.md, applied by the shared iPhone builder; preserve that explicit base-plus-patch dependency until an upstream replacement is validated. A third recorded compatibility patch corrects false web OAuth cancellation when window isolation severs the opener; `app/exact.mjs` applies the patch set for browser commands as well. Preserve its bootstrap when regenerating the launcher.
 
-Use EAS Build for native builds and EAS Simulator for simulator checks. Do not use local Xcode builds or local native simulators. Native typing requires physical-device evidence; web rendering and JS exports cannot establish it.
+Initial storage is settled: explicit private drafts and shared private modules live authoritatively in Snapback, with ATproto-authenticated identities. User input is not published to the protocol. ATproto lexicons and PDS/permissioned ATproto storage are deferred while the UX develops; do not treat those deferrals as defects or introduce automatic publishing. The November 8 internal structured-post foundation uses application lexicons and a trusted gateway; read `RECORDS.md` before extending it. Do not bypass its payload validation with direct user writes or equate an application lexicon with ATproto publication.
 
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+November 8 supersedes the November 7 Public-reading experiment: the default Public view reads and writes Snapback posts with `post.v1`, preserving legacy posts. The optional own-DID Bluesky index is disabled by default; read `PUBLIC-INDEX.md` for its boundary. Public means signed-in Jera accounts, not ATproto publication. Keep source records and indexed copies distinct.
 
-## Expo has changed — do not trust your training data
+Keep multiple armillaries, module membership, immutable source artifacts and attributed derived nodes distinct. A captured idea is not itself a commitment to build software. Agents use the same authenticated queries/mutations as the app; no privileged service token belongs in the client.
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+**Standing debugging priority (David, November 5):** For every debugging or performance effort, put understanding Exact2 and Snapback first. Trace the relevant execution/storage path, test the causal explanation, and look for friction in framework contracts, diagnostics and operator workflows even when the immediate defect is in Jera. Make the appropriate bounded fix and preserve reusable evidence and learning; do not assume an upstream defect or patch the SDK to hide an app mistake. In the composed workspace, follow `practices/exact-snapback-debugging/practice.md` in zojercommons. Use synthetic, content-free reproductions rather than collecting real keystrokes or private text.
 
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
+Run backend integration tests against an isolated real Snapback store and Exact browser tests. Do not substitute mock responses for integration evidence. David authorized both local and EAS iPhone build paths and a production Snapback deployment on the Jera PDS VPS on 2026-10-31; operators belong on Stjerneborg. This supersedes the earlier cloud-only restriction for Jera. Paid EAS builds still need explicit build approval. Do not run Exact's full prove matrix. ATproto publication remains separate work.
 
-## Commands
-
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
-
-```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
-```
-
-Run lint and typecheck before declaring any task done.
-
-## Navigation & Routing
-
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
-
-## Building with EAS
-
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
-
-## Rules
-
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `eas build --profile development` in the cloud.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+For daoUI presentation work, consult the composed daoUI Sheets pattern as well as its tokens. `app.tamber` bridges `background` and `Canvas` to `bg.base` so native-owned safe areas match authored content. Use Exact sheet routes for native grabber/detent controls; a generic dialog does not expose those controls. `app/modules/web/hatch-dao-panel.js` adapts the account route’s browser geometry to compact drawers and regular modal cards. Verify native chrome on a device; clean browser layout checks do not prove safe-area paint, grabbers or UIKit edge attachment. Do not report iOS 26’s small native floating inset as fixed to the screen edge.

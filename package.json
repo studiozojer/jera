@@ -1,51 +1,21 @@
 {
   "name": "jera",
-  "version": "0.1.0",
-  "main": "expo-router/entry",
-  "dependencies": {
-    "@expo/metro-runtime": "~57.0.16",
-    "@expo/vector-icons": "^15.0.2",
-    "@react-native-async-storage/async-storage": "2.2.0",
-    "eslint": "^9.39.5",
-    "eslint-config-expo": "~57.0.2",
-    "expo": "~57.0.27",
-    "expo-constants": "~57.0.21",
-    "expo-dev-client": "~57.0.19",
-    "expo-font": "~57.0.4",
-    "expo-linking": "~57.0.12",
-    "expo-observe": "~57.0.25",
-    "expo-router": "~57.0.25",
-    "expo-splash-screen": "~57.0.9",
-    "expo-status-bar": "~57.0.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native": "0.86.3",
-    "react-native-gesture-handler": "~2.32.0",
-    "react-native-keyboard-controller": "1.21.9",
-    "react-native-reanimated": "4.5.1",
-    "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0",
-    "react-native-web": "^0.21.2",
-    "react-native-worklets": "0.10.1"
-  },
-  "devDependencies": {
-    "@types/react": "~19.2.2",
-    "typescript": "~6.0.3"
-  },
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.2",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "typecheck": "tsc --noEmit",
-    "lint": "expo lint",
-    "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "sync-tokens": "node scripts/sync-tokens.mjs",
-    "sync-foundation": "node scripts/sync-foundation.mjs",
-    "sync-reading": "node scripts/sync-reading.mjs",
-    "check:dao": "node scripts/sync-reading.mjs --check",
-    "sync-symbols": "node scripts/sync-symbols.mjs",
-    "check:symbols": "node scripts/sync-symbols.mjs --check"
+    "check": "snapback4 check",
+    "dev": "snapback4 dev --port 4417",
+    "test": "node --test tests/*.test.mjs auth/test/*.test.mjs",
+    "agent": "node scripts/agent.mjs",
+    "ios:check": "cd app && bun run ios:check",
+    "ios:local": "cd app && bun run ios:local",
+    "ios:archive": "cd app && bun run ios:archive",
+    "web": "cd app && bun run web:live",
+    "pretest": "node scripts/prepare-sdk.mjs",
+    "test:app": "bun test ./app/*.test.ts"
   },
-  "private": true
+  "dependencies": {
+    "snapback4": "0.4.33"
+  }
 }
