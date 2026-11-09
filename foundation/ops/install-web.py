@@ -47,11 +47,11 @@ try:
         config.write_bytes(original.rstrip() + b'\n\n' + line + b'\n')
     switch(artifact)
     load(config.read_bytes())
-    for path in ('/', '/app.js', '/.exact/auth/callback', '/.exact/auth/callback.js'):
+    for path in ('/', '/app.js', '/.exact/auth/callback', '/.exact/auth/callback.js', '/thread/release-check', '/account', '/write', '/audience', '/earlier-drafts'):
         with urllib.request.urlopen('http://127.0.0.1:4421' + path, timeout=15) as response:
             assert response.status == 200
             assert response.headers['Cache-Control'] == 'no-store'
-            if path == '/.exact/auth/callback':
+            if path == '/.exact/auth/callback' or path.startswith('/thread/') or path in ('/account', '/write', '/audience', '/earlier-drafts'):
                 assert response.headers.get_content_type() == 'text/html'
     for url in ('https://snapback.jera.ink/oauth/health', 'https://pds.jera.ink/xrpc/_health'):
         with urllib.request.urlopen(url, timeout=20) as response:
