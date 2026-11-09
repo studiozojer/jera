@@ -45,7 +45,7 @@
   "commands": {
     "server": [
       "bun",
-      "test-server-launch.mjs"
+      "fixtures/server.mjs"
     ]
   },
   "server": {

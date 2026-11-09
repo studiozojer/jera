@@ -1,3 +1,5 @@
+use FieldPicker, FieldText, FieldOption from "./dao/fields.contract"
+use ComposerField, ComposerReference from "./composer-fields.contract"
 use ExperienceSnapshot, ExperienceModeControl from "./experience.contract"
 use JeraWordmark from "./brand.contract"
 use AccountAvatar, AccountRow, LoginButton, SignInFAQ from "./signin.contract"
@@ -5,7 +7,7 @@ use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, radiusMd, radiusFull, minTouch
 use WhyteSm, WhyteXs, WhyteMd, QuietAction from "./dao.contract"
 use Button, Action from "./dao/actions.contract"
 use Confirmation from "./dao/overlays.contract"
-use Post, Author, PostAvatar, PostActions, canReplyInExperience from "./post.contract"
+use Post, PostContent, Author, PostAvatar, PostActions, canReplyInExperience from "./post.contract"
 use ReadingHeader, ThreadHeader, WriteButton, FeedComposer from "./chrome.contract"
 use ThreadHero, ThreadBranch, ThreadReplyEntry from "./thread.contract"
 
@@ -19,6 +21,7 @@ routes nav
     thread "/thread/:id"
     compose "/write"
     audience "/audience"
+    earlierDrafts "/earlier-drafts"
 
 shape Viewport
   pointer: string
@@ -64,12 +67,18 @@ shape Published
   visibility: string
   message: string
 shape SavedDraft
+  format: string
+  audienceId: string
+  fields: ComposerField[]
   principal: string
   scope: string
   body: string
   revision: number
   pendingMode: string
 shape OpenedDraft
+  format: string
+  audienceId: string
+  fields: ComposerField[]
   principal: string
   scope: string
   body: string
@@ -77,6 +86,9 @@ shape OpenedDraft
   pendingMode: string
   context: string
 shape CloudDraft
+  format: string
+  audienceId: string
+  fields: ComposerField[]
   context: string
   principal: string
   scope: string
@@ -92,6 +104,22 @@ shape Audience
   principal: string
   id: string
   members: AudienceMember[]
+shape WritingContext
+  principal: string
+  audienceId: string
+  audienceLabel: string
+  available: bool
+
+shape EarlierDraft
+  id: string
+  body: string
+  revision: number
+  label: string
+  pending: bool
+shape EarlierDrafts
+  principal: string
+  items: EarlierDraft[]
+  available: bool
 
 style ManagementButton
   background-color = "bg.card"
@@ -191,6 +219,11 @@ component App
   derive scope = replyTo == "" ? `root:${mode}` : `reply:${replyTo}`
   derive editorKey = `${account.principal}|${scope}|${mode}|${top(nav).id}`
   state editorContext = ""
+  state editorFormat = "text"
+  state editorAudience = ""
+  state editorFields: ComposerField[] = []
+  resource writingContext = loadWritingContext(account.principal, top(nav).name == "compose", editorAudience, replyTo, dataNow, page.navigationType != "") as shape WritingContext else empty()
+  derive audienceReady = editorFormat == "text" or (mode == "public" and editorFormat == "post.v1" and editorAudience == "") or (writingContext.principal == account.principal and writingContext.audienceId == editorAudience and not failed(writingContext) and writingContext.available)
   state editorText = ""
   state editRevision = 0
   state editorPendingMode = ""
@@ -208,6 +241,9 @@ component App
     match openedDraft
       case some(result)
         if result.principal == account.principal and result.scope == scope and result.context == editorKey and top(nav).name == "compose"
+          editorFormat = result.format
+          editorAudience = result.audienceId
+          editorFields = result.fields
           editorText = result.body
           editRevision = result.revision
           editorPendingMode = result.pendingMode
@@ -226,7 +262,10 @@ component App
   action afterCloudSync
     match cloudSynced
       case some(result)
-        if result.principal == account.principal and result.scope == scope and result.context == editorKey and editorContext == editorKey and editRevision == result.priorRevision and result.body != editorText
+        if result.principal == account.principal and result.scope == scope and result.context == editorKey and editorContext == editorKey and editRevision == result.priorRevision and (result.body != editorText or result.format != editorFormat or result.audienceId != editorAudience or result.fields != editorFields)
+          editorFormat = result.format
+          editorAudience = result.audienceId
+          editorFields = result.fields
           editorText = result.body
           editRevision = result.revision
       case none
@@ -268,35 +307,66 @@ component App
       send experienceChanged = changeExperience(account.principal, value, time.epochAtZero + performanceNow())
   action afterExperienceChange
     composeContextChanged = true
+    if recoveringEarlierDraft and top(nav).name == "earlierDrafts" and currentExperience.principal == account.principal
+      recoveringEarlierDraft = false
+      composeContextChanged = false
+      replyTo = ""
+      nav = push(back(nav), "/write")
   action follow(url: string)
     nav = top(nav).name == "compose" and composeContextChanged and url != "/write" ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : go(nav, url)
   action openThread(id: string)
     nav = push(nav, path("thread", id))
   action dismiss
+    recoveringEarlierDraft = false
     nav = top(nav).name == "compose" and composeContextChanged ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : back(nav)
   action write
     composeContextChanged = false
     replyTo = ""
     nav = push(nav, "/write")
   action reply(id: string)
-    composeContextChanged = false
-    replyTo = id
-    nav = push(nav, "/write")
+    if not id.startsWith("at://")
+      composeContextChanged = false
+      replyTo = id
+      nav = push(nav, "/write")
   action edit(value: string)
     if top(nav).name == "compose" and draftReady and not pending(published) and not pendingDraft
       let revision = editRevision + 1
       editorText = value
       editRevision = revision
-      send draftSaved = saveDraft(account.principal, mode, replyTo, value, revision)
+      send draftSaved = saveDraft(account.principal, mode, replyTo, value, revision, editorAudience, editorFields)
+  action editField(name: string, value: string)
+    let fields = editorFields.map(f => f.name == name ? ComposerField(f, value=value) : f)
+    editorFields = fields
+    let revision = editRevision + 1
+    editRevision = revision
+    send draftSaved = saveDraft(account.principal, mode, replyTo, editorText, revision, editorAudience, fields)
+  action editReference(name: string, index: number, part: string, value: string)
+    let fields = editorFields.map(f => f.name == name ? ComposerField(f, references=f.references.map((r, i) => i == index ? ComposerReference(r, uri=(part == "uri" ? value : r.uri), revision=(part == "revision" ? value : r.revision)) : r)) : f)
+    editorFields = fields
+    let revision = editRevision + 1
+    editRevision = revision
+    send draftSaved = saveDraft(account.principal, mode, replyTo, editorText, revision, editorAudience, fields)
+  action addReference(name: string)
+    let fields = editorFields.map(f => f.name == name ? ComposerField(f, references=f.references.concat([ComposerReference(id=`reference-${editRevision + 1}`, uri="", revision="")])) : f)
+    editorFields = fields
+    let revision = editRevision + 1
+    editRevision = revision
+    send draftSaved = saveDraft(account.principal, mode, replyTo, editorText, revision, editorAudience, fields)
+  action removeReference(name: string, index: number)
+    let fields = editorFields.map(f => f.name == name ? ComposerField(f, references=f.references.filter((r, i) => i != index)) : f)
+    editorFields = fields
+    let revision = editRevision + 1
+    editRevision = revision
+    send draftSaved = saveDraft(account.principal, mode, replyTo, editorText, revision, editorAudience, fields)
   action saveCurrentDraft
     let revision = editRevision + 1
     editRevision = revision
-    send draftSaved = saveDraft(account.principal, mode, replyTo, editorText, revision)
+    send draftSaved = saveDraft(account.principal, mode, replyTo, editorText, revision, editorAudience, editorFields)
   action retryDraft
     send openedDraft = prepareDraft(account.principal, mode, replyTo, editorKey, time.epochAtZero + performanceNow(), page.navigationType != "")
   action post
     if draft.trim() != "" and not pending(published) and not pending(experienceChanged) and editorContext == editorKey and (replyTo == "" or canReplyInExperience(posts, replyTo, mode))
-      send published = publishPost(account.principal, mode, replyTo, draft, editRevision, time.epochAtZero + performanceNow(), page.navigationType != "")
+      send published = publishPost(account.principal, mode, replyTo, draft, editRevision, editorAudience, editorFields, time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterPost
     match published
       case some(result)
@@ -322,6 +392,22 @@ component App
     if h > 0
       threadHeaderHeight = h + (compact ? 0 : spaceSm())
   state audienceDid = ""
+  state recoveringEarlierDraft = false
+  resource earlierDrafts = loadEarlierDrafts(account.principal, top(nav).name == "earlierDrafts", dataNow, page.navigationType != "") as shape EarlierDrafts else empty()
+  action openEarlierDrafts
+    recoveringEarlierDraft = false
+    nav = push(back(nav), "/earlier-drafts")
+  action refreshEarlierDrafts
+    refresh earlierDrafts
+  action copyEarlierDraft(id: string, body: string, revision: number)
+    if earlierDrafts.principal == account.principal and not pending(experienceChanged)
+      recoveringEarlierDraft = true
+      send experienceChanged = copyEarlierDraft(account.principal, id, body, revision, time.epochAtZero + performanceNow(), page.navigationType != "")
+  action copyEarlierText(body: string)
+    copyText(body)
+  action openPrivateDraft
+    recoveringEarlierDraft = true
+    send experienceChanged = changeExperience(account.principal, "private", time.epochAtZero + performanceNow())
   resource audience = loadAudience(account.principal, page.navigationType != "", dataNow) as shape Audience else empty()
   mutation audienceGranted as shape Ack refreshes audience, timeline then afterAudienceGrant
   mutation audienceRevoked as shape Ack refreshes audience, timeline
@@ -344,6 +430,7 @@ component App
   action logout
     send signedOut = logout(time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterLogout
+    recoveringEarlierDraft = false
     nav = go(nav, "/")
     close("delete-post-confirmation")
     close("delete-post-error")
@@ -402,7 +489,7 @@ component App
                                 column gap="dao.space.xs"
                                   if item.parent != ""
                                     text `Private reply to ${item.parentAuthor}` class=WhyteXs color="tx.secondary"
-                                  text item.body class=WhyteSm white-space="pre-wrap" testId=`body-${item.id}`
+                                  PostContent(post=item, bodyTestId=`body-${item.id}`)
                               PostActions(post=item, comments=(mode == "public" ? item.publicReplies : item.readableReplies), comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
                       if feedPosts.length == 0 and timeline.available and not pending(timeline) and not failed(timeline)
                         text "Nothing here yet." color="tx.secondary" class=WhyteSm padding=spaceXxl()
@@ -460,15 +547,21 @@ component App
                     if failed(timeline) or (timeline.principal == account.principal and not timeline.available and not pending(timeline))
                       Button(controlId="", label="Try loading again", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(timeline), press=refreshPosts, testId="retry-thread")
                     for focused in visiblePosts.filter(p => p.id == entry.params.id) key=focused.id
+                      if focused.network and focused.missingParent
+                        text "Earlier reply unavailable in this view" class=WhyteXs color="tx.secondary" padding=spaceLg() testId="missing-parent-context"
                       if focused.parent != ""
                         for parent in visiblePosts.filter(p => p.id == focused.parent) key=parent.id
                           button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(threadHeaderHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
                             text `Replying to ${parent.author}` color="tx.secondary" class=WhyteXs
                       ThreadHero(remove=requestDelete, post=focused, posts=visiblePosts, reply=reply, mode=mode, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
-                      if not focused.deleted
+                      if not focused.deleted and not focused.network
                         ThreadReplyEntry(post=focused, reply=reply, avatar=profileAvatar, name=profileName, clearance=(threadHeaderHeight + spaceSm()))
                       for child in visiblePosts.filter(p => p.parent == focused.id) key=child.id
                         ThreadBranch(remove=requestDelete, post=child, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                      for continuation in visiblePosts.filter(p => p.network and p.missingParent and p.root == focused.id and p.id != focused.id) key=continuation.id
+                        column gap=spaceSm() border-top="1px solid bd.primary"
+                          text "Earlier reply unavailable in this view" class=WhyteXs color="tx.secondary" padding=spaceLg() testId=`missing-parent-${continuation.id}`
+                          ThreadBranch(remove=requestDelete, post=continuation, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
                   box height="env(safe-area-inset-bottom)" flex-shrink=0
             WriteButton(write=write, compact=compact)
         if entry.name == "compose" and account.principal != ""
@@ -476,11 +569,23 @@ component App
             row align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
               Button(controlId="back", label="Cancel", kind="ghost", size="medium", icon=none, disabled=pending(published), busy=false, press=dismiss, testId="cancel")
               text (replyTo == "" ? "New post" : "Reply") role="heading" aria-level=1 font-family="Whyte Inktrap" font-weight=400 class=WhyteMd
-              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(draft.trim() == "" or pending(experienceChanged) or not draftReady), busy=pending(published), press=post, testId="post")
-            if privateReply
-              text "Private" class=WhyteXs color="tx.secondary" aria-label="Reply visibility: Private" testId="reply-private-only"
-            else
-              ExperienceModeControl(idPrefix="experience", label="Post visibility", mode=mode, change=selectExperience, disabled=(not draftReady or pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
+              Button(controlId="", label=(pendingDraft ? "Retry" : "Post"), kind="primary", size="medium", icon=none, disabled=(draft.trim() == "" or pending(experienceChanged) or not draftReady or not audienceReady), busy=pending(published), press=post, testId="post")
+            if mode == "private" and (editorFormat == "text" or editorFormat == "post.v1")
+              text "Private" class=WhyteXs color="tx.secondary" aria-label="Writing in Private" testId="reply-private-only"
+            if editorFormat != "text" and editorFormat != "post.v1" and draftReady
+              column gap=spaceSm() width="100%" max-width="44rem" align-self="center" testId="composition-settings"
+                text editorFormat class=WhyteXs color="tx.secondary" testId="saved-format"
+                if audienceReady
+                  text writingContext.audienceLabel class=WhyteXs color="tx.secondary" testId="saved-audience"
+                else
+                  text "This draft’s audience is unavailable. Your draft is kept." class=WhyteXs color="tx.secondary" role="status"
+                for field in editorFields key=field.name
+                  if field.control == "select"
+                    FieldPicker(label=field.label, value=field.value, options=field.options, disabled=(pendingDraft or pending(published)), change=editField(field.name), testId=`field-${field.name}`)
+                  if field.control == "text"
+                    FieldText(label=field.label, value=field.value, hint="", error="", placeholder="", disabled=(pendingDraft or pending(published)), edit=editField(field.name), submit=saveCurrentDraft, testId=`field-${field.name}`)
+            if mode == "public"
+              text "Public · Jera" class=WhyteXs color="tx.secondary" testId="writing-public"
             if not draftReady and not failed(openedDraft)
               text "Opening draft…" class=WhyteXs color="tx.secondary" role="status" testId="draft-opening"
             if failed(openedDraft)
@@ -513,12 +618,24 @@ component App
                   text `Replying to ${recipient.author}` color="tx.secondary" class=WhyteXs testId="reply-recipient"
                   text recipient.body class=WhyteSm white-space="pre-wrap" line-clamp=3 testId="reply-context"
             textarea id="composer" maxlength=12000 disabled=(pending(experienceChanged) or pending(published) or pendingDraft or not draftReady) value=draft input=edit placeholder=(replyTo == "" ? "What's on your mind?" : "Continue the conversation…") aria-label=(replyTo == "" ? "Write a post" : "Write a reply") testId="composer" outline="none" rows=8 min-height=224 width="100%" box-sizing="border-box" padding-top=spaceSm() padding-bottom=spaceSm() border-width=0 background-color="transparent" color="tx.primary" font-family="Whyte" class=WhyteSm resize="none"
+            if editorFormat != "text" and editorFormat != "post.v1" and draftReady
+              column gap=spaceMd() width="100%" max-width="44rem" align-self="center"
+                for field in editorFields key=field.name
+                  if field.control == "references"
+                    column gap=spaceSm()
+                      text field.label class=WhyteXs color="tx.secondary"
+                      for ref, i in field.references key=ref.id
+                        column gap=spaceSm()
+                          FieldText(label="Source", value=ref.uri, hint="", error="", placeholder="Link or source identifier", disabled=(pendingDraft or pending(published)), edit=editReference(field.name, i, "uri"), submit=saveCurrentDraft, testId=`reference-${i}-uri`)
+                          FieldText(label="Revision (optional)", value=ref.revision, hint="", error="", placeholder="", disabled=(pendingDraft or pending(published)), edit=editReference(field.name, i, "revision"), submit=saveCurrentDraft, testId=`reference-${i}-revision`)
+                          Button(controlId="", label="Remove reference", kind="ghost", size="medium", icon=none, disabled=(pendingDraft or pending(published)), busy=false, press=removeReference(field.name, i), testId=`remove-reference-${i}`)
+                      Button(controlId="", label="Add reference", kind="ghost", size="medium", icon=none, disabled=(field.references.length >= field.maxItems or pendingDraft or pending(published)), busy=false, press=addReference(field.name), testId="add-reference")
         if entry.name == "account"
           // UIKit owns the sheet, including its safe area and interactive dismissal.
           // Web uses the dao-panel adapter for the same compact/regular presentation.
           column id="account-sheet" navigationKey=`${entry.id}` navigationBar="none" navigationPresentation="modal" navigationDetent="fit-content" navigationGrabber=(viewport.width < 768 ? "visible" : "hidden") closedby="any" hatch="dao-panel" aria-label="Your account" testId="account-sheet" position="absolute" inset=0 overflow-y="auto" border-radius=24 background-color="bg.base" color="tx.primary" font-family="Whyte"
             button id="account-dismiss" press=closeAccount aria-label="Dismiss account menu" testId="account-dismiss" display="none" width=44 height=28
-            column gap=24 min-height="14rem" padding="32px 24px 24px" box-sizing="border-box"
+            column gap=24 min-height="14rem" flex-shrink=0 padding="32px 24px 24px" box-sizing="border-box"
               row gap=16 align-items="center" flex-wrap="wrap"
                 for owner in [account.principal] key=owner
                   AccountAvatar(src=profileAvatar, label=profileName, size="3.5rem", radius=8)
@@ -527,9 +644,38 @@ component App
                   if profileHandle != ""
                     text `@${profileHandle}` color="tx.secondary" max-width="100%" white-space="nowrap" overflow="hidden" text-overflow="ellipsis" testId="profile-handle"
               Button(controlId="", label="Private audience", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=openAudience, testId="private-audience")
+              Button(controlId="", label="Earlier public drafts", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=openEarlierDrafts, testId="earlier-public-drafts")
               button "Log out" press=logout disabled=pending(signedOut) aria-busy=pending(signedOut) testId="logout" appearance="none" class=ManagementButton width="100%" box-sizing="border-box" min-height=52 padding="14px 16px" border-width=0 border-radius=8 color="tx.primary" font-family="Whyte" font-size="1.125rem"
               if failed(signedOut)
                 text "Could not log out. Please try again." role="status" color="tx.secondary"
+        if entry.name == "earlierDrafts" and account.principal != ""
+          column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 background-color="experience.canvas"
+            row padding=spaceLg() gap=spaceMd() align-items="center" flex-wrap="wrap"
+              Button(controlId="back", label="Back", kind="ghost", size="medium", icon=none, disabled=pending(experienceChanged), busy=false, press=dismiss, testId="earlier-drafts-back")
+              text "Earlier public drafts" class=WhyteMd role="heading" aria-level=1 min-width=0 flex=1 flex-basis="8rem"
+              Button(controlId="", label="Refresh", kind="ghost", size="medium", icon=none, disabled=pending(experienceChanged), busy=pending(earlierDrafts), press=refreshEarlierDrafts, testId="refresh-earlier-drafts")
+            scroll flex=1 min-height=0
+              column padding=spaceLg() gap=spaceLg() width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box"
+                text "Earlier public drafts are kept here. Copy one to private writing, or copy its text. Originals stay here; nothing is posted automatically." class=WhyteSm color="tx.secondary"
+                Button(controlId="", label="Open private draft", kind="ghost", size="medium", icon=none, disabled=pending(experienceChanged), busy=false, press=openPrivateDraft, testId="open-private-draft")
+                if pending(earlierDrafts)
+                  text "Loading drafts…" class=WhyteXs color="tx.secondary" role="status"
+                if failed(earlierDrafts) or (not pending(earlierDrafts) and not earlierDrafts.available)
+                  text "Synced drafts unavailable. Local copies are kept. Refresh to try again." class=WhyteXs color="tx.secondary" role="status" testId="earlier-drafts-offline"
+                if recoveringEarlierDraft and failed(experienceChanged)
+                  text (match failure(experienceChanged) { case some(f) => f.message, case none => "Could not copy the draft. The original is kept." }) class=WhyteSm color="tx.secondary" role="status" testId="earlier-drafts-error"
+                if earlierDrafts.principal == account.principal
+                  if earlierDrafts.items.length == 0 and earlierDrafts.available and not pending(earlierDrafts)
+                    text "No earlier public drafts." class=WhyteSm color="tx.secondary" testId="earlier-drafts-empty"
+                  for saved in earlierDrafts.items key=saved.id
+                    column gap=spaceMd() padding-top=spaceLg() padding-bottom=spaceLg() border-top="1px solid bd.primary" testId=`earlier-draft-${saved.id}`
+                      text saved.label class=WhyteXs color="tx.secondary"
+                      if saved.pending
+                        text "The original post is unconfirmed. Copying text will not retry it; check before posting again." class=WhyteXs color="tx.secondary"
+                      text saved.body class=WhyteSm white-space="pre-wrap"
+                      row gap=spaceSm() flex-wrap="wrap"
+                        Button(controlId="", label="Copy to private draft", kind="secondary", size="medium", icon=none, disabled=pending(experienceChanged), busy=false, press=copyEarlierDraft(saved.id, saved.body, saved.revision), testId=`recover-${saved.id}`)
+                        Button(controlId="", label="Copy text", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=copyEarlierText(saved.body), testId=`copy-earlier-${saved.id}`)
         if entry.name == "audience" and account.principal != ""
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 background-color="experience.canvas"
             row padding=spaceLg() gap=spaceMd() align-items="center" flex-wrap="wrap"

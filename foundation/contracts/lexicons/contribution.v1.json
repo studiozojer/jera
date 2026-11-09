@@ -1,0 +1,34 @@
+{
+  "ref": "contribution.v1",
+  "title": "Contribution",
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["purpose", "body", "references"],
+    "properties": {
+      "purpose": { "type": "string", "enum": ["archive", "reflect", "request"] },
+      "body": { "type": "string", "minLength": 1, "maxLength": 12000, "nonBlank": true },
+      "references": {
+        "type": "array",
+        "maxItems": 16,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["uri"],
+          "properties": {
+            "uri": { "type": "string", "minLength": 1, "maxLength": 2048, "nonBlank": true },
+            "revision": { "type": "string", "minLength": 1, "maxLength": 256 }
+          }
+        }
+      }
+    }
+  },
+  "presentation": {
+    "bodyField": "body",
+    "fields": {
+      "purpose": { "label": "Purpose", "control": "select" },
+      "body": { "label": "Post", "control": "text" },
+      "references": { "label": "References", "control": "references" }
+    }
+  }
+}

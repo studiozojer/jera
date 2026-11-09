@@ -3,7 +3,11 @@ import { Snapback, refused } from './snapback4/snapback.ts';
 import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile } from './account-profile.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
+import { formFields, editedComposition, type Field } from './composition.ts';
 import { accountExperience } from './experience-store.ts';
+import { preparePrivateWriting } from './private-writing.ts';
+import { postDefinition } from './private-definition.ts';
+import { earlierPublicDrafts, copyEarlierPublicDraft } from './earlier-drafts.ts';
 
 const origin = 'http://127.0.0.1:4417';
 export const appId = 'studio.zojer.jera.exact';
@@ -11,11 +15,14 @@ export const appId = 'studio.zojer.jera.exact';
 function storageKey(value: string): string {
   if (value === 'https://snapback.jera.ink') return 'jera-https-snapback-jera-ink';
   if (value === 'http://127.0.0.1:4417') return 'jera-http-127.0.0.1-4417';
+  // A second explicit fixture binding permits isolated worktree verification.
+  if (value === 'http://127.0.0.1:4437') return 'jera-http-127.0.0.1-4437';
+  if (value === 'http://127.0.0.1:4457') return 'jera-http-127.0.0.1-4457';
   throw new Error('Unconfigured Jera backend: add an origin-specific storage key and grant before using it.');
 }
 const sessionKey = storageKey(origin) + '-atproto-v1';
 const pendingKey = sessionKey + '-login';
-export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
+export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
 
 function randomToken(): string {
   return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -78,8 +85,26 @@ async function postProfile(principal:string,storage:Storage,now:number){
   if(profileCache.size>256)profileCache.clear();
   profileCache.set(principal,{at:now,profile});return profile;
 }
-function draftEnvelope(principal:string,scope:string,draft:Awaited<ReturnType<Drafts['get']>>){return{principal,scope,body:draft.body,revision:draft.revision,pendingMode:draft.sealed?.visibility||''};}
+function draftEnvelope(principal:string,scope:string,draft:Awaited<ReturnType<Drafts['get']>>){return{principal,scope,body:draft.body,revision:draft.revision,pendingMode:draft.sealed?.visibility||'',format:draft.composition?.lexicon.ref||'text',audienceId:draft.composition?.audience||'',fields:draft.composition?formFields(draft.composition):[]};}
+async function editedDraft(local:Drafts,scope:string,audience:string,body:string,fields:Field[]){
+  const saved=await local.get(scope);
+  return saved.composition?editedComposition(saved.composition,saved.composition.audience===null?null:audience,body,fields):undefined;
+}
 const sources: Sources = {
+  loadWritingContext: async ([principal,active,audienceId,parent,now,browser],store,storage,native) => {
+    const unavailable={principal,audienceId,audienceLabel:'',available:false};
+    if(!active||!audienceId||!isActor(store,principal))return unavailable;
+    return using(store,storage,native,now,browser,async db=>{
+      const request=transport(db,store,principal);
+      const all=await allRows(request,'availableAudiences');
+      const parentResult=parent?await request('q','postById',{id:parent}):null;
+      if(parentResult && (!parentResult.complete || !parentResult.data || parentResult.data.deleted))return unavailable;
+      const parentPost=parentResult?.data;
+      const audience=all.find(a=>a.id===audienceId && (parentPost?.visibility==='private'?a.id===parentPost.audience:a.owner===principal));
+      if(!audience)return unavailable;
+      return {principal,audienceId,audienceLabel:audience.kind==='owner'?(audience.name==='Only me'?'Only me':`${audience.name} · only you`):`${audience.name} · shared`,available:true};
+    });
+  },
   experienceSnapshot: async ([principal],store,storage) => {
     if(!isActor(store,principal))return {principal:'',mode:'private',revision:0};
     try {const state=(await experienceFor(store,storage,principal)).getSnapshot();return isActor(store,principal)?{principal,...state}:{principal:'',mode:'private',revision:0};}
@@ -95,20 +120,22 @@ const sources: Sources = {
     const local=draftsFor(store,storage,principal);
     // No transport is opened for an ordinary unposted draft. An unavailable
     // publication lookup preserves the sealed draft, including while offline.
-    const draft=await beginDraft((kind,operation,args,id)=>using(store,storage,native,now,browser,db=>transport(db,store,principal)(kind,operation,args,id)),local,mode==='public'?'public':'private',parent);
+    let draft=await beginDraft((kind,operation,args,id)=>using(store,storage,native,now,browser,db=>transport(db,store,principal)(kind,operation,args,id)),local,mode==='public'?'public':'private',parent);
+    if(mode==='private')draft=await preparePrivateWriting(local,draftScope('private',parent))||draft;
     actor(store,principal);
     return {...draftEnvelope(principal,draftScope(mode==='public'?'public':'private',parent),draft),context};
   },
   syncDraft: async ([principal,mode,parent,context,now,browser],store,storage,native) => {
     const scope=draftScope(mode==='public'?'public':'private',parent);
-    if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,priorRevision:0,state:'pending',context};
+    if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,priorRevision:0,state:'pending',context,format:'text',audienceId:'',fields:[]};
     const local=draftsFor(store,storage,principal);
     try {
       const synced=await using(store,storage,native,now,browser,db=>syncScope(transport(db,store,principal),local,scope));
-      return {principal,scope,body:synced.draft.body,revision:synced.draft.revision,priorRevision:synced.priorRevision,state:'sent',context};
+      if(mode==='private')synced.draft=await preparePrivateWriting(local,scope)||synced.draft;
+      const {pendingMode,...saved}=draftEnvelope(principal,scope,synced.draft);return {...saved,priorRevision:synced.priorRevision,state:'sent',context};
     } catch {
       const draft=await local.get(scope);
-      return {principal:isActor(store,principal)?principal:'',scope,body:draft.body,revision:draft.revision,priorRevision:draft.revision,state:'pending',context};
+      const {pendingMode,...saved}=draftEnvelope(isActor(store,principal)?principal:'',scope,draft);return {...saved,priorRevision:draft.revision,state:'pending',context};
     }
   },
   syncAllDrafts: async ([principal,now,browser],store,storage,native) => {
@@ -118,9 +145,9 @@ const sources: Sources = {
       return {state:'sent',id:''};
     } catch {return {state:'pending',id:''};}
   },
-  saveDraft: async ([principal,mode,parent,body,revision],store,storage) => {
+  saveDraft: async ([principal,mode,parent,body,revision,audience,fields],store,storage) => {
     const scope=draftScope(mode==='public'?'public':'private',parent);
-    const draft=await draftsFor(store,storage,principal).save(scope,body,revision); actor(store,principal);
+    const local=draftsFor(store,storage,principal);const draft=await local.save(scope,body,revision,await editedDraft(local,scope,audience,body,fields)); actor(store,principal);
     return draftEnvelope(principal,scope,draft);
   },
   loadPosts: async ([principal,browser,now],store,storage,native) => {
@@ -128,6 +155,8 @@ const sources: Sources = {
     try {return await using(store,storage,native,now,browser,async db=>{
       const request=transport(db,store,principal);
       const newest=await allRows(request,'postsList') as PostRecord[];
+      const audiences=await allRows(request,'availableAudiences');
+      const audienceNames=new Map(audiences.map(a=>[a.id,a.kind==='owner'?'Only me':a.name==='Private'?'Private · shared':a.name+' · shared']));
       const records=[...newest].sort((a,b)=>a.at-b.at || a.id.localeCompare(b.id));
       const ids=[...new Set(newest.slice(0,100).map(p=>p.author))].slice(0,24);
       const profiles=new Map(await Promise.all(ids.map(async did=>[did,await postProfile(did,storage,now)] as const)));
@@ -142,14 +171,39 @@ const sources: Sources = {
         const parentAuthor=p.parent?displayName(byId.get(p.parent)?.author||''):'';
         const elapsed=Math.max(0,now-p.at),minutes=Math.floor(elapsed/60000);
         const stamp=minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`;
-        return {id:p.id,canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
+        let detail={purpose:'',references:[] as {id:string;uri:string;revision:string}[]};
+        if(!p.deleted&&p.lexicon==='contribution.v1'&&p.payloadJson){const value=JSON.parse(p.payloadJson);detail={purpose:value.purpose,references:value.references.map((r:any,i:number)=>({id:`${p.id}-${i}`,uri:r.uri,revision:r.revision||''}))};}
+        return {...detail,audienceLabel:audienceNames.get(p.audience)||'Private',id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
       });
       return {principal,posts,available:true};
     });} catch {return {principal:isActor(store,principal)?principal:'',posts:[],available:false};}
   },
-  publishPost: async ([principal,mode,parent,body,revision,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+  loadEarlierDrafts: async ([principal,active,now,browser],store,storage,native) => {
+    if(!active||!isActor(store,principal))return {principal:'',items:[],available:false};
+    const drafts=draftsFor(store,storage,principal);
+    let result;
+    try {result=await using(store,storage,native,now,browser,db=>earlierPublicDrafts(transport(db,store,principal),drafts));}
+    catch {result=await earlierPublicDrafts(async()=>{throw new Error('Offline');},drafts);}
+    actor(store,principal);return {principal,...result};
+  },
+  copyEarlierDraft: async ([principal,id,body,revision,now,browser],store,storage,native) => {
+    const experience=await experienceFor(store,storage,principal), drafts=draftsFor(store,storage,principal);
     try {
-      const result=await publish(transport(db,store,principal),draftsFor(store,storage,principal),mode==='public'?'public':'private',parent,revision,body);
+      await using(store,storage,native,now,browser,db=>copyEarlierPublicDraft(transport(db,store,principal),drafts,{id,body,revision}));
+    } catch(error) {reject('E_DRAFT',(error as Error).message||'Could not copy this draft. The original is kept.');}
+    actor(store,principal);await drafts.setMode('private');actor(store,principal);
+    return {principal,...experience.change('private',now)};
+  },
+  publishPost: async ([principal,mode,parent,body,revision,audience,fields,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+    try {
+      if(parent.startsWith('at://'))throw new Error('Bluesky replies are not available in this view. Your draft is kept.');
+      const local=draftsFor(store,storage,principal);
+      const composition=await editedDraft(local,draftScope(mode as Mode,parent),audience,body,fields);
+      const result=await publish(transport(db,store,principal),local,mode==='public'?'public':'private',parent,revision,body,composition,async envelope=>{
+        actor(store,principal);const raw=store.get(sessionKey);
+        try {const result=await authRequest('/records/publish',envelope,db.session?.token);if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed.');return result;}
+        catch(e){const code=(e as any).code||'';if(['INVALID_PAYLOAD','UNKNOWN_LEXICON','LEXICON_CHANGED','AUDIENCE_UNAVAILABLE','DIFFERENT_AUDIENCE','PARENT_UNAVAILABLE','PARENT_DELETED','CANNOT_WIDEN_AUDIENCE','REPLY_NOT_ALLOWED','INTENT_REUSE','E_INPUT'].includes(code))return {state:'failed',why:{message:(e as Error).message}};throw e;}
+      },postDefinition);
       actor(store,principal); return {...result,principal,message:''};
     } catch(error) {
       actor(store,principal);

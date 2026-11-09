@@ -1,0 +1,76 @@
+fresh
+epoch now
+size 390x844
+
+test "ordinary writing inherits Private without configuration controls"
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "owner.test"
+  clock data
+  tap "login"
+  authorize
+  clock settle
+  tap "feed-write"
+  clock settle
+  expect tree missing "composer-format"
+  expect tree missing "composer-audience"
+  expect tree missing "field-purpose"
+  expect tree missing "experience-private"
+  type "composer" "A simple thought ♍︎ ♍️"
+  clock settle
+  screenshot ".exact/composer-simple-narrow.png"
+  resize 1100x850
+  screenshot ".exact/composer-simple-wide.png"
+  resize 390x844
+  tap "cancel"
+  reload
+  clock settle
+  tap "feed-write"
+  clock settle
+  expect text "composer" == "A simple thought ♍︎ ♍️"
+  tap "post"
+  clock settle
+  expect state published.message == ""
+  expect state posts.length == 1
+  expect state posts.0 .body == "A simple thought ♍︎ ♍️"
+
+
+test "an earlier Contribution draft becomes simple writing without widening its audience"
+  request POST "/dev/structured-draft" {}
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "owner.test"
+  clock data
+  tap "login"
+  authorize
+  clock settle
+  tap "feed-write"
+  clock settle
+  clock +1000
+  clock data
+  expect state editorFormat == "post.v1"
+  expect tree missing "composer-format"
+  expect tree missing "composer-audience"
+  expect tree missing "field-purpose"
+  expect tree missing "add-reference"
+  expect text "composer" == "A focused thought ♍︎ ♍️"
+  tap "cancel"
+  reload
+  clock settle
+  tap "feed-write"
+  clock settle
+  expect state editorFormat == "post.v1"
+  expect tree missing "field-purpose"
+  screenshot ".exact/composer-simple-post.png"
+  tap "post"
+  clock settle
+  expect state published.message == ""
+  expect state posts.length == 1
+  expect state posts.0 .purpose == ""
+  expect state posts.0 .audienceLabel == "Only me"
+  expect state posts.0 .references.length == 0
+  tap "reply"
+  clock settle
+  expect tree missing "field-purpose"
+  type "composer" "A plain reply in the same audience."
+  tap "post"
+  clock settle
+  expect state posts.length == 2

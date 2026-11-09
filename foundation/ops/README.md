@@ -18,6 +18,10 @@ Caddy needs `tls force_automate` for this hostname because the PDS has an on-dem
 
 ## Deploy
 
+For the structured-post release, use `install-release.sh <staged-foundation-directory>` with `EXPECTED_SCHEMA_SHA256` set to the inspected live schema hash. Stage `auth/` (without dependencies or local state), `contracts/`, `scripts/`, `snapback/schema.q` and `ops/` together. The auth service now imports the contract registry and client helpers outside `auth/`; copying only that directory is incomplete. The installer installs locked auth dependencies in staging, checks imports and schema compatibility, makes a fresh production backup, and proves adoption on a disposable on-host restoration before changing live services. It preserves previous source and restores it if service activation fails. An already-adopted additive schema is retained; rollback never restores an older data snapshot over new writes. Review a failure before retrying.
+
+The previous `install-auth.sh` procedure below remains the initial provisioning path. Use the release installer for subsequent application updates.
+
 Copy this directory's files (excluding dependencies and Python caches) to `/opt/jera-snapback/`, and `../snapback/schema.q` to `/opt/jera-snapback/snapback/schema.q`. Never copy development stores or credentials.
 
 Before an update, run `systemctl start jera-snapback-backup.service`. Then:
@@ -60,3 +64,13 @@ No model credentials, worker, scheduler or automatic GitHub publishing is instal
 ## ATproto identity service
 
 Copy `../auth/` (excluding node_modules and local data) to `/opt/jera-snapback/auth/` alongside the ops files. `install-auth.sh` is the update path after initial runtime provisioning. It preserves records, disables password/guest signup, retires legacy sessions, and keeps minting authority on loopback. See [the identity service](../auth/README.md) for callback/session custody, evidence and revocation timing. Backups stop both services before copying their state and restart both afterward. Restore both directories together; restore-check.py verifies storage in isolation, without contacting a real OAuth provider.
+
+## Root-domain web release
+
+`web.caddy` serves compiled artifacts at `https://jera.ink`, redirects `www.jera.ink` to the root, and exposes a loopback-only check at port 4421. The auth unit allowlists `https://jera.ink/.exact/auth/callback` alongside the existing phone and local-live callbacks. The API stays at `https://snapback.jera.ink`; the web client uses the same verified DID and authoritative store as the phone. Public posts remain readable by signed-in Jera accounts; hosting the UI publicly does not change record permissions.
+
+From `foundation/app`, build with Bun 1.4.2, `EXACT_BACKEND_ORIGIN=https://snapback.jera.ink` and `EXACT_WEB_DIST` pointing at an isolated artifact directory. The separate output prevents replacing a running local preview's bundle. Then run `node ../scripts/package-web.mjs <build-output> <new-public-directory>`: it checks the build receipt, hashes and production binding, copies the public inventory and OAuth callback, and excludes Exact's `.gen` source/build scratch. Copy only this packaged public directory into `/opt/jera-web/releases/<full-source-sha>/`. Never serve the raw build directory, source checkout, credentials, fixtures, database or dependencies. Set directories to 0755 and files to 0644. Run `python3 <staged-foundation>/ops/install-web.py <full-source-sha>` to atomically select it and install the Caddy import. The installer rolls back the web symlink and Caddy configuration if local checks fail. Releases remain on disk for rollback.
+
+The extensionless OAuth callback is explicitly served as `text/html`. Release assets use `Cache-Control: no-store` while filenames are not consistently content-addressed. No Caddy access log is enabled for the callback's one-time handoff parameters. Verify the sign-in page in a fresh browser, callback script execution, origin preflight and unauthorized record refusal. Real account consent and the authenticated posting journey remain distinct acceptance checks.
+
+DNS cutover: replace Squarespace's root `@` A records with `91.98.204.141`, remove any root AAAA record unless it points to a verified address on this host, and point `www` at `jera.ink`. Preserve MX/TXT and all PDS, handle and Snapback records. Once DNS resolves here, Caddy obtains HTTPS certificates. Verify the public root, callback MIME type, API health and PDS health after propagation. The previous Squarespace root A values were `198.49.23.144`, `198.49.23.145`, `198.185.159.144`, `198.185.159.145`; restoring those redirects website traffic back but does not roll back backend writes.

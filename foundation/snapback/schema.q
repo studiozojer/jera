@@ -163,15 +163,107 @@ mutation connect(source: nodes, target: nodes, relation: enum('relates', 'suppor
 query currentIdentity():
   return { did: viewer }
 
+-- A rebuildable index of registered accounts' public Bluesky records. Import
+-- authority stays in the existing trusted identity service, never the client.
+-- A generation is exposed only after the worker completes a stable PDS scan.
+table publicIndexAccounts:
+  owner: principal
+  generation: text <=26
+  pending: text <=26
+  revision: text <=128
+  pds: text <=2048
+  state: enum('pending', 'syncing', 'ready', 'error')
+  checkedAt: time default now
+  syncedAt: time ?
+  unique owner
+  immutable owner
+  read <- .owner = viewer or viewer = 'service:atproto-auth'
+  insert <- .owner = viewer
+  update <- viewer = 'service:atproto-auth'
+  online only
+
+table publicIndexRecords:
+  owner: principal
+  generation: text 26..26
+  key: text 64..64
+  rootKey: text <=64
+  isRoot: bool
+  uri: text 1..2048
+  cid: text 1..256
+  body: text <=12000
+  record: text 1..65536
+  parent: text <=2048
+  root: text <=2048
+  at: time
+  unique owner, generation, key
+  immutable owner, generation, key, uri
+  read <- .owner = viewer or viewer = 'service:atproto-auth'
+  insert <- viewer = 'service:atproto-auth'
+  update <- viewer = 'service:atproto-auth'
+  delete <- viewer = 'service:atproto-auth'
+  online only
+
+mutation ensurePublicIndex():
+  insert publicIndexAccounts { owner: viewer, generation: '', pending: '', revision: '', pds: '', state: 'pending', syncedAt: null } if absent
+  return publicIndexAccounts[owner = viewer] ! else INDEX_UNAVAILABLE
+query publicIndexStatus():
+  return publicIndexAccounts[owner = viewer]
+query publicIndexRoots(generation: text <=26, c: cursor ?):
+  a = publicIndexAccounts[owner = viewer] ! else INDEX_UNAVAILABLE
+  require generation = a.generation else INDEX_CHANGED
+  return publicIndexRecords where .owner = viewer and .generation = a.generation and .isRoot last 50 by .at, .key after c
+query publicIndexThread(generation: text <=26, key: text 64..64, c: cursor ?):
+  a = publicIndexAccounts[owner = viewer] ! else INDEX_UNAVAILABLE
+  require generation = a.generation else INDEX_CHANGED
+  p = publicIndexRecords[owner = viewer, generation = a.generation, key = key] ! else POST_UNAVAILABLE
+  root = p.rootKey if p.rootKey != '' else p.key
+  return publicIndexRecords where .owner = viewer and .generation = a.generation and (.key = root or .rootKey = root) first 100 by .at, .key after c
+query publicIndexAccountsList(c: cursor ?):
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  return publicIndexAccounts first 100 by .id after c
+mutation beginPublicIndex(owner: principal, generation: text 26..26): server
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  a = publicIndexAccounts[owner = owner] ! else INDEX_UNAVAILABLE
+  update a { pending: generation, state: 'syncing', checkedAt: now }
+  return a
+mutation stagePublicRecord(owner: principal, generation: text 26..26, key: text 64..64, rootKey: text <=64, isRoot: bool, uri: text 1..2048, cid: text 1..256, body: text <=12000, record: text 1..65536, parent: text <=2048, root: text <=2048, at: time): server
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  require exists publicIndexAccounts[owner = owner, pending = generation] else INDEX_SUPERSEDED
+  return upsert publicIndexRecords[owner, generation, key] { uri, rootKey, isRoot, cid, body, record, parent, root, at }
+mutation finishPublicIndex(owner: principal, generation: text 26..26, revision: text <=128, pds: text <=2048, expected: int 0..20000): server
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  a = publicIndexAccounts[owner = owner] ! else INDEX_UNAVAILABLE
+  require a.pending = generation else INDEX_SUPERSEDED
+  require count(publicIndexRecords where .owner = owner and .generation = generation) = expected else INDEX_INCOMPLETE
+  update a { generation, pending: '', revision, pds, state: 'ready', checkedAt: now, syncedAt: now }
+  return null
+mutation checkPublicIndex(owner: principal, failed: bool): server
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  a = publicIndexAccounts[owner = owner] ! else INDEX_UNAVAILABLE
+  update a { state: 'error' if failed else 'ready', pending: '', checkedAt: now }
+  return null
+query obsoletePublicRecords(owner: principal, c: cursor ?):
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  a = publicIndexAccounts[owner = owner] ! else INDEX_UNAVAILABLE
+  return publicIndexRecords where .owner = owner and .generation != a.generation and .generation != a.pending first 100 by .id after c
+mutation removeObsoletePublicRecord(id: publicIndexRecords): server
+  require viewer = 'service:atproto-auth' else INDEX_WORKER_REQUIRED
+  p = publicIndexRecords[id] ! else POST_UNAVAILABLE
+  a = publicIndexAccounts[owner = p.owner] ! else INDEX_UNAVAILABLE
+  require p.generation != a.generation and p.generation != a.pending else INDEX_ACTIVE
+  delete p
+  return null
+
 -- Social records are independent of memory modules and organizing tasks.
 -- The first private-audience UI is a DID list; audience IDs leave room for
 -- later groups and resource-scoped grants without changing post ownership.
 table audiences:
   owner: principal
   name: text 1..80
+  kind: enum('owner', 'shared') default 'shared'
   unique owner, name
-  immutable owner, name
-  read <- .owner = viewer or exists audienceMembers[.id, viewer]
+  immutable owner, name, kind
+  read <- .owner = viewer or exists audienceMembers[.id, viewer] or viewer = 'service:atproto-auth'
   insert <- .owner = viewer
   online only
 
@@ -183,9 +275,9 @@ table audienceMembers:
   unique audience, principal
   cap 500 by audience
   immutable audience, principal, owner
-  read <- .owner = viewer or .principal = viewer
-  insert <- exists audiences[.audience, owner = viewer] and .owner = viewer
-  update <- exists audiences[.audience, owner = viewer]
+  read <- .owner = viewer or .principal = viewer or viewer = 'service:atproto-auth'
+  insert <- exists audiences[.audience, owner = viewer, kind = 'shared'] and .owner = viewer
+  update <- exists audiences[.audience, owner = viewer, kind = 'shared']
   delete <- exists audiences[.audience, owner = viewer]
   online only
 
@@ -194,16 +286,19 @@ table posts:
   intent: text 26..26
   unique author, intent
   body: text <=12000
+  lexicon: text 1..200 ?
+  lexiconDigest: text 64..64 ?
+  payloadJson: text 1..65536 ?
   deleted: bool default false
   visibility: enum('public', 'private')
   audience: audiences ?
   parent: posts ?
   root: posts ?
   at: time default now
-  immutable author, intent, visibility, audience, parent, root, at
-  read <- .visibility = 'public' or exists audiences[.audience, owner = viewer] or exists audienceMembers[.audience, viewer]
-  insert <- .author = viewer and not .deleted and .body != ''
-  update (old, next) <- old.author = viewer and next.deleted and next.body = ''
+  immutable author, intent, visibility, audience, parent, root, at, lexicon, lexiconDigest
+  read <- .visibility = 'public' or exists audiences[.audience, owner = viewer] or exists audienceMembers[.audience, viewer] or viewer = 'service:atproto-auth'
+  insert <- not .deleted and .body != '' and ((.author = viewer and .lexicon = null and .lexiconDigest = null and .payloadJson = null) or (viewer = 'service:atproto-auth' and .lexicon != null and .lexiconDigest != null and .payloadJson != null and ((.visibility = 'private' and .audience != null) or (.visibility = 'public' and .audience = null))))
+  update (old, next) <- old.author = viewer and next.deleted and next.body = '' and next.payloadJson = null
   online only
 
 -- Unpublished drafts never share the posted audience. Each device keeps a
@@ -213,24 +308,35 @@ table socialDrafts:
   deviceKey: text 26..26
   scope: text 1..200
   body: text <=12000
+  compositionJson: text <=262144 ?
   revision: int 0..9007199254740991
   at: time default now
   unique owner, deviceKey, scope
   immutable owner, deviceKey, scope
-  read <- .owner = viewer
-  insert <- .owner = viewer
-  update <- .owner = viewer
+  read <- .owner = viewer or viewer = 'service:atproto-auth'
+  insert <- .owner = viewer or viewer = 'service:atproto-auth'
+  update <- .owner = viewer or viewer = 'service:atproto-auth'
   online only
 
 query draftForDevice(deviceKey: text 26..26, scope: text 1..200):
   return socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope]
 query latestDraft(scope: text 1..200):
   return socialDrafts where .owner = viewer and .scope = scope last 1 by .at
+query earlierPublicDrafts(c: cursor ?):
+  return socialDrafts where .owner = viewer and .scope = 'root:public' and .body != '' last 100 by .at after c
+query earlierPublicDraft(id: socialDrafts):
+  return socialDrafts[id, owner = viewer, scope = 'root:public']
 mutation saveSocialDraft(deviceKey: text 26..26, scope: text 1..200, body: text <=12000, revision: int 0..9007199254740991):
   existing = socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope]
   if existing != null and existing.revision >= revision:
     return existing
-  return upsert socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope] { owner: viewer, deviceKey, scope, body, revision, at: now }
+  return upsert socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope] { owner: viewer, deviceKey, scope, body, compositionJson: null, revision, at: now }
+
+mutation saveStructuredDraft(deviceKey: text 26..26, scope: text 1..200, body: text <=12000, compositionJson: text 1..262144, revision: int 0..9007199254740991):
+  existing = socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope]
+  if existing != null and existing.revision >= revision:
+    return existing
+  return upsert socialDrafts[owner = viewer, deviceKey = deviceKey, scope = scope] { owner: viewer, deviceKey, scope, body, compositionJson, revision, at: now }
 
 query postsList(c: cursor ?):
   return posts last 100 by .at after c
@@ -240,6 +346,15 @@ query postForIntent(intent: text 26..26):
   return posts[author = viewer, intent = intent]
 query audienceList():
   return audiences where .owner = viewer and .name = 'Private' first 1 by .id
+query availableAudiences(c: cursor ?):
+  return audiences first 100 by .id after c
+mutation createAudience(name: text 1..80, kind: enum('owner', 'shared')):
+  require trim(name) != '' else EMPTY_AUDIENCE_NAME
+  require name != 'Private' else RESERVED_AUDIENCE_NAME
+  insert audiences { owner: viewer, name, kind } if absent
+  a = audiences[owner = viewer, name = name] ! else AUDIENCE_UNAVAILABLE
+  require a.kind = kind else AUDIENCE_KIND_CONFLICT
+  return a
 query audienceMembersList(audience: audiences, c: cursor ?):
   require exists audiences[audience, owner = viewer] else NOT_OWNER
   return audienceMembers where .audience = audience and .owner = viewer first 100 by .principal after c
@@ -248,6 +363,7 @@ mutation ensureAudience():
   return audiences[owner = viewer, name = 'Private'] ! else AUDIENCE_UNAVAILABLE
 mutation setAudienceMember(audience: audiences, principal: principal, access: enum('read', 'reply')):
   require exists audiences[audience, owner = viewer] else NOT_OWNER
+  require exists audiences[audience, kind = 'shared'] else OWNER_ONLY_AUDIENCE
   require principal != viewer else OWNER_MEMBERSHIP
   return upsert audienceMembers[audience, principal] { owner: viewer, access }
 mutation removeAudienceMember(audience: audiences, principal: principal):
@@ -260,12 +376,13 @@ mutation removeAudienceMember(audience: audiences, principal: principal):
 mutation deletePost(id: posts):
   -- The named update rule authorizes the old author, including when a private
   -- audience has revoked their read access. No hidden content is returned.
-  update posts[id] { body: '', deleted: true }
+  update posts[id] { body: '', payloadJson: null, deleted: true }
   return { id, deleted: true }
 mutation publishPost(intent: text 26..26, body: text 1..12000, visibility: enum('public', 'private'), audience: audiences ?, parent: posts ?, draftDevice: text 26..26 ?, draftRevision: int 0..9007199254740991 ?, draftScope: text 1..200 ?):
   require trim(body) != '' else EMPTY_POST
   prior = posts[author = viewer, intent = intent]
   if prior != null:
+    require prior.lexicon = null else INTENT_REUSE
     require (prior.deleted or prior.body = body) and prior.visibility = visibility and prior.audience = audience and prior.parent = parent else INTENT_REUSE
     return prior
   root = null
@@ -287,5 +404,38 @@ mutation publishPost(intent: text 26..26, body: text 1..12000, visibility: enum(
   if draftDevice != null and draftRevision != null and draftScope != null:
     draft = socialDrafts[owner = viewer, deviceKey = draftDevice, scope = draftScope]
     if draft = null or (draft.revision <= draftRevision and draft.body = body):
-      upsert socialDrafts[owner = viewer, deviceKey = draftDevice, scope = draftScope] { owner: viewer, deviceKey: draftDevice, scope: draftScope, body: '', revision: draftRevision + 1, at: now }
+      upsert socialDrafts[owner = viewer, deviceKey = draftDevice, scope = draftScope] { owner: viewer, deviceKey: draftDevice, scope: draftScope, body: '', compositionJson: null, revision: draftRevision + 1, at: now }
+  return posted
+
+-- The authenticated gateway validates the exact lexicon and payload before
+-- calling this mutation. User sessions cannot supply arbitrary structured JSON.
+-- The service rechecks record/audience permissions atomically for the bound DID.
+mutation commitStructuredPost(author: principal, intent: text 26..26, audience: audiences ?, parent: posts ?, lexicon: text 1..200, lexiconDigest: text 64..64, payloadJson: text 1..65536, body: text 1..12000, draftDevice: text 26..26 ?, draftRevision: int 0..9007199254740990 ?, draftScope: text 1..200 ?): server
+  require viewer = 'service:atproto-auth' else RECORD_GATEWAY_REQUIRED
+  require trim(body) != '' else EMPTY_POST
+  visibility = 'public' if audience = null else 'private'
+  if audience != null:
+    a = audiences[audience] ! else AUDIENCE_UNAVAILABLE
+    require a.owner = author or (parent != null and a.kind = 'shared' and exists audienceMembers[audience = audience, principal = author, access = 'reply']) else AUDIENCE_UNAVAILABLE
+  prior = posts[author = author, intent = intent]
+  if prior != null:
+    require prior.lexicon = lexicon and prior.lexiconDigest = lexiconDigest and prior.visibility = visibility and prior.audience = audience and prior.parent = parent else INTENT_REUSE
+    require prior.deleted or (prior.payloadJson = payloadJson and prior.body = body) else INTENT_REUSE
+    return prior
+  root = null
+  if parent != null:
+    p = posts[parent] ! else PARENT_UNAVAILABLE
+    require p.visibility = 'public' or exists audiences[p.audience, owner = author] or exists audienceMembers[audience = p.audience, principal = author] else PARENT_UNAVAILABLE
+    require not p.deleted else PARENT_DELETED
+    if p.visibility = 'private':
+      require audience != null else CANNOT_WIDEN_AUDIENCE
+      require p.audience = audience else DIFFERENT_AUDIENCE
+    if audience != null and not exists audiences[audience, owner = author]:
+      require p.audience = audience else REPLY_NOT_ALLOWED
+    root = p.root if p.root != null else p.id
+  posted = insert posts { author, intent, body, visibility, audience, parent, root, lexicon, lexiconDigest, payloadJson }
+  if draftDevice != null and draftRevision != null and draftScope != null:
+    draft = socialDrafts[owner = author, deviceKey = draftDevice, scope = draftScope]
+    if draft = null or draft.revision <= draftRevision:
+      upsert socialDrafts[owner = author, deviceKey = draftDevice, scope = draftScope] { owner: author, deviceKey: draftDevice, scope: draftScope, body: '', compositionJson: null, revision: draftRevision + 1, at: now }
   return posted

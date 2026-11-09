@@ -4,6 +4,8 @@ Jera uses existing ATproto accounts. The native app accepts a handle or DID and 
 
 The server issues a Snapback session whose principal is the verified DID. There is no email mapping, new user table, password signup or guest login. Snapback remains the authoritative private application store.
 
+The service also mounts the authenticated `/records/lexicons` and `/records/publish` endpoints described in [RECORDS.md](../RECORDS.md). It validates versioned application payloads and commits them with the existing server-only credential; Snapback rechecks the bound author's current audience permissions. Deploy the service together with its `contracts/` and `scripts/client.mjs` dependencies and the corresponding schema/Caddy route changes. The browser/CLI never receives that credential.
+
 ## Account discovery
 
 The sign-in field offers suggestions after two characters and a 250 ms pause. `/oauth/accounts` combines Bluesky's public `app.bsky.actor.searchActorsTypeahead` index with a small cached directory of public accounts on `JERA_PDS_ORIGIN` (default `https://pds.jera.ink`). Search text is sent to Bluesky; this does not send drafts or authenticate an account. There is no separate network indexer or persistent account table.
@@ -11,6 +13,8 @@ The sign-in field offers suggestions after two characters and a 250 ms pause. `/
 Local discovery uses public `listRepos`, `describeRepo`, and optional Bluesky profile records. It follows up to five pages of 100 repositories with bounded concurrency and a 12-second deadline. Successful local scans are cached for five minutes; partial scans and failures retry after 30 seconds. Bluesky results have a bounded 30-second cache. Local matches appear first, with duplicates removed by DID. Suggestions are rate limited and capped at eight; outages and incomplete results retain manual entry.
 
 These sources are not a complete ATproto directory. Full handles and DIDs from other PDSes remain valid sign-in inputs even when absent from search. Selecting a suggestion only fills the handle; the official OAuth client still resolves and verifies identity before any session is issued.
+
+The service also hosts the bounded [Public index worker](../PUBLIC-INDEX.md), using the existing `service:atproto-auth` token to write derived records into Snapback. This is independent of account search: it registers no new identity, requests no additional OAuth scope and performs no PDS writes. The account registry and indexed content live in Snapback rather than the OAuth SQLite database. Keep this service single-process; its ingestion loop and the SDK refresh lock are local.
 
 Suggestions also return public avatar URLs: local profile blobs use the configured PDS's `getBlob` endpoint, while Bluesky images are restricted to its HTTPS avatar CDN. A duplicate Bluesky result can supply a missing local avatar without replacing the local handle. The client shows an initial if no image is available or loading fails. This adds no account permissions or PDS writes.
 

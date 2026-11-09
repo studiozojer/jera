@@ -1,5 +1,6 @@
 import { TokenRefreshError, TokenRevokedError } from '@atproto/oauth-client-node';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createRecordHandler } from './records.mjs';
 
 const ttl = 10 * 60_000;
 const nonce = () => randomBytes(32).toString('base64url');
@@ -42,6 +43,7 @@ export function createHandler({ client, store, publicOrigin, callbacks, snapback
     }
     return did;
   }
+  const records = createRecordHandler({ authenticate: check, snapbackOrigin, serviceToken, fetcher });
   return async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Referrer-Policy', 'no-referrer');
@@ -57,6 +59,7 @@ export function createHandler({ client, store, publicOrigin, callbacks, snapback
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST'); res.writeHead(204); return res.end();
     }
     try {
+      if (url.pathname.startsWith('/records/')) return await records(req, res);
       if (req.method === 'POST' && url.pathname === '/oauth/accounts') {
         const peer = req.headers['x-forwarded-for'] ?? req.socket.remoteAddress;
         const now = Date.now(), key = `search:${peer}`;

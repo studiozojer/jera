@@ -51,41 +51,57 @@ test "a real stored post and draft survive relaunch"
   expect state posts.length == 2
   expect state posts.0 .body == "A durable thought ♍︎ ♍️ :virgo:"
 
-test "a private reply on a public post keeps its draft and hides in public"
+test "Public reads historical Snapback posts and supports new posts and replies"
+  request POST "/dev/legacy-public" {}
   fail fetch "https://public.api.bsky.app/"
   type "handle" "owner.test"
   clock data
   tap "login"
   authorize
   clock settle
+  tap "header-experience-public"
+  clock settle
+  expect state feedPosts.length == 1
+  expect state feedPosts.0 .body == "An earlier public Snapback post"
+  screenshot ".exact/snapback-public-history.png"
+  expect tree missing "public-feed-title"
+  expect tree has "feed-write"
   tap "feed-write"
   clock settle
-  tap "experience-public"
-  clock settle
-  type "composer" "A real public post"
-  clock settle
+  expect tree has "writing-public"
+  type "composer" "New public Snapback post ♍︎ ♍️"
+  screenshot ".exact/snapback-public-composer.png"
   tap "post"
   clock settle
-  expect state posts.0 .visibility == "public"
-  tap "reply"
-  clock settle
-  type "composer" "A real private branch"
-  clock settle
-  tap "experience-private"
-  clock settle
-  expect text "composer" == "A real private branch"
-  tap "post"
-  clock settle
+  expect state published.message == ""
   expect state posts.length == 2
-  expect state posts.1 .visibility == "private"
-  expect state visiblePosts.length == 2
+  expect state posts.1 .visibility == "public"
   tap "reply"
   clock settle
-  tap "experience-public"
+  type "composer" "A public reply"
+  tap "post"
   clock settle
-  tap "cancel"
+  expect state posts.length == 3
+  expect state posts.2 .visibility == "public"
+  reload
   clock settle
-  expect state visiblePosts.length == 1
+  expect state posts.length == 3
+  tap "back"
+  clock settle
+  tap "header-experience-private"
+  clock settle
+  expect state feedPosts.length == 0
+  tap "feed-write"
+  clock settle
+  type "composer" "A private post stays private"
+  tap "post"
+  clock settle
+  tap "back"
+  clock settle
+  tap "header-experience-public"
+  clock settle
+  expect state feedPosts.length == 2
+  expect state visiblePosts.length == 3
 
 test "a private audience grants and revokes DID access through the real store"
   fail fetch "https://public.api.bsky.app/"

@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { postEnvelope } from '../contracts/records.mjs';
 
 export function intentId() {
   let value = BigInt(`0x${randomBytes(16).toString('hex')}`);
@@ -33,4 +34,12 @@ export class JeraClient {
   }
   query(name, args = {}) { return this.request(`/q/${encodeURIComponent(name)}`, { args }); }
   mutate(name, args, id = intentId()) { return this.request(`/m/${encodeURIComponent(name)}`, { id, args }); }
+  // Caller persists the complete envelope and intent before sending. A refusal
+  // or unknown transport outcome never manufactures a new posting intent.
+  publishRecord(envelope) { return this.request('/records/publish', envelope); }
+  async readRecord(id) {
+    const answer = await this.query('postById', { id });
+    if (!answer.complete) throw Object.assign(new Error('Post read is incomplete.'), { code: 'E_INCOMPLETE' });
+    return postEnvelope(answer.data);
+  }
 }

@@ -6,12 +6,12 @@ snapback.jera.ink {
         X-Content-Type-Options nosniff
         -Server
     }
-    @oauth path /oauth/* /auth/refresh
+    @oauth path /oauth/* /auth/refresh /records/*
     handle @oauth {
         reverse_proxy 127.0.0.1:4420
     }
     # Minting authority remains loopback-only even with a stolen service token.
-    @administration path /auth/session /auth/revoke /auth/delete-account
+    @administration path /auth/session /auth/revoke /auth/delete-account /m/commitStructuredPost
     handle @administration {
         respond "Not available" 403
     }

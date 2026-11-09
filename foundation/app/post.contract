@@ -5,7 +5,25 @@ use AccountAvatar from "./signin.contract"
 use IconButton from "./dao/actions.contract"
 use Menu, MenuItem from "./dao/overlays.contract"
 
+shape PublicImage
+  src: string
+  alt: string
+
+shape SourceReference
+  id: string
+  uri: string
+  revision: string
+
 shape Post
+  audienceLabel: string
+  purpose: string
+  references: SourceReference[]
+  network: bool
+  missingParent: bool
+  images: PublicImage[]
+  sourceUrl: string
+  embedLabel: string
+  embedUrl: string
   id: string
   principal: string
   canDelete: bool
@@ -46,7 +64,7 @@ component Author
         text post.author class=WhyteSm
         text post.stamp color="tx.secondary" class=WhyteXs
         if post.visibility == "private"
-          text "Private" color="tx.secondary" class=WhyteXs
+          text post.audienceLabel color="tx.secondary" class=WhyteXs
       // Keep the author line at reading height; the full menu target extends
       // into the surrounding space without adding a blank line below the name.
       if not post.deleted
@@ -69,14 +87,34 @@ component PostActions
   action unavailable
     comment()
   view
-    row gap=0 align-items="center" flex-wrap="wrap"
-      IconButton(controlId="", kind="ghost", label="Like", symbol="symbol:heart", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=true, press=unavailable, testId=`like-${context}`, clearance=clearance)
-      IconButton(controlId="", kind="ghost", label=`${comments > 0 ? `${comments} ${comments == 1 ? "reply" : "replies"}. ` : ""}${commentLabel}: ${post.author}, ${post.body.slice(0, 64)}`, symbol="symbol:icon.post-comment", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=false, press=comment, testId=commentId, clearance=clearance)
-        if comments > 0
-          text `${comments}` class=WhyteXs
-      IconButton(controlId="", kind="ghost", label="Repost", symbol="symbol:repeat", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=true, press=unavailable, testId=`repost-${context}`, clearance=clearance)
-      IconButton(controlId="", kind="ghost", label="Send", symbol="symbol:icon.post-send", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=true, press=unavailable, testId=`send-${context}`, clearance=clearance)
+    if not post.network
+      row gap=0 align-items="center" flex-wrap="wrap"
+        IconButton(controlId="", kind="ghost", label="Like", symbol="symbol:heart", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=true, press=unavailable, testId=`like-${context}`, clearance=clearance)
+        IconButton(controlId="", kind="ghost", label=`${comments > 0 ? `${comments} ${comments == 1 ? "reply" : "replies"}. ` : ""}${commentLabel}: ${post.author}, ${post.body.slice(0, 64)}`, symbol="symbol:icon.post-comment", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=false, press=comment, testId=commentId, clearance=clearance)
+          if comments > 0
+            text `${comments}` class=WhyteXs
+        IconButton(controlId="", kind="ghost", label="Repost", symbol="symbol:repeat", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=true, press=unavailable, testId=`repost-${context}`, clearance=clearance)
+        IconButton(controlId="", kind="ghost", label="Send", symbol="symbol:icon.post-send", glyphSize="1rem", targetSize="2.75rem", selected=none, disabled=true, press=unavailable, testId=`send-${context}`, clearance=clearance)
 
+
+component PostContent
+  props
+    post: Post
+    bodyTestId: string
+  view
+    column gap=spaceMd()
+      if post.purpose != ""
+        text (post.purpose == "archive" ? "Archive" : post.purpose == "reflect" ? "Reflection" : "Request") class=WhyteXs color="tx.secondary" testId=`purpose-${post.id}`
+      if post.body != ""
+        text post.body class=WhyteSm white-space="pre-wrap" testId=bodyTestId
+      for ref, i in post.references key=ref.id
+        text (ref.revision == "" ? ref.uri : `${ref.uri} · ${ref.revision}`) class=WhyteXs color="tx.secondary" overflow-wrap="anywhere" testId=`post-reference-${i}`
+      for image, i in post.images key=image.src
+        image image.src alt=image.alt aria-label=image.alt width="100%" max-height="32rem" object-fit="contain" border-radius=radiusMd() testId=`public-image-${i}`
+      if post.embedLabel != ""
+        text post.embedLabel href=post.embedUrl class=WhyteXs color="tx.link" text-decoration="underline"
+      if post.sourceUrl != ""
+        text "View on Bluesky" href=post.sourceUrl class=WhyteXs color="tx.secondary" text-decoration="underline" testId=`public-source-${post.id}`
 
 shape Draft
   mode: string

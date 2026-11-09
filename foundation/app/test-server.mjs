@@ -9,14 +9,23 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AuthStore } from '../auth/store.mjs';
 import { createHandler, digest } from '../auth/service.mjs';
+import { JeraClient, intentId } from '../scripts/client.mjs';
+import { lexicons } from '../contracts/registry.mjs';
 import { randomBytes } from 'node:crypto';
+import { createPublicIndexer, indexTransport } from '../auth/public-index.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
-const directory = await mkdtemp(join(tmpdir(), 'jera-browser-'));
-await mkdir(join(directory, 'snapback'));
-await copyFile(root + 'snapback/schema.q', join(directory, 'snapback/schema.q'));
+// A local preview can refresh the gateway while keeping its existing fixture
+// backend alive. Normal Exact tests always create and clean up their own store.
+const attached = process.env.JERA_FIXTURE_DIRECTORY;
+const directory = attached || await mkdtemp(join(tmpdir(), 'jera-browser-'));
+if (!attached) {
+  await mkdir(join(directory, 'snapback'));
+  await copyFile(root + 'snapback/schema.q', join(directory, 'snapback/schema.q'));
+}
 const port = Number(process.env.PORT ?? '4417'), upstream = `http://127.0.0.1:${port + 1}`;
-const child = spawn(`${root}node_modules/.bin/snapback4`, ['dev', '--port', String(port + 1), '--no-watch', '--unsafe-dev-doors'], { cwd: directory, stdio: 'inherit' });
+const child = attached ? null : spawn(`${root}node_modules/.bin/snapback4`, ['dev', '--port', String(port + 1), '--no-watch', '--unsafe-dev-doors'], { cwd: directory, stdio: 'inherit' });
 const store = new AuthStore(':memory:');
+let fixtureServiceToken;
 const callbacks = ['studio.zojer.jera.exact:/oauth'];
 const client = {
   clientMetadata: { scope: 'atproto' }, jwks: { keys: [] },
@@ -36,13 +45,43 @@ const handler = createHandler({ client, store, publicOrigin: `http://127.0.0.1:$
 searchAccounts: async query => ({ query, available: true, complete: true, items: 'owner.test'.includes(query.toLowerCase()) ? [{ did: 'did:plc:' + 'a'.repeat(24), handle: 'owner.test', displayName: 'Test Owner', avatar: '' }] : [] }),
 fetcher: async (url, options) => {
   if (options.headers.authorization === 'Bearer fixture-only') {
-    const token = execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'test-auth'], { cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-    options.headers.authorization = `Bearer ${token}`;
+    fixtureServiceToken = execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'atproto-auth'], { cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    options.headers.authorization = `Bearer ${fixtureServiceToken}`;
   }
   return fetch(url, options);
 } });
 const server = createServer(async (req, res) => {
-  if (req.url.startsWith('/oauth/') || req.url === '/auth/refresh') {
+  if (attached && (req.url === '/seed' || req.url.startsWith('/dev/'))) {
+    res.writeHead(403, {'content-type':'application/json'});res.end(JSON.stringify({error:'An attached preview cannot be reseeded.'}));return;
+  }
+  // Historical public records remain untyped and readable without rewriting.
+  if (req.method === 'POST' && req.url === '/dev/legacy-public') {
+    try {
+      const token=execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'atproto-auth'], {cwd:directory,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+      const {session}=await new JeraClient(upstream,token).request('/auth/session',{principal:'did:plc:'+'b'.repeat(24),days:1});
+      const author=new JeraClient(upstream,session.token);
+      await author.mutate('publishPost',{intent:intentId(),body:'An earlier public Snapback post',visibility:'public',audience:null,parent:null});
+      res.writeHead(200,{'content-type':'application/json'});res.end('{}');
+    } catch {res.writeHead(500);res.end('Fixture setup failed.');}
+    return;
+  }
+  // Test control only: recover a complete draft authored on another device.
+  if (req.method === 'POST' && req.url === '/dev/structured-draft') {
+    try {
+      const token=execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'atproto-auth'], {cwd:directory,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+      const service=new JeraClient(upstream,token);
+      const {session}=await service.request('/auth/session',{principal:'did:plc:'+'a'.repeat(24),days:1});
+      const owner=new JeraClient(upstream,session.token);
+      const audience=(await owner.mutate('createAudience',{name:'Only me',kind:'owner'})).result.id;
+      const {ref,digest,definition}=lexicons[0];
+      const body='A focused thought ♍︎ ♍️';
+      const composition={lexicon:{ref,digest},audience,definition,payload:{purpose:'reflect',body,references:[{uri:'repo:notes/north-star.yao',revision:'abc123'}]}};
+      await owner.mutate('saveStructuredDraft',{deviceKey:intentId(),scope:'root:private',body,compositionJson:JSON.stringify({composition,alternatives:{}}),revision:7});
+      res.writeHead(200,{'content-type':'application/json'});res.end('{}');
+    } catch {res.writeHead(500);res.end('Fixture setup failed.');}
+    return;
+  }
+  if (req.url.startsWith('/oauth/') || req.url.startsWith('/records/') || req.url === '/auth/refresh') {
     // Discovery runs before /oauth/start. Admit only the ephemeral loopback
     // test carrier here; production keeps its explicit callback allowlist.
     if (typeof req.headers.origin === 'string') {
@@ -74,6 +113,33 @@ for (let attempt = 0; attempt < 100; attempt++) {
   await new Promise(resolve => setTimeout(resolve, 100));
 }
 server.listen(port, '127.0.0.1');
-for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => { server.closeAllConnections(); server.close(); child.kill(signal); });
-child.on('error', error => { console.error(error.message); process.exitCode = 1; });
-child.on('exit', async code => { server.close(); store.close(); await rm(directory, { recursive: true, force: true }); process.exit(code ?? 0); });
+// Synthetic PDS responses exercise the real importer and real Snapback index.
+// They are distinct from OAuth and live-network acceptance evidence.
+const indexer = createPublicIndexer({
+  request: async (...args) => {
+    fixtureServiceToken ||= execFileSync(`${root}node_modules/.bin/snapback4`, ['token', '--service', 'atproto-auth'], { cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    return indexTransport(upstream, fixtureServiceToken)(...args);
+  },
+  resolveIdentity: async did => ({ did, didDoc: { id: did, service: [{ id: '#atproto_pds', serviceEndpoint: 'https://pds.test' }] } }),
+  fetcher: async address => {
+    const url = new URL(address), method = url.pathname.split('/').at(-1), did = url.searchParams.get('did') || url.searchParams.get('repo');
+    if (method === 'com.atproto.sync.getRepoStatus') return Response.json({ did, active: true });
+    if (method === 'com.atproto.sync.getLatestCommit') return Response.json({ rev: 'fixture-v1', cid: 'bafyreiaaaaaaaa' });
+    const source = key => `at://${did}/app.bsky.feed.post/${key}`;
+    const row = (key, text, extra = {}) => ({ uri: source(key), cid: 'bafyreiaaaaaaaa', value: { $type: 'app.bsky.feed.post', text, createdAt: '2026-11-07T00:00:00Z', ...extra } });
+    return Response.json({ records: [
+      row('root', did.includes('aaaa') ? 'My Bluesky post ♍︎ ♍️ :virgo:' : 'Another account’s Bluesky post', { embed: { $type: 'app.bsky.embed.images', images: [{ alt: 'Synthetic public image', image: { ref: { $link: 'bafyreiaaaaaaaa' } } }] } }),
+      ...Array.from({ length: 50 }, (_, i) => row(`earlier-${i}`, `Earlier public post ${i + 1}`, { createdAt: '2026-11-06T00:00:00Z' })),
+      row('selfreply', 'My own thread continuation', { reply: { parent: { uri: source('root'), cid: 'bafyreiaaaaaaaa' }, root: { uri: source('root'), cid: 'bafyreiaaaaaaaa' } } }),
+      row('gap-reply', 'Own reply after a missing parent', { reply: { parent: { uri: source('deleted-parent'), cid: 'bafyreiaaaaaaaa' }, root: { uri: source('root'), cid: 'bafyreiaaaaaaaa' } } }),
+      row('gap-child', 'Continuation below the gap', { reply: { parent: { uri: source('gap-reply'), cid: 'bafyreiaaaaaaaa' }, root: { uri: source('root'), cid: 'bafyreiaaaaaaaa' } } }),
+    ] });
+  },
+});
+const indexTimer = process.env.JERA_ENABLE_BLUESKY_INDEX === '1' ? setInterval(() => indexer.tick().catch(() => {}), 200) : null; indexTimer?.unref();
+for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => {
+  clearInterval(indexTimer); server.closeAllConnections(); server.close();
+  if (child) child.kill(signal); else { store.close(); process.exit(0); }
+});
+child?.on('error', error => { console.error(error.message); process.exitCode = 1; });
+child?.on('exit', async code => { server.close(); store.close(); await rm(directory, { recursive: true, force: true }); process.exit(code ?? 0); });

@@ -1,6 +1,38 @@
 # Jera's product contract
 
+## Public returns to Snapback — November 8 correction
+
+David asks to replace the own-Bluesky-posts Public reader with the main Snapback public posts he used in the earlier version. Public now reads Snapback `posts`, displays existing public roots and replies, and permits new body-only `post.v1` posts/replies. Public means readable by authenticated Jera users; it is not ATproto publication. Private membership and no-widening reply rules remain enforced.
+
+Older untyped public posts need no content migration: their IDs, authors, timestamps, text, audiences and thread links remain authoritative and readable. They are not relabeled or rewritten as `post.v1`. New structured public posts use the existing gateway with an explicit null audience; omission is rejected. The gateway derives public/private from the audience and the mutation checks the parent/access boundary. The backend schema/gateway must be updated together to enable this new write path; that is distinct from migrating existing records.
+
+The Bluesky adapter/index code and stored index records remain available for later views, but this default view no longer reads them. The optional identity-service PDS polling worker is disabled unless `JERA_ENABLE_BLUESKY_INDEX=1` is explicitly configured. Existing ATproto login and optional profile/account lookup remain separate from feed ingestion.
+
+## Default Private uses a simple Post — November 8 acceptance
+
+David approves the simplified UI and asks to save it in the strata, disable `contribution.v1` for the default Private view and use a simple post lexicon with no extra fields. `post.v1` contains only `body`, preserving the earlier text-writing experience with an explicit versioned interpretation. `contracts/views/private.v1.json` permits/defaults only `post.v1` for new writing; historical reads remain inclusive. Contribution stays registered for historical records and other deliberately configured views.
+
+New private roots/replies use the trusted structured gateway with `post.v1`, keeping existing audience and reply rules. Local text drafts remain editable offline. When an unsealed structured draft is simplified, its complete original is first retained in a separate owner-only recovery branch; the active body-only copy keeps the same audience and a fresh intent. An uncertain publication remains sealed to its original payload and retries exactly. Existing posts are never rewritten. This updates the earlier “keep structured fields editable in the default composer” recovery UI, while retaining its no-data-loss requirement.
+
+## View-owned composition — November 8 UX correction
+
+David clarifies that composing a view and choosing its audience belong outside the posting GUI. The overall view/feed determines the available lexicons; the composer may eventually offer a choice within that context and shows only lexicon-specific controls such as Contribution's Purpose. Purpose is not a universal contract field. The UI is simplified to ordinary Text writing, with the Public/Private switch in the surrounding interface. Existing structured drafts keep their original audience, exact lexicon, payload and fields; there is no silent downgrade or reassignment.
+
+[VIEWS.md](VIEWS.md) records the small implemented definition and two read-only adapters (authorized Snapback records and an explicitly configured local folder). This is a CLI/infrastructure proof; generic view creation and app integration remain next work. Logical bindings separate authored intent from credentials, filesystem locations and source authority. No local observation is automatically published, and no purpose or view default grants an operator permission to act. “View” is a provisional working name.
+
+## Structured application posts — November 8 direction
+
+David accepts a small feed definition, stable post envelope with experimental versioned payloads, and an operator loop of receiving, understanding, choosing a response/proposal, checking the mandate, acting, verifying and retaining the outcome. He authorizes the first roadmap milestone: structured posting with separate owner-only/shared audiences and the same trusted validation for app and agent writes. The application lexicon is internal to Snapback; ATproto publication remains deferred. Read [RECORDS.md](RECORDS.md) for the implemented write boundary, encoding, compatibility and validation evidence. The second local milestone proved a definition-driven Contribution composer and complete private draft recovery through the same trusted publication path. The later UX correction above removes its format/audience pickers while preserving existing structured drafts. The read-only view/adapters foundation is implemented locally; the autonomous operator and provenance receipts remain later work. “The reply is the conversational result; the provenance is a linked, inspectable record of the work” is accepted direction for that later loop.
+
 This is the current acceptance contract, based on David's direction, his authentication correction on 2026-10-31 and his simple-social-loop clarification on 2026-11-01. Earlier agent-authored plans that deferred ATproto identity are superseded. Keep implementation evidence separate from decisions about what Jera is.
+
+## Own-posts Public index — November 7 direction
+
+David selected a bounded first public-network experience: index the logged-in DID’s Bluesky posts, show its top-level posts in Public, and retain self-authored thread continuations. Other people’s replies/likes and broader discovery can wait. Snapback owns the rebuildable index and its queries; the author’s PDS remains authoritative. A small application worker reads public records, reconciles changes/deletions and recovers after restart. It is separate from an autonomous operator. See PUBLIC-INDEX.md for the implemented boundaries and evidence.
+
+This supersedes the earlier Public reader meaning of signed-in Jera accounts. Network publication remains separate: this version reads existing Bluesky posts without granting PDS writes. Public is read-only in Jera, while private posting, audiences and draft storage retain their current contracts. Earlier Jera-only public posts and drafts are preserved without automatic publication or reassignment. The three-scope Public/Permeable/Local design remains a longer direction; this slice does not implement device-only Local or a generalized permissions framework.
+
+Acceptance requires historical posts, subsequent additions/updates/deletions, interrupted-scan safety, process recovery, account isolation, paginated roots and self-authored threads to work through the stored index. Preserve original record text and provenance. Initial synchronization, a completed empty feed and stale/error states must be distinguishable. The user’s own logged-in DID and native experience remain account-holder acceptance checks beyond synthetic fixtures and a public sample-account probe. The dated sections below retain earlier scope and delivery evidence; they do not establish deployment of this new reader.
 
 ## Debugging and performance as systems learning — David’s November 5 priority
 
@@ -49,7 +81,7 @@ Drafts remain private until explicit posting. Posting here means contribution to
 
 Start with explicit private drafts. Snapback is the authoritative store for captured ideas, shared private armillary modules and most application data during the initial UX iterations. It is not merely an index of PDS records. User input does not go onto ATproto in this phase. Sharing inside Jera follows backend module permissions; capture itself does not authorize broader sharing or publication.
 
-ATproto supplies existing-account authorization and verified DID identity now. Lexicons, PDS storage and permissioned ATproto storage are deferred until the UX makes the record shapes clearer. Their absence is accepted initial scope, not a foundation defect. Do not gate private capture on designing public records or implement automatic publication/migration.
+ATproto supplies existing-account authorization and verified DID identity now. ATproto lexicons, PDS storage and permissioned ATproto storage are deferred until the UX makes the record shapes clearer. Their absence is accepted initial scope, not a foundation defect. The November 8 application lexicons in RECORDS.md evolve Snapback records independently. Do not gate private capture on designing public records or implement automatic publication/migration.
 
 Future publication requires an explicit user action and its own record/visibility design. Preserve source text, attribution and stable internal IDs so that design can evolve without pretending today's backend records already have AT URIs. Check current permissioned-data capabilities before a future integration; a membership check cannot make a public PDS record private.
 
@@ -63,7 +95,7 @@ Keep protocol integration evidence separate from backend tests, compilation, ins
 
 ## Current implementation and acceptance status
 
-The app now authorizes an existing ATproto account through the official OAuth SDK, and the server mints Snapback sessions with the verified DID as principal. Password/guest signup is disabled. Its lack of Jera lexicons and PDS writes matches the clarified initial scope. Real-backend and handoff tests pass; browser tests simulate the provider explicitly. Production discovery/PAR reaches the real authorization UI. David reported successful real-account phone login and arrival at the signed-in screen on 2026-11-01. This is account-holder evidence of login and callback completion; relaunch, verified-DID review and the private-capture journey remain separate acceptance checks.
+The app authorizes an existing ATproto account through the official OAuth SDK, and the server mints Snapback sessions with the verified DID as principal. Password/guest signup is disabled. ATproto record writes remain outside the clarified initial scope; the November 8 branch adds internal application lexicons through RECORDS.md. Real-backend and handoff tests pass; browser tests simulate the provider explicitly. Production discovery/PAR reaches the real authorization UI. David reported successful real-account phone login and arrival at the signed-in screen on 2026-11-01. This is account-holder evidence of login and callback completion; relaunch, verified-DID review and the private-capture journey remain separate acceptance checks.
 
 Legacy backend records and local password-era files remain preserved, without email-to-DID reassignment. Old password sessions were revoked; new app credentials and drafts use a separate versioned namespace. Retain useful capture, membership, queue, build and deployment work. Do not reset production or infer ownership from an email/handle match.
 

@@ -1,6 +1,6 @@
 use spaceSm, spaceMd, spaceLg, spaceXxl, radiusMd, radiusFull, minTouchTarget from "./dao.contract"
 use WhyteSm, WhyteXs, QuietAction from "./dao.contract"
-use Post, PostAvatar, Author, PostActions from "./post.contract"
+use Post, PostContent, PostAvatar, Author, PostActions from "./post.contract"
 use Action from "./dao/actions.contract"
 use AccountAvatar from "./signin.contract"
 
@@ -38,7 +38,7 @@ component ThreadHero
             Author(post=post, remove=remove, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
         if post.visibility == "public" and mode == "private"
           text "Public post" class=WhyteXs color="tx.secondary" testId="public-thread-context"
-        text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
+        PostContent(post=post, bodyTestId=`thread-body-${post.id}`)
       if not post.deleted
         PostActions(post=post, comments=(mode == "public" ? post.publicReplies : post.readableReplies), comment=reply(post.id), commentId="reply", commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
 
@@ -61,7 +61,7 @@ component ThreadRow
       column flex=1 min-width=0 gap=spaceSm()
         column gap=spaceSm()
           Author(post=post, remove=remove, menuId=`thread-menu-${context}-${post.id}`, clearance=clearance)
-          text post.body class=WhyteSm white-space="pre-wrap" testId=`thread-body-${post.id}`
+          PostContent(post=post, bodyTestId=`thread-body-${post.id}`)
         if not post.deleted
           PostActions(post=post, comments=(mode == "public" ? post.publicReplies : post.readableReplies), comment=reply(post.id), commentId=`reply-to-${post.id}`, commentLabel="Write a reply", context=`thread-${context}-${post.id}`, clearance=clearance)
 
