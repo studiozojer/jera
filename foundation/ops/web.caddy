@@ -12,6 +12,9 @@
     # Exact emits an extensionless callback; nosniff requires the HTML type.
     @callback path /.exact/auth/callback
     header @callback Content-Type "text/html; charset=utf-8"
+    # Preserve direct navigation/reload for the app's declared routes.
+    @app_routes path /account /thread/* /write /audience /earlier-drafts
+    rewrite @app_routes /index.html
     file_server
 }
 
