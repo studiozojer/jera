@@ -1,9 +1,0 @@
-{
-  "source": "daoUI/rn/reading",
-  "commit": "430790b4b0a7aa9f442766c46774a75e4749b7ce",
-  "dirty": false,
-  "files": {
-    "index.tsx": "dd0699783eeb846373edcf19b952a574927f6020e28f4973e58a08d8dc9226a8",
-    "theme.tsx": "b14f53cd6b8e256de65b1afd81fe53bb6a2790c7ffa3ec798c0489353b55aa35"
-  }
-}
