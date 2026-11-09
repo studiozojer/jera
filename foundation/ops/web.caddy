@@ -1,0 +1,31 @@
+# Only compiled public artifacts belong under this root. Never serve the repo.
+(jera_web) {
+    root * /opt/jera-web/current
+    encode zstd gzip
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        X-Frame-Options DENY
+        Cache-Control "no-store"
+        -Server
+    }
+    # Exact emits an extensionless callback; nosniff requires the HTML type.
+    @callback path /.exact/auth/callback
+    header @callback Content-Type "text/html; charset=utf-8"
+    file_server
+}
+
+jera.ink {
+    tls force_automate
+    import jera_web
+}
+
+www.jera.ink {
+    tls force_automate
+    redir https://jera.ink{uri} permanent
+}
+
+# Pre-DNS release verification, accessible only on the host or through SSH.
+http://127.0.0.1:4421 {
+    import jera_web
+}

@@ -13,7 +13,7 @@ const callback = 'studio.zojer.jera.exact:/oauth';
 
 // Stub only the already-verified OAuth boundary. These tests do not prove real
 // PDS authorization; they exercise Jera's handoff and session custody over HTTP.
-async function fixture(t, searchAccounts) {
+async function fixture(t, searchAccounts, callbacks = [callback]) {
   const store = new AuthStore(':memory:');
   let minted = 0, revoked = 0, authority = true;
   const client = {
@@ -44,14 +44,14 @@ async function fixture(t, searchAccounts) {
     }
     throw new Error('Unexpected backend operation');
   };
-  const server = createServer(createHandler({ client, store, publicOrigin: 'http://127.0.0.1', callbacks: [callback], snapbackOrigin: 'http://backend.test', serviceToken: 'server-only', searchAccounts, fetcher: upstream }));
+  const server = createServer(createHandler({ client, store, publicOrigin: 'http://127.0.0.1', callbacks, snapbackOrigin: 'http://backend.test', serviceToken: 'server-only', searchAccounts, fetcher: upstream }));
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   t.after(() => { server.closeAllConnections(); server.close(); store.close(); });
   const origin = `http://127.0.0.1:${server.address().port}`;
   const post = (path, value, headers = {}) => fetch(origin + path, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(value) });
-  async function start() {
+  async function start(target = callback) {
     const verifier = token(), state = token();
-    const response = await fetch(`${origin}/oauth/start?handle=alice.test&state=${state}&challenge=${digest(verifier)}&callback=${encodeURIComponent(callback)}`, { redirect: 'manual' });
+    const response = await fetch(`${origin}/oauth/start?handle=alice.test&state=${state}&challenge=${digest(verifier)}&callback=${encodeURIComponent(target)}`, { redirect: 'manual' });
     assert.equal(response.status, 302);
     return { state, verifier, cookie: response.headers.get('set-cookie').split(';')[0] };
   }
@@ -60,6 +60,24 @@ async function fixture(t, searchAccounts) {
   }
   return { store, origin, post, start, finish, minted: () => minted, revoked: () => revoked, revoke: () => { authority = false; } };
 }
+
+test('root-domain web handoff allows its exact origin and retains verifier/replay protection', async t => {
+  const web = 'https://jera.ink/.exact/auth/callback';
+  const f = await fixture(t, undefined, [callback, web]);
+  const preflight = await fetch(f.origin + '/records/publish', { method: 'OPTIONS', headers: { origin: 'https://jera.ink', 'access-control-request-method': 'POST' } });
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://jera.ink');
+  assert.equal((await fetch(f.origin + '/records/publish', { method: 'OPTIONS', headers: { origin: 'https://jera.ink.attacker.test' } })).status, 403);
+  const flow = await f.start(web);
+  const back = new URL((await f.finish(flow)).headers.get('location'));
+  assert.equal(back.origin + back.pathname, web);
+  assert.equal(back.searchParams.has('token'), false);
+  const payload = { state: flow.state, verifier: flow.verifier, code: back.searchParams.get('code') };
+  assert.equal((await f.post('/oauth/exchange', { ...payload, verifier: token() }, { origin: 'https://jera.ink' })).status, 400);
+  assert.equal((await f.post('/oauth/exchange', payload, { origin: 'https://jera.ink' })).status, 200);
+  assert.equal((await f.post('/oauth/exchange', payload, { origin: 'https://jera.ink' })).status, 400);
+  assert.equal(f.minted(), 1);
+});
 
 test('public account suggestions validate input and origin without minting a session', async t => {
   const queries = [];
