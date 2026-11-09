@@ -33,7 +33,7 @@ bun run ios:local --phone "hazy's iPhone"
 
 `web` serves the real-account client on http://127.0.0.1:3033 against production. That loopback callback is explicitly registered. The native commands forward to the Exact app in `app/`. `expo run:ios` does not build this implementation.
 
-Native builds require Xcode, Rust 1.97.0 with the iOS target, a signing certificate and a profile covering the bundle ID `studio.zojer.jera.exact` and device. The latest compilation passed, but phone installation was rejected: the HTTPS callback grant adds Associated Domains, which the existing wildcard provisioning profile does not permit. That signing issue remains unresolved. The earlier installed phone app and retained build artifacts remain in the original checkout; a repository move is not a new phone installation.
+Native builds require Xcode, Rust 1.97.0 with the iOS target, a signing certificate and a profile covering bundle ID `studio.zojer.jera.exact`, the device and Associated Domains. The old wildcard profile lacked that capability. Xcode automatic signing generated a matching explicit profile; the retained app was re-signed, installed and launched on November 9. See [the current checkpoint](CHECKPOINT.md) for signing evidence, retained artifacts and the next work.
 
 The existing custom EAS builder lives in `app/.eas/`, with configuration in `app/eas.json`. Its Expo configuration supplies EAS project/signing metadata only. Paid EAS builds require explicit approval. Native typing and complete real-account acceptance require physical-device evidence.
 
