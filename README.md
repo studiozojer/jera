@@ -2,7 +2,7 @@
 
 Jera is an Exact native and web app backed by Snapback. The active application lives in `app/`; contracts, authentication, storage and operations live beside it at the repository root. The obsolete Expo implementation is preserved in Git history before the root-layout cleanup.
 
-The web app is hosted at https://jera.ink and uses https://snapback.jera.ink. Existing ATproto accounts provide verified DID identity. Public and Personal views write posts using the simple `post.v1` application lexicon in Snapback. Posting does not publish to ATproto. Read [PRODUCT.md](PRODUCT.md), [RECORDS.md](RECORDS.md) and [PERMISSIONS.md](PERMISSIONS.md) for these boundaries.
+The web app is hosted at https://jera.ink and uses https://snapback.jera.ink. Existing ATproto accounts provide verified DID identity. Public and Personal views write posts using the simple `post.v1` application lexicon in Snapback. Posting does not publish to ATproto. Feed text uses freshly authorized Snapback results and cached author labels; updated public names/avatars load through an independent resource, so profile networking does not hold back post content. Read [PRODUCT.md](PRODUCT.md), [RECORDS.md](RECORDS.md) and [PERMISSIONS.md](PERMISSIONS.md) for these boundaries.
 
 ## Setup
 
@@ -63,3 +63,7 @@ The backend suite uses isolated real Snapback stores. The test command applies t
 | `tooling/exact2/` | Pinned SDK submodule |
 
 See [operations](ops/README.md) for release and recovery, [views](VIEWS.md) for the source contract, and [draft lifecycle](DRAFT-LIFECYCLE.md) for recovery. Dated delivery documents retain earlier states. The two selected definitions govern the app’s Snapback reading, writing and draft contexts; see VIEWS.md. Account-owned view editing and autonomous operators remain follow-up work.
+
+## Startup performance regression
+
+The held-profile browser check uses a separate synthetic real-store preview, with no production credentials or posts. From the repository root, start the fixture with PORT=4477 node app/test-server.mjs, then the preview with EXACT_BACKEND_ORIGIN=http://127.0.0.1:4477 bun app/exact.mjs web --port 3037. Run bun tests/feed-startup.browser.mjs. It holds profile responses while requiring post text to appear, checks cached reload and later name/reply attribution, then exercises failed profiles and logout before late completion. Ports 4477/4478 and 3037 must be available; do not reset another preview's fixture. Stop this task's fixture before Exact test/verify commands, which manage their own disposable store. Existing fixture bindings and account/origin isolation remain explicit.

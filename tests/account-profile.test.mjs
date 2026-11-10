@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadAccountProfile} from '../app/account-profile.ts';
+import {loadAccountProfile,readCachedAccountProfile} from '../app/account-profile.ts';
 const alice='did:plc:aaaaaaaaaaaaaaaaaaaaaaaa', bob='did:plc:bbbbbbbbbbbbbbbbbbbbbbbb';
 const photo='https://cdn.bsky.app/img/avatar/plain/alice/example';
 function storage() {
@@ -33,4 +33,16 @@ test('signed-out lookup does nothing; an unwritable cache does not hide the curr
  const fetcher=async()=>{calls++;return Response.json({did:alice,handle:'alice.test'});};
  await loadAccountProfile('',disk,fetcher);assert.equal(calls,0);
  assert.equal((await loadAccountProfile(alice,disk,fetcher)).handle,'alice.test');
+});
+
+test('cache-only presentation validates identity and reads without a network dependency',async()=>{
+ const disk=storage();let calls=0;
+ const fetched=await loadAccountProfile(alice,disk,async()=>{calls++;return Response.json({did:alice,handle:'alice.test',displayName:'Alice',avatar:photo});});
+ assert.deepEqual(await readCachedAccountProfile(alice,disk),fetched);
+ assert.equal(calls,1);
+ assert.deepEqual(await readCachedAccountProfile(bob,disk),{principal:bob,name:'Your account',handle:'',avatar:''});
+ // A cache file cannot relabel another DID or introduce an arbitrary image host.
+ disk.files.set(`app:/data/profile-${encodeURIComponent(bob)}.json`,new TextEncoder().encode(JSON.stringify({did:alice,handle:'alice.test',displayName:'Alice',avatar:photo})));
+ assert.equal((await readCachedAccountProfile(bob,disk)).handle,'');
+ assert.deepEqual(await readCachedAccountProfile('',{fs:{readFile:()=>{throw new Error('Unexpected read');}}}),{principal:'',name:'Your account',handle:'',avatar:''});
 });

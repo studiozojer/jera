@@ -34,6 +34,15 @@ shape Profile
   name: string
   handle: string
   avatar: string
+shape PostProfiles
+  principal: string
+  viewId: string
+  profiles: Profile[]
+
+fn publicProfile(people: Profile[], did: string): Profile = match people.filter(p => p.principal == did and p.handle != "").at(0) { case some(p) => p, case none => Profile(principal="", name="", handle="", avatar="") }
+fn refreshedName(people: Profile[], did: string, fallback: string): string = publicProfile(people, did).principal == did and did != "" ? publicProfile(people, did).name : fallback
+fn attributedPost(post: Post, people: Profile[]): Post = Post(post, author=refreshedName(people, post.principal, post.author), initial=refreshedName(people, post.principal, post.author).slice(0, 1).toUpperCase(), handle=(publicProfile(people, post.principal).principal == post.principal ? publicProfile(people, post.principal).handle : post.handle), avatar=(publicProfile(people, post.principal).principal == post.principal ? publicProfile(people, post.principal).avatar : post.avatar), parentAuthor=refreshedName(people, post.parentPrincipal, post.parentAuthor))
+
 shape Clock
   epochAtZero: number
 shape Account
@@ -56,6 +65,7 @@ shape Ack
   state: string
   id: string
 shape Timeline
+  authorIds: string[]
   viewId: string
   available: bool
   principal: string
@@ -221,7 +231,12 @@ component App
   action sampleDataClock
     dataNow = time.epochAtZero + performanceNow()
   resource timeline = loadPosts(account.principal, mode, page.navigationType != "", dataNow) as shape Timeline else empty()
-  derive posts = timeline.principal == account.principal and timeline.viewId == mode ? timeline.posts : []
+  derive rawPosts = timeline.principal == account.principal and timeline.viewId == mode ? timeline.posts : []
+  derive authorIds = timeline.principal == account.principal and timeline.viewId == mode ? timeline.authorIds : []
+  resource postProfiles = refreshPostProfiles(account.principal, mode, authorIds, dataNow) as shape PostProfiles else empty()
+  derive freshPeople = postProfiles.principal == account.principal and postProfiles.viewId == mode ? postProfiles.profiles : []
+  derive people = [profile].filter(p => p.principal == account.principal).concat(freshPeople)
+  derive posts = rawPosts.map(p => attributedPost(p, people))
   derive visiblePosts = posts
   derive feedPosts = sortBy(posts.filter(p => p.feed), p => p.at, "desc")
   state replyTo = ""
