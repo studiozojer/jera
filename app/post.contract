@@ -30,6 +30,7 @@ shape Post
   canDelete: bool
   deleted: bool
   parentAuthor: string
+  parentPrincipal: string
   parentPublic: bool
   publicReplies: number
   readableReplies: number

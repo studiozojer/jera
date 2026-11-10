@@ -1,7 +1,7 @@
 import type { Answer, Sources, Store, Storage, NativeModule } from './app.contract.d.ts';
 import { Snapback, refused } from './snapback4/snapback.ts';
 import { parseLoginInput } from './login-input.ts';
-import { loadAccountProfile } from './account-profile.ts';
+import { loadAccountProfile, readCachedAccountProfile } from './account-profile.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
 import { formFields, editedComposition, type Field } from './composition.ts';
 import { accountExperience } from './experience-store.ts';
@@ -15,14 +15,15 @@ export const appId = 'studio.zojer.jera.exact';
 function storageKey(value: string): string {
   if (value === 'https://snapback.jera.ink') return 'jera-https-snapback-jera-ink';
   if (value === 'http://127.0.0.1:4417') return 'jera-http-127.0.0.1-4417';
-  // A second explicit fixture binding permits isolated worktree verification.
+  // Explicit loopback bindings isolate concurrent worktree verification.
   if (value === 'http://127.0.0.1:4437') return 'jera-http-127.0.0.1-4437';
   if (value === 'http://127.0.0.1:4457') return 'jera-http-127.0.0.1-4457';
+  if (value === 'http://127.0.0.1:4477') return 'jera-http-127.0.0.1-4477';
   throw new Error('Unconfigured Jera backend: add an origin-specific storage key and grant before using it.');
 }
 const sessionKey = storageKey(origin) + '-atproto-v1';
 const pendingKey = sessionKey + '-login';
-export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nauth.callback https://jera.ink/.exact/auth/callback\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
+export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nauth.callback https://jera.ink/.exact/auth/callback\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
 
 function randomToken(): string {
   return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -96,6 +97,15 @@ const sources: Sources = {
     try {const view=selectedView(id);const policy=writingPolicy(view);return {id, mode:policy?.mode || '', writable:Boolean(policy), available:true};}
     catch {return {id,mode:'',writable:false,available:false};}
   },
+  refreshPostProfiles: async ([principal,viewId,authors,now],store,storage) => {
+    const empty={principal:'',viewId,profiles:[]};
+    if(!isActor(store,principal))return empty;
+    // The account's existing profile resource owns its refresh. Every other
+    // lookup stays inside this explicit answer's lifetime, never a detached job.
+    const ids=[...new Set(authors)].filter(did=>did!==principal && /^did:(plc|web):/.test(did)).slice(0,24);
+    const profiles=await Promise.all(ids.map(did=>postProfile(did,storage,now)));
+    return isActor(store,principal)?{principal,viewId,profiles}:empty;
+  },
   loadWritingContext: async ([principal,active,audienceId,parent,now,browser],store,storage,native) => {
     const unavailable={principal,audienceId,audienceLabel:'',available:false};
     if(!active||!audienceId||!isActor(store,principal))return unavailable;
@@ -165,7 +175,7 @@ const sources: Sources = {
     return draftEnvelope(principal,scope,draft);
   },
   loadPosts: async ([principal,viewId,browser,now],store,storage,native) => {
-    if(!isActor(store,principal))return {principal:'',viewId,posts:[],available:false};
+    if(!isActor(store,principal))return {principal:'',viewId,authorIds:[],posts:[],available:false};
     try {return await using(store,storage,native,now,browser,async db=>{
       const request=transport(db,store,principal);
       const authorized=await allRows(request,'postsList') as PostRecord[];
@@ -174,7 +184,8 @@ const sources: Sources = {
       const audienceNames=new Map(audiences.map(a=>[a.id,a.kind==='owner'?'Only me':a.name==='Private'?'Personal · shared':a.name+' · shared']));
       const records=[...newest].sort((a,b)=>a.at-b.at || a.id.localeCompare(b.id));
       const ids=[...new Set(newest.slice(0,100).map(p=>p.author))].slice(0,24);
-      const profiles=new Map(await Promise.all(ids.map(async did=>[did,await postProfile(did,storage,now)] as const)));
+      // Fresh records do not wait for optional public profile networking.
+      const profiles=new Map(await Promise.all(ids.map(async did=>[did,await readCachedAccountProfile(did,storage)] as const)));
       actor(store,principal);
       const byId=new Map(records.map(p=>[p.id,p]));
       const publicCounts=new Map<string,number>(),readableCounts=new Map<string,number>();
@@ -188,10 +199,10 @@ const sources: Sources = {
         const stamp=minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`;
         let detail={purpose:'',references:[] as {id:string;uri:string;revision:string}[]};
         if(!p.deleted&&p.lexicon==='contribution.v1'&&p.payloadJson){const value=JSON.parse(p.payloadJson);detail={purpose:value.purpose,references:value.references.map((r:any,i:number)=>({id:`${p.id}-${i}`,uri:r.uri,revision:r.revision||''}))};}
-        return {...detail,feed:selection.feed.has(p.id),audienceLabel:audienceNames.get(p.audience)||'Personal',id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
+        return {...detail,feed:selection.feed.has(p.id),audienceLabel:audienceNames.get(p.audience)||'Personal',id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPrincipal:p.parent?byId.get(p.parent)?.author||'':'',parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
       });
-      return {principal,viewId,posts,available:true};
-    });} catch {return {principal:isActor(store,principal)?principal:'',viewId,posts:[],available:false};}
+      return {principal,viewId,authorIds:ids,posts,available:true};
+    });} catch {return {principal:isActor(store,principal)?principal:'',viewId,authorIds:[],posts:[],available:false};}
   },
   loadEarlierDrafts: async ([principal,active,now,browser],store,storage,native) => {
     if(!active||!isActor(store,principal))return {principal:'',items:[],available:false};

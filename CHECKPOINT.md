@@ -1,60 +1,31 @@
-# Jera checkpoint — November 9, 2026
+# Jera checkpoint — November 10, 2026
 
-Resume from `main`. The application and release work through PRs #6–#9 is merged; `a9b4e5d` anchors the root-layout cleanup. Current Jera uses Exact + Snapback. The obsolete root Expo implementation was removed and remains in Git history. The authenticated UI is in `app/`; contracts, auth, schema, scripts, tests and operations are at the repository root.
+The released baseline is main 1d5699538c987a2e7e3c0d98746548239e796e9b, merged PR #11. Public / Personal tabs select definitions governing Snapback reading, writing and draft context. That revision is live at https://jera.ink and installed/launched on hazy's iPhone. The composed commons' projects/jera/checkpoints/2026-11-09-selected-view-release.md owns the release handoff; older November 9 checkpoints retain historical states.
 
-## Selected-view implementation — November 9, in review
+## Feed startup fix — feature branch, not released
 
-The isolated `feat/selected-views` branch implements Public / Personal feed tabs and consumes the selected authored definition for Snapback selection/grouping, new-writing policy and per-view draft context. `private` stays the stable Personal ID and server visibility term. The previous compact switch remains an unused specimen. The composer inherits context and has no view selector. Existing posts are untouched, default root drafts keep their keys, Personal replies keep the legacy key and Public replies have an isolated branch. Recognized old Public reply drafts retain their originals during adoption. Writing-policy changes preserve incompatible drafts; already-sealed intents retry their original payload/scope even if the new binding is unavailable.
+Branch feat/feed-startup is based on that released main. David reports that headers appear before posts on both web and mobile and authorizes fixing the confirmed public-profile dependency. loadPosts now reads authorized records/audiences and cache-only author presentation, without waiting on profile networking. An explicit independent Exact resource refreshes other authors, while the existing account-profile resource refreshes the viewer. Derived posts update names/avatars/parent attribution by DID while preserving body, IDs, permissions, thread links and draft state. Cache misses or failed profile calls leave DID-based fallbacks. Account/view guards reject stale account results.
 
-The feature is not deployed or installed. View editing/renaming/pinning/ordering remains the next settings increment; David places the future Settings entry button on the profile/account sheet. `VIEWS.md` describes the implemented boundary, source availability and saved-context behavior. Current app integration binds Snapback only; the host-local folder adapter remains CLI work.
+The forced ATproto authorization refresh, backend RLS, publication gateway, schema and deployed data are unchanged. This does not add an offline cached-private-feed display or detached native background promises. Public metadata cache entries remain DID-validated; handles and avatars do not establish authority. An extra explicit loopback fixture binding on 4477 isolates this work from running previews.
 
-Verification: 34 real-store backend/auth tests, 38 app tests (167 assertions), and all nine Exact browser workflows pass. `verify web --backend http://127.0.0.1:4457` also passes those workflows, ordinary-size checks and reload checks. Its largest-text pass reports 25 layout findings, including thread controls and sticky-header/tab boundaries, plus three source-level typography findings (one in the deliberately retained switch specimen). These are retained, not waived or represented as a clean accessibility pass. The synchronous oracle skips the `fresh`-dependent workflows and Lean semantics did not run; actual browser/backend execution is the evidence. Native prerequisites pass; there is no new native build or device-acceptance claim. Local screenshots/logs are retained in `.local/selected-views/` and `app/.exact/verify/` within that worktree.
+Controlled browser comparison against real local Snapback with synthetic profile transport: with a three-second profile delay, first-post time fell from 3392ms to 153ms. The deliberately delayed authorization case remains about 3.39s, confirming that boundary was preserved. These are local reproduction measurements, not production or native speed guarantees. The separate held-profile regression checks cold/warm post display before profile completion, later name/reply attribution, failed lookups and logout before late completion.
 
-## Shipped and installed
+Verification: 35 backend/auth/cache tests, 38 app tests (167 assertions), nine Exact browser workflows and the held-profile regression pass. Final Exact web verification passes ordinary phone/desktop layout and reload checks; it reports the same 25 largest-text layout findings and three source typography findings as the released baseline. They remain open, not waived. The synchronous oracle skips fresh-dependent workflows and Lean semantics did not run. Native prerequisites pass; this fix has not been natively built, installed or deployed.
 
-- https://jera.ink serves the web app; www redirects to the root. DNS and normal root-domain certificate verification passed. The API remains https://snapback.jera.ink on `91.98.204.141`; PDS health was preserved.
-- Production schema generation 7 provides trusted versioned publication. Both default Public and Private contexts write body-only `post.v1`; historical untyped records retain their original meaning. Actual rollout preserved all original fields in all 59 existing application records. Backups and the isolated restore/adoption checks passed.
-- Public means readable by signed-in Jera accounts. Private posts are hosted in Snapback and restricted by audience ownership/membership. Drafts are account-private, with local recovery and Snapback syncing. This is server-enforced access, not end-to-end encryption. No ATproto publication is enabled.
-- The iPhone update installed and launched successfully on hazy’s iPhone at 08:33 Pacific on November 9. It uses `studio.zojer.jera.exact`. Version 0.1.0/build 1 are static labels, not source identifiers. The retained compiled November 8 app was re-signed with a new profile; its app.ts matches current main. The subsequent repository cleanup changed paths and tooling, not UI behavior. Human account/posting acceptance remains separate.
+Evidence in this worktree: .local/feed-startup/ contains the held-profile screenshots, browser-regression.json, controlled measurements.json, test logs and verification report. The diagnostic baseline and investigation are in the primary checkout's .local/feed-startup/ and the commons' projects/jera/reviews/2026-11-09-feed-startup.md. Use Bun 1.4.2; README.md documents the independent browser check. Existing previews remain separate.
 
-The active hosted web artifact is `b89fa594d1eea48b75284f29c0ff51e9b3ed14e0`; backend source was staged from `6e7a0b5`. Root hosting includes the direct-route correction from `45432cb`. A repository layout cleanup did not require another production rollout.
+## Released baseline and operations
 
-## Build and signing
+Public means readable by signed-in Jera accounts. Personal writes to the existing shared private audience, with server-enforced DID membership and parent inheritance. This is hosted access control, not end-to-end encryption. Drafts are owner-only. ATproto supplies verified DID identity; no ATproto publication is enabled. Existing posts remain unchanged.
 
-Use Bun 1.4.2. From the repo root: `bun run ios:check`, `bun run ios:local --phone "hazy's iPhone"`, `bun run web`, `bun run test`, and `bun run test:app`. `web` is the local real-account client on port 3033. Root native commands forward into `app/`. See README.md for a fresh checkout and EAS configuration. Paid EAS builds need explicit approval.
+The live web artifact is /opt/jera-web/releases/1d5699538c987a2e7e3c0d98746548239e796e9b on 91.98.204.141. The previous b89fa594d1eea48b75284f29c0ff51e9b3ed14e0 artifact remains for rollback. Production schema generation 7 did not change during that release; schema SHA-256 is 35efd7061e37a3f865a5c86e26ebd10851dfbedb916d90c5b6129486cff263b1. Hosted sign-in/callback/CORS/refusal/provider handoff and API/PDS health passed without account consent or production test posts.
 
-Exact remains pinned to `4e9000abbdaa8315ae864cdb8253af143aac510c` plus three committed compatibility fixes. Its dirty submodule files are expected: `AudioSession.swift`, `TintDimmingIOS.swift` and `host/web/auth-glue.js`. Do not discard these patches or accidentally stage the SDK contents. The SDK pin did not advance.
+The prior released phone app, profile and receipts are retained in the primary checkout's .local/release-1d56995/. It installed/launched at 23:07 Pacific on November 9 as studio.zojer.jera.exact. Static version/build labels 0.1.0/1 do not identify source freshness. The older .local/phone-release-current/Jera.app contains the preceding release and remains preserved.
 
-The first phone installation failed because the HTTPS callback grant derived `webcredentials:jera.ink`, while the old wildcard profile did not permit Associated Domains. The manually generated explicit profile also omitted that entitlement. Xcode automatic signing succeeded using the configured developer account and a tiny temporary target with Jera's explicit ID and required capability. It generated a correct development profile, avoiding a full Jera recompile. Re-signing passed strict signature verification and the phone accepted installation.
+Exact stays pinned to 4e9000abbdaa8315ae864cdb8253af143aac510c with the same three recorded compatibility patches: AudioSession.swift, TintDimmingIOS.swift and host/web/auth-glue.js. Do not discard or stage SDK contents. For the primary checkout's retained native caches, use the canonical CARGO_TARGET_DIR at foundation/app/target; the app/target alias alone caused a source-provenance mismatch after compilation. The valid explicit signing profile covers Associated Domains; preflight its device, expiry and capabilities before a long build. Worktrees need isolated build targets. See ops/README.md and the commons' EF-005 record; no SDK source workaround was added.
 
-Local-only evidence and retained artifacts:
+## Next
 
-- `.local/phone-release-current/Jera.app`: installed signed app, original build receipt and separate `signing-update.json`.
-- `.local/provisioning-probe/`: temporary Xcode signing target and automatic-provisioning log. Never install this probe in place of Jera.
-- `foundation/app/target/`: original pre-layout build caches/artifacts, retained locally and excluded from Git. No foundation/ source remains tracked.
-- `.local/legacy-expo-artifacts-2026-11-08/`: retained ignored Expo artifacts. Running earlier preview worktrees and dependencies were preserved.
-- `.worktrees/root-layout/.local/`: layout test logs. Earlier previews use separate worktrees and synthetic stores; do not reset production to reproduce them.
+Review/merge this bounded startup fix, then explicitly release it to web/phone. Verify the real account's post/read/reply/delete/reload, draft recovery and sharing/revocation journeys; native keyboard/IME/accessibility and largest-text findings remain separate acceptance work.
 
-## Evidence and limits
-
-The layout/release checks passed: 34 Node backend/auth tests, 31 app tests with 134 assertions, all eight Exact browser workflows, schema check (14 tables/47 operations, zero problems/eight advisory notes), native prerequisite check, and all 40 Cargo dependency paths. The updated main checkout passed its backend/app tests. Recorded patches apply reproducibly to the pinned SDK. The deployed sign-in page, callback execution, CORS/refusal and actual provider discovery/PAR were checked without granting user account consent. Phone installation and launch are now verified.
-
-Still separate: real-account post/read/reply/delete/reload and cross-device acceptance of this release, private sharing/revocation on devices, native keyboard/IME/accessibility behavior, and the known expanded-text layout findings. Do not report passing fixtures or successful launch as proof of those journeys.
-
-## Where to continue
-
-1. Confirm the installed phone and hosted web journeys with David, retaining data and checking draft recovery/account identity. Keep this bounded; do not re-run a cold native build to answer an installation question.
-2. Review/integrate the selected-view implementation above, then finish milestone 2 with account-owned view configuration outside the composer. The portable view contract and read-only Snapback/local-folder adapters already exist and are tested; they are bounded CLI scans, not generic background indexers. View creation/audience selection stays outside the composer; lexicon choice and its controls are downstream of a view. Default post.v1 stays simple; Contribution is retained as an experiment.
-3. Milestone 3: one independently authenticated operator, explicit context sources, a standing mandate, durable delivery/claim/recovery, an attributable reply and a small inspectable provenance receipt. Prove restart without duplicate replies and revocation before protected actions. There is no autonomous worker today.
-4. Milestone 4: one bounded tool-assisted journey (the I Ching example), retained outcomes, safe reconciliation of uncertain effects, out-of-scope proposals and demonstrated correction retrieval.
-5. Milestone 5: expand lexicons, sources, processors and factories from evidence. Firehose/ranking, cross-device source sync and operator VMs/bellhouses remain separate later projects.
-
-Release follow-ups: validate capability/profile compatibility before a long build; persist an unambiguous valid profile selection; consider separating the web-only callback from native capability declarations; improve build version/source identification. Off-host backups to Stjerneborg remain pending. Older design-preview PR #3 and other historical branches are separate work, not omissions from this release.
-
-## Design commitments
-
-“Receive -> understand -> choose a response or proposal -> check the mandate -> act -> verify -> retain the outcome.”
-
-“The reply is the conversational result; the provenance is a linked, inspectable record of the work.”
-
-Jev informs understanding; it is not the sole trusted decision authority. Explicit context sources shape work proposals and the cognitive lightcone. Human control owns scope/direction; bounded feedback supports useful autonomous progress. The commons' Jera athanor, original dialogue and strata 018–025 hold the wider rationale. Start with its current index and contract-foundation node; preserve useful original wording.
+The full view editor is deferred by David's agreement until a concrete need appears. Its future Settings entry belongs on the profile/account sheet. The next product proof after acceptance remains an independently authenticated operator with explicit context, mandate, durable delivery/claims, attributable reply and linked provenance receipt. Tool-assisted autonomy, ranking/firehose ingestion, cross-device folder sync and operator VMs remain later work.
