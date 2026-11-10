@@ -6,7 +6,7 @@ import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope,
 import { formFields, editedComposition, type Field } from './composition.ts';
 import { accountExperience } from './experience-store.ts';
 import { preparePrivateWriting } from './private-writing.ts';
-import { postDefinition } from './private-definition.ts';
+import { selectedView, writingPolicy, viewChoices, selectPosts, prepareViewDraft, assertDraftContext, adoptLegacyPublicReply } from './view-context.ts';
 import { earlierPublicDrafts, copyEarlierPublicDraft } from './earlier-drafts.ts';
 
 const origin = 'http://127.0.0.1:4417';
@@ -88,9 +88,14 @@ async function postProfile(principal:string,storage:Storage,now:number){
 function draftEnvelope(principal:string,scope:string,draft:Awaited<ReturnType<Drafts['get']>>){return{principal,scope,body:draft.body,revision:draft.revision,pendingMode:draft.sealed?.visibility||'',format:draft.composition?.lexicon.ref||'text',audienceId:draft.composition?.audience||'',fields:draft.composition?formFields(draft.composition):[]};}
 async function editedDraft(local:Drafts,scope:string,audience:string,body:string,fields:Field[]){
   const saved=await local.get(scope);
-  return saved.composition?editedComposition(saved.composition,saved.composition.audience===null?null:audience,body,fields):undefined;
+  return saved.composition?editedComposition(saved.composition,saved.composition.audience,body,fields):undefined;
 }
 const sources: Sources = {
+  viewOptions: async () => viewChoices,
+  viewPolicy: async ([id]) => {
+    try {const view=selectedView(id);const policy=writingPolicy(view);return {id, mode:policy?.mode || '', writable:Boolean(policy), available:true};}
+    catch {return {id,mode:'',writable:false,available:false};}
+  },
   loadWritingContext: async ([principal,active,audienceId,parent,now,browser],store,storage,native) => {
     const unavailable={principal,audienceId,audienceLabel:'',available:false};
     if(!active||!audienceId||!isActor(store,principal))return unavailable;
@@ -120,21 +125,30 @@ const sources: Sources = {
     const local=draftsFor(store,storage,principal);
     // No transport is opened for an ordinary unposted draft. An unavailable
     // publication lookup preserves the sealed draft, including while offline.
-    let draft=await beginDraft((kind,operation,args,id)=>using(store,storage,native,now,browser,db=>transport(db,store,principal)(kind,operation,args,id)),local,mode==='public'?'public':'private',parent);
-    if(mode==='private')draft=await preparePrivateWriting(local,draftScope('private',parent))||draft;
+    const view=selectedView(mode);
+    await adoptLegacyPublicReply(local,parent);
+    let draft=await beginDraft((kind,operation,args,id)=>using(store,storage,native,now,browser,db=>transport(db,store,principal)(kind,operation,args,id)),local,mode as Mode,parent,view.id);
+    if(mode==='private' && !draft.viewContext)draft=await preparePrivateWriting(local,draftScope(view.id,parent))||draft;
+    draft=await prepareViewDraft(local,view,parent)||draft;
     actor(store,principal);
-    return {...draftEnvelope(principal,draftScope(mode==='public'?'public':'private',parent),draft),context};
+    return {...draftEnvelope(principal,draftScope(mode,parent),draft),context};
   },
   syncDraft: async ([principal,mode,parent,context,now,browser],store,storage,native) => {
-    const scope=draftScope(mode==='public'?'public':'private',parent);
+    const scope=draftScope(mode,parent);
     if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,priorRevision:0,state:'pending',context,format:'text',audienceId:'',fields:[]};
     const local=draftsFor(store,storage,principal);
     try {
-      const synced=await using(store,storage,native,now,browser,db=>syncScope(transport(db,store,principal),local,scope));
-      if(mode==='private')synced.draft=await preparePrivateWriting(local,scope)||synced.draft;
+      const synced=await using(store,storage,native,now,browser,async db=>{
+        const request=transport(db,store,principal);
+        await adoptLegacyPublicReply(local,parent,mode==='public'?request:undefined);
+        return syncScope(request,local,scope);
+      });
+      if(mode==='private' && !synced.draft.viewContext)synced.draft=await preparePrivateWriting(local,scope)||synced.draft;
+      synced.draft=await prepareViewDraft(local,selectedView(mode),parent)||synced.draft;
       const {pendingMode,...saved}=draftEnvelope(principal,scope,synced.draft);return {...saved,priorRevision:synced.priorRevision,state:'sent',context};
     } catch {
       const draft=await local.get(scope);
+      assertDraftContext(selectedView(mode),draft);
       const {pendingMode,...saved}=draftEnvelope(isActor(store,principal)?principal:'',scope,draft);return {...saved,priorRevision:draft.revision,state:'pending',context};
     }
   },
@@ -146,17 +160,18 @@ const sources: Sources = {
     } catch {return {state:'pending',id:''};}
   },
   saveDraft: async ([principal,mode,parent,body,revision,audience,fields],store,storage) => {
-    const scope=draftScope(mode==='public'?'public':'private',parent);
-    const local=draftsFor(store,storage,principal);const draft=await local.save(scope,body,revision,await editedDraft(local,scope,audience,body,fields)); actor(store,principal);
+    const scope=draftScope(mode,parent);
+    const local=draftsFor(store,storage,principal);assertDraftContext(selectedView(mode),await local.get(scope));const draft=await local.save(scope,body,revision,await editedDraft(local,scope,audience,body,fields)); actor(store,principal);
     return draftEnvelope(principal,scope,draft);
   },
-  loadPosts: async ([principal,browser,now],store,storage,native) => {
-    if(!isActor(store,principal))return {principal:'',posts:[],available:false};
+  loadPosts: async ([principal,viewId,browser,now],store,storage,native) => {
+    if(!isActor(store,principal))return {principal:'',viewId,posts:[],available:false};
     try {return await using(store,storage,native,now,browser,async db=>{
       const request=transport(db,store,principal);
-      const newest=await allRows(request,'postsList') as PostRecord[];
+      const authorized=await allRows(request,'postsList') as PostRecord[];
+      const selection=selectPosts(selectedView(viewId),authorized), newest=selection.records;
       const audiences=await allRows(request,'availableAudiences');
-      const audienceNames=new Map(audiences.map(a=>[a.id,a.kind==='owner'?'Only me':a.name==='Private'?'Private · shared':a.name+' · shared']));
+      const audienceNames=new Map(audiences.map(a=>[a.id,a.kind==='owner'?'Only me':a.name==='Private'?'Personal · shared':a.name+' · shared']));
       const records=[...newest].sort((a,b)=>a.at-b.at || a.id.localeCompare(b.id));
       const ids=[...new Set(newest.slice(0,100).map(p=>p.author))].slice(0,24);
       const profiles=new Map(await Promise.all(ids.map(async did=>[did,await postProfile(did,storage,now)] as const)));
@@ -173,10 +188,10 @@ const sources: Sources = {
         const stamp=minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`;
         let detail={purpose:'',references:[] as {id:string;uri:string;revision:string}[]};
         if(!p.deleted&&p.lexicon==='contribution.v1'&&p.payloadJson){const value=JSON.parse(p.payloadJson);detail={purpose:value.purpose,references:value.references.map((r:any,i:number)=>({id:`${p.id}-${i}`,uri:r.uri,revision:r.revision||''}))};}
-        return {...detail,audienceLabel:audienceNames.get(p.audience)||'Private',id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
+        return {...detail,feed:selection.feed.has(p.id),audienceLabel:audienceNames.get(p.audience)||'Personal',id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
       });
-      return {principal,posts,available:true};
-    });} catch {return {principal:isActor(store,principal)?principal:'',posts:[],available:false};}
+      return {principal,viewId,posts,available:true};
+    });} catch {return {principal:isActor(store,principal)?principal:'',viewId,posts:[],available:false};}
   },
   loadEarlierDrafts: async ([principal,active,now,browser],store,storage,native) => {
     if(!active||!isActor(store,principal))return {principal:'',items:[],available:false};
@@ -197,13 +212,17 @@ const sources: Sources = {
   publishPost: async ([principal,mode,parent,body,revision,audience,fields,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
     try {
       if(parent.startsWith('at://'))throw new Error('Bluesky replies are not available in this view. Your draft is kept.');
-      const local=draftsFor(store,storage,principal);
+      const local=draftsFor(store,storage,principal), view=selectedView(mode);
+      const saved=await local.get(draftScope(view.id,parent));
+      const policy=saved.sealed?null:writingPolicy(view);
+      assertDraftContext(view,saved);
+      if(!policy && !saved.sealed)throw new Error('This view is read-only.');
       const composition=await editedDraft(local,draftScope(mode as Mode,parent),audience,body,fields);
-      const result=await publish(transport(db,store,principal),local,mode==='public'?'public':'private',parent,revision,body,composition,async envelope=>{
+      const result=await publish(transport(db,store,principal),local,policy?.mode || saved.sealed!.visibility,parent,revision,body,composition,async envelope=>{
         actor(store,principal);const raw=store.get(sessionKey);
         try {const result=await authRequest('/records/publish',envelope,db.session?.token);if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed.');return result;}
         catch(e){const code=(e as any).code||'';if(['INVALID_PAYLOAD','UNKNOWN_LEXICON','LEXICON_CHANGED','AUDIENCE_UNAVAILABLE','DIFFERENT_AUDIENCE','PARENT_UNAVAILABLE','PARENT_DELETED','CANNOT_WIDEN_AUDIENCE','REPLY_NOT_ALLOWED','INTENT_REUSE','E_INPUT'].includes(code))return {state:'failed',why:{message:(e as Error).message}};throw e;}
-      },postDefinition);
+      },policy?.definition,view.id);
       actor(store,principal); return {...result,principal,message:''};
     } catch(error) {
       actor(store,principal);

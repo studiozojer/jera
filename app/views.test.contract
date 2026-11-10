@@ -1,0 +1,58 @@
+fresh
+epoch now
+size 390x844
+
+test "main tabs own writing context and restore separate drafts"
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "owner.test"
+  clock data
+  tap "login"
+  authorize
+  clock settle
+  expect text "header-experience-private" == "Personal"
+  expect text "header-experience-public" == "Public"
+  expect state mode == "private"
+  screenshot ".exact/views-personal-narrow.png"
+  tap "feed-write"
+  clock settle
+  expect text "reply-private-only" == "Personal"
+  expect tree missing "experience-control"
+  type "composer" "My personal draft ♍︎"
+  tap "cancel"
+  clock settle
+  tap "header-experience-public"
+  clock settle
+  expect state mode == "public"
+  tap "feed-write"
+  clock settle
+  expect text "composer" == ""
+  expect text "writing-public" == "Public · Jera"
+  type "composer" "My public draft"
+  tap "cancel"
+  clock settle
+  tap "header-experience-private"
+  clock settle
+  tap "feed-write"
+  clock settle
+  expect text "composer" == "My personal draft ♍︎"
+  tap "cancel"
+  clock settle
+  tap "header-experience-public"
+  clock settle
+  tap "feed-write"
+  clock settle
+  expect text "composer" == "My public draft"
+  tap "cancel"
+  clock settle
+  reload
+  clock settle
+  expect state mode == "public"
+  resize 1100x850
+  screenshot ".exact/views-public-wide.png"
+  type "header-experience-public" key "ArrowRight"
+  clock settle
+  expect state mode == "private"
+  screenshot ".exact/views-personal-wide.png"
+  tap "feed-write"
+  clock settle
+  expect text "composer" == "My personal draft ♍︎"

@@ -1,5 +1,5 @@
 use Action from "./dao/actions.contract"
-use spacingXxxl, layoutMinTouchTarget from "./dao/foundations.contract"
+use WhyteSm, spacingXxxl, layoutMinTouchTarget from "./dao/foundations.contract"
 
 shape ExperienceSnapshot
   principal: string
@@ -27,3 +27,32 @@ component ExperienceModeControl
       for option in ["public", "private"] key=option
         button id=`${idPrefix}-${option}` testId=`${idPrefix}-${option}` role="radio" aria-label=(option == "public" ? "Public" : "Private") title=(option == "public" ? "Public" : "Private") aria-checked=(mode == option) tabindex=(mode == option ? 0 : -1) disabled=disabled press=change(option) key=navigate(option) appearance="none" class=Action width=(touch ? layoutMinTouchTarget() : spacingXxxl()) height=(touch ? layoutMinTouchTarget() : spacingXxxl()) min-width=(touch ? layoutMinTouchTarget() : spacingXxxl()) min-height=(touch ? layoutMinTouchTarget() : spacingXxxl()) padding="dao.space.xs" border-width=0 border-radius="dao.radius.sm" background-color=(mode == option ? "dao.bg.primary" : "transparent") color=(disabled ? "dao.ic.disabled" : mode == option ? "dao.ic.primary" : "dao.ic.tertiary") display="flex" align-items="center" justify-content="center" cursor=(disabled ? "default" : "pointer")
           image (option == "public" ? "symbol:icon.experience-public" : "symbol:icon.experience-private") font-size=(option == "public" ? "22px" : "21px") aria-hidden=true
+
+// Feed navigation. The earlier compact binary control above is retained as a specimen.
+shape ViewOption
+  id: string
+  label: string
+
+component ViewTabs
+  props
+    options: ViewOption[]
+    selected: string
+    change: action
+    disabled: bool
+  action navigate(index: number, key: string, event: KeyboardEvent)
+    if not disabled and not event.isComposing and options.length > 0 and (key == "ArrowLeft" or key == "ArrowRight" or key == "Home" or key == "End")
+      preventDefault()
+      let next = key == "Home" ? 0 : key == "End" ? options.length - 1 : key == "ArrowRight" ? (index + 1) % options.length : (index + options.length - 1) % options.length
+      match options.at(next)
+        case some(option)
+          change(option.id)
+          focus(`view-tab-${option.id}`)
+        case none
+          preventDefault()
+  view
+    row role="tablist" aria-label="Views" testId="view-tabs" background-color="transparent" overflow-x="auto" flex-shrink=0 border-bottom="1px solid bd.primary" width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-left="dao.space.lg" padding-right="dao.space.lg" gap="dao.space.xl"
+      for option, index in options key=option.id
+        button id=`view-tab-${option.id}` role="tab" aria-selected=(selected == option.id) aria-controls="view-feed" tabindex=(selected == option.id ? 0 : -1) disabled=disabled press=change(option.id) key=navigate(index) testId=`header-experience-${option.id}` appearance="none" class=Action min-height=48 padding="dao.space.sm" border-radius=0 border-width=0 border-bottom-width=2 border-bottom-style="solid" border-bottom-color=(selected == option.id ? "dao.tx.primary" : "transparent") background-color="transparent" color=(disabled ? "dao.tx.disabled" : selected == option.id ? "dao.tx.primary" : "dao.tx.secondary") flex="1 0 auto" min-width="6rem" cursor=(disabled ? "default" : "pointer")
+          :hover
+            background-color="transparent"
+          text option.label class=WhyteSm font-weight=400

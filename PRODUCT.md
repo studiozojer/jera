@@ -1,5 +1,13 @@
 # Jera's product contract
 
+## Selected views and Personal — November 9 direction
+
+David selects Public / Personal as the initial main-experience tabs, using named feed tabs with an underline instead of the compact binary switch. Personal is the account’s starting sphere, with chosen people or operators granted read/reply access through audience membership. Its warmer personal direction does not change the server access boundary or activate operator work. Keep the previous switch as a reusable specimen.
+
+The selected view governs reading, new writing and draft context. The composer inherits it and offers no view selector. Keep labels independent of stable identity so a later rename preserves drafts and audience. Implement the two existing definitions first; account-owned create/edit/duplicate/delete, pinning and ordering follow outside the composer. David requests a Settings entry button in the profile/account sheet when that page is needed. The future Personal feed should be shapeable by its user; this does not require implementing the editor now.
+
+`VIEWS.md` describes the implemented app boundary and compatibility behavior. `private` remains internal access terminology and the stable Personal view ID. Public remains signed-in Jera readership, not ATproto publication. Existing posts are unchanged.
+
 ## Public returns to Snapback — November 8 correction
 
 David asks to replace the own-Bluesky-posts Public reader with the main Snapback public posts he used in the earlier version. Public now reads Snapback `posts`, displays existing public roots and replies, and permits new body-only `post.v1` posts/replies. Public means readable by authenticated Jera users; it is not ATproto publication. Private membership and no-widening reply rules remain enforced.

@@ -4,7 +4,7 @@ use WhyteXs, WhyteMd, QuietAction from "./dao.contract"
 use WhyteSm from "./dao/foundations.contract"
 use IconButton, Action from "./dao/actions.contract"
 use AccountAvatar from "./signin.contract"
-use ExperienceModeControl from "./experience.contract"
+use ViewTabs, ViewOption from "./experience.contract"
 
 // Both entries share the existing composer route, experience and retained draft.
 component FeedComposer
@@ -27,6 +27,7 @@ component Chrome
     avatar: string
     name: string
     mode: string
+    options: ViewOption[]
     changeExperience: action
     switchDisabled: bool
     touch: bool
@@ -36,7 +37,6 @@ component Chrome
     box role="banner" padding-top=`calc(${compact ? spaceMd() : spaceXl()}px + env(safe-area-inset-top))` padding-bottom=(compact ? spaceMd() : spaceXl()) padding-left=(compact ? spaceLg() : spaceXxl()) padding-right=(compact ? spaceLg() : spaceXxl()) border-bottom-width=(compact ? 1 : 0) border-bottom-style="solid" border-bottom-color="bd.primary" width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" display="flex" align-items="center" justify-content="space-between" gap=spaceLg() flex-wrap="wrap"
       row gap=spaceXl() align-items="center" flex-wrap="wrap"
         JeraWordmark(scale=(compact ? 1.6 : 2))
-        ExperienceModeControl(idPrefix="header-experience", label="Feed experience", mode=mode, change=changeExperience, disabled=switchDisabled, touch=touch)
       row gap=spaceMd() align-items="center" flex-wrap="wrap"
         button press=account aria-label="Your account" testId="account-avatar" appearance="none" class=QuietAction width="2.75rem" height="2.75rem" padding=0 border-width=0 border-radius=radiusMd() background-color="bg.field" color="tx.primary"
           AccountAvatar(src=avatar, label=name, size="2.75rem", radius=radiusMd())
@@ -57,6 +57,7 @@ component ReadingHeader
     avatar: string
     name: string
     mode: string
+    options: ViewOption[]
     changeExperience: action
     switchDisabled: bool
     touch: bool
@@ -65,7 +66,8 @@ component ReadingHeader
     measure: action
   view
     column resize=measure position="sticky" top=0 z-index=2 background-color="experience.canvas" padding-bottom=(compact ? 0 : spaceSm()) testId="reading-header"
-      Chrome(account=account, compact=compact, mode=mode, avatar=avatar, name=name, changeExperience=changeExperience, switchDisabled=switchDisabled, touch=touch)
+      Chrome(account=account, compact=compact, mode=mode, options=options, avatar=avatar, name=name, changeExperience=changeExperience, switchDisabled=switchDisabled, touch=touch)
+      ViewTabs(options=options, selected=mode, change=changeExperience, disabled=switchDisabled)
       if not compact
         ReadingCap()
 
@@ -80,7 +82,7 @@ component ThreadHeader
       row role="banner" padding-top=`calc(${compact ? spaceMd() : spaceXl()}px + env(safe-area-inset-top))` padding-bottom=(compact ? spaceMd() : spaceXl()) padding-left=(compact ? spaceLg() : spaceXxl()) padding-right=(compact ? spaceLg() : spaceXxl()) border-bottom-width=(compact ? 1 : 0) border-bottom-style="solid" border-bottom-color="bd.primary" width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" align-items="center" gap=spaceMd() flex-wrap="wrap" testId="thread-header"
         IconButton(controlId="back", kind="ghost", label="Back", symbol="symbol:back", glyphSize="1.25rem", targetSize="2.75rem", selected=none, disabled=false, press=back, testId="back", clearance=0)
         text "Thread" role="heading" aria-level=1 class=WhyteMd
-        text (mode == "private" ? "Private" : "Public") class=WhyteXs color="tx.secondary" margin-left="auto" testId="thread-experience"
+        text (mode == "private" ? "Personal" : "Public") class=WhyteXs color="tx.secondary" margin-left="auto" testId="thread-experience"
       if not compact
         ReadingCap()
 

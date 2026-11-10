@@ -15,6 +15,7 @@ shape SourceReference
   revision: string
 
 shape Post
+  feed: bool
   audienceLabel: string
   purpose: string
   references: SourceReference[]

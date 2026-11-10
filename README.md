@@ -2,7 +2,7 @@
 
 Jera is an Exact native and web app backed by Snapback. The active application lives in `app/`; contracts, authentication, storage and operations live beside it at the repository root. The obsolete Expo implementation is preserved in Git history before the root-layout cleanup.
 
-The web app is hosted at https://jera.ink and uses https://snapback.jera.ink. Existing ATproto accounts provide verified DID identity. Public and Private posts use the simple `post.v1` application lexicon in Snapback. Posting does not publish to ATproto. Read [PRODUCT.md](PRODUCT.md), [RECORDS.md](RECORDS.md) and [PERMISSIONS.md](PERMISSIONS.md) for these boundaries.
+The web app is hosted at https://jera.ink and uses https://snapback.jera.ink. Existing ATproto accounts provide verified DID identity. Public and Personal views write posts using the simple `post.v1` application lexicon in Snapback. Posting does not publish to ATproto. Read [PRODUCT.md](PRODUCT.md), [RECORDS.md](RECORDS.md) and [PERMISSIONS.md](PERMISSIONS.md) for these boundaries.
 
 ## Setup
 
@@ -62,4 +62,4 @@ The backend suite uses isolated real Snapback stores. The test command applies t
 | `design-preview/` | Separate synthetic Exact design specimen |
 | `tooling/exact2/` | Pinned SDK submodule |
 
-See [operations](ops/README.md) for release and recovery, [views](VIEWS.md) for the source contract, and [draft lifecycle](DRAFT-LIFECYCLE.md) for recovery. Dated delivery documents retain earlier states. Generic selected-view integration and autonomous operators remain follow-up work.
+See [operations](ops/README.md) for release and recovery, [views](VIEWS.md) for the source contract, and [draft lifecycle](DRAFT-LIFECYCLE.md) for recovery. Dated delivery documents retain earlier states. The two selected definitions govern the app’s Snapback reading, writing and draft contexts; see VIEWS.md. Account-owned view editing and autonomous operators remain follow-up work.

@@ -2,6 +2,14 @@
 
 Resume from `main`. The application and release work through PRs #6–#9 is merged; `a9b4e5d` anchors the root-layout cleanup. Current Jera uses Exact + Snapback. The obsolete root Expo implementation was removed and remains in Git history. The authenticated UI is in `app/`; contracts, auth, schema, scripts, tests and operations are at the repository root.
 
+## Selected-view implementation — November 9, in review
+
+The isolated `feat/selected-views` branch implements Public / Personal feed tabs and consumes the selected authored definition for Snapback selection/grouping, new-writing policy and per-view draft context. `private` stays the stable Personal ID and server visibility term. The previous compact switch remains an unused specimen. The composer inherits context and has no view selector. Existing posts are untouched, default root drafts keep their keys, Personal replies keep the legacy key and Public replies have an isolated branch. Recognized old Public reply drafts retain their originals during adoption. Writing-policy changes preserve incompatible drafts; already-sealed intents retry their original payload/scope even if the new binding is unavailable.
+
+The feature is not deployed or installed. View editing/renaming/pinning/ordering remains the next settings increment; David places the future Settings entry button on the profile/account sheet. `VIEWS.md` describes the implemented boundary, source availability and saved-context behavior. Current app integration binds Snapback only; the host-local folder adapter remains CLI work.
+
+Verification: 34 real-store backend/auth tests, 38 app tests (167 assertions), and all nine Exact browser workflows pass. `verify web --backend http://127.0.0.1:4457` also passes those workflows, ordinary-size checks and reload checks. Its largest-text pass reports 25 layout findings, including thread controls and sticky-header/tab boundaries, plus three source-level typography findings (one in the deliberately retained switch specimen). These are retained, not waived or represented as a clean accessibility pass. The synchronous oracle skips the `fresh`-dependent workflows and Lean semantics did not run; actual browser/backend execution is the evidence. Native prerequisites pass; there is no new native build or device-acceptance claim. Local screenshots/logs are retained in `.local/selected-views/` and `app/.exact/verify/` within that worktree.
+
 ## Shipped and installed
 
 - https://jera.ink serves the web app; www redirects to the root. DNS and normal root-domain certificate verification passed. The API remains https://snapback.jera.ink on `91.98.204.141`; PDS health was preserved.
@@ -36,7 +44,7 @@ Still separate: real-account post/read/reply/delete/reload and cross-device acce
 ## Where to continue
 
 1. Confirm the installed phone and hosted web journeys with David, retaining data and checking draft recovery/account identity. Keep this bounded; do not re-run a cold native build to answer an installation question.
-2. Finish milestone 2: let a selected view consistently supply app reading, writing and per-view draft context. The portable view contract and read-only Snapback/local-folder adapters already exist and are tested; they are bounded CLI scans, not generic background indexers. View creation/audience selection stays outside the composer; lexicon choice and its controls are downstream of a view. Default post.v1 stays simple; Contribution is retained as an experiment.
+2. Review/integrate the selected-view implementation above, then finish milestone 2 with account-owned view configuration outside the composer. The portable view contract and read-only Snapback/local-folder adapters already exist and are tested; they are bounded CLI scans, not generic background indexers. View creation/audience selection stays outside the composer; lexicon choice and its controls are downstream of a view. Default post.v1 stays simple; Contribution is retained as an experiment.
 3. Milestone 3: one independently authenticated operator, explicit context sources, a standing mandate, durable delivery/claim/recovery, an attributable reply and a small inspectable provenance receipt. Prove restart without duplicate replies and revocation before protected actions. There is no autonomous worker today.
 4. Milestone 4: one bounded tool-assisted journey (the I Ching example), retained outcomes, safe reconciliation of uncertain effects, out-of-scope proposals and demonstrated correction retrieval.
 5. Milestone 5: expand lexicons, sources, processors and factories from evidence. Firehose/ranking, cross-device source sync and operator VMs/bellhouses remain separate later projects.
