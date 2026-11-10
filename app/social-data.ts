@@ -4,7 +4,7 @@ import { type Composition, type Definition, newComposition, compositionError } f
 export type Mode = 'private' | 'public';
 export type PostRecord = { id: string; author: string; body: string; deleted: boolean; visibility: Mode; audience: string | null; parent: string | null; root: string | null; at: number; intent: string; lexicon?:string|null; lexiconDigest?:string|null; payloadJson?:string|null };
 export type Posting = { intent: string; body: string; visibility: Mode; audience: string | null; parent: string | null; draftDevice?: string; draftRevision?: number; draftScope?: string; composition?:Composition };
-export type Draft = { body: string; revision: number; intent: string; sealed: Posting | null; posted?: string; syncedRevision?: number; cloudRevision?: number; composition?:Composition; alternatives?:Record<string,Composition> };
+export type Draft = { body: string; revision: number; intent: string; sealed: Posting | null; posted?: string; syncedRevision?: number; cloudRevision?: number; composition?:Composition; viewContext?:string; alternatives?:Record<string,Composition> };
 type Vault = { version: 1; principal: string; origin: string; mode: Mode; device: string; drafts: Record<string, Draft> };
 export type Files = { readFile(path: string): Promise<ArrayBuffer>; atomicWriteFile(path: string, data: Uint8Array): Promise<unknown>; readdir(path: string): Promise<string[]> };
 export type Request = (kind: 'q' | 'm', operation: string, args: Record<string, unknown>, id?: string) => Promise<any>;
@@ -17,7 +17,7 @@ export function newIntent(): string {
   for (let i = 0; i < 26; i++) { result = alphabet[Number(value & 31n)] + result; value >>= 5n; }
   return result;
 }
-export const draftScope = (mode: Mode, parent: string) => parent ? `reply:${parent}` : `root:${mode}`;
+export const draftScope = (viewId: string, parent: string) => parent ? (viewId === 'private' ? `reply:${parent}` : `view:${viewId}:reply:${parent}`) : `root:${viewId}`;
 function emptyDraft(): Draft { return { body: '', revision: 0, intent: newIntent(), sealed: null }; }
 export class Drafts {
   constructor(private fs: Files, readonly origin: string, readonly principal: string) {
@@ -100,8 +100,8 @@ export function matchesPublication(post: PostRecord, payload: Posting, principal
 // Opening a writing session is the retirement boundary. A confirmed post is
 // retained locally until then; ambiguous/offline publication stays recoverable.
 // Keep this lookup behind Request so a future indexer can supply the evidence.
-export async function beginDraft(request: Request, drafts: Drafts, mode: Mode, parent: string) {
-  const scope=draftScope(mode,parent), draft=await drafts.get(scope), payload=draft.sealed;
+export async function beginDraft(request: Request, drafts: Drafts, mode: Mode, parent: string, viewId: string = mode) {
+  const scope=draftScope(viewId,parent), draft=await drafts.get(scope), payload=draft.sealed;
   if (!payload) return draft;
   let post: PostRecord | null;
   try {post=(await request('q','postForIntent',{intent:payload.intent})).data;}
@@ -118,8 +118,8 @@ export async function beginDraft(request: Request, drafts: Drafts, mode: Mode, p
   },true);
 }
 
-export async function publish(request: Request, drafts: Drafts, mode: Mode, parent: string, revision: number, body?: string, composition?:Composition, publishRecord?:(envelope:unknown)=>Promise<any>, defaultDefinition?:Definition) {
-  const scope = draftScope(mode, parent);
+export async function publish(request: Request, drafts: Drafts, mode: Mode, parent: string, revision: number, body?: string, composition?:Composition, publishRecord?:(envelope:unknown)=>Promise<any>, defaultDefinition?:Definition, viewId:string = mode) {
+  const scope = draftScope(viewId, parent);
   // Seal the exact payload before sending. A retry after a lost response uses
   // the same intent, audience and bytes, even after a process restart.
   let draft = await drafts.get(scope);
@@ -143,10 +143,15 @@ export async function publish(request: Request, drafts: Drafts, mode: Mode, pare
       }
     }
     if(draft.composition){
-      const invalid=compositionError(draft.composition);if(invalid)throw new Error(invalid);
-      if((mode==='public') !== (draft.composition.audience===null))throw new Error('The saved audience does not match this writing context. Your draft is kept.');
-      if(audience && audience!==draft.composition.audience)throw new Error('Replies keep the original audience.');
-      audience=draft.composition.audience;
+      if(draft.composition.audience===''){
+        if(mode!=='private')throw new Error('The saved audience does not match this writing context.');
+        if(!audience){const result=await request('m','ensureAudience',{},newIntent());if(result.state!=='sent'||!result.result?.id)throw new Error('Could not prepare your Personal audience. Your draft is kept.');audience=result.result.id;}
+        draft={...draft,composition:{...draft.composition,audience}};
+      }
+      const invalid=compositionError(draft.composition!);if(invalid)throw new Error(invalid);
+      if((mode==='public') !== (draft.composition!.audience===null))throw new Error('The saved audience does not match this writing context. Your draft is kept.');
+      if(audience && audience!==draft.composition!.audience)throw new Error('Replies keep the original audience.');
+      audience=draft.composition!.audience;
     }
     if (mode === 'private' && !audience) {
       const response = await request('m','ensureAudience',{},newIntent());
@@ -205,7 +210,7 @@ export async function syncScope(request: Request, drafts: Drafts, scope: string)
         if(current.revision===0 && !current.body && !current.sealed) {
           // Cloud and editor revisions have different jobs. Pulling must not
           // advance the editor's counter while its user is already typing.
-          v.drafts[scope]={...current,body:latest.body,...(latest.compositionJson?JSON.parse(latest.compositionJson):{}),syncedRevision:0,cloudRevision:own?latest.revision:0};
+          v.drafts[scope]={...current,body:latest.body,viewContext:undefined,...(latest.compositionJson?JSON.parse(latest.compositionJson):{}),syncedRevision:0,cloudRevision:own?latest.revision:0};
         }
         return v.drafts[scope]||current;
       },true);
@@ -218,7 +223,7 @@ export async function syncScope(request: Request, drafts: Drafts, scope: string)
       // Reserve before networking so publication can tombstone all outstanding
       // saves, even one whose response has not arrived yet.
       d.cloudRevision=(d.cloudRevision||0)+1;
-      return {body:d.body,compositionJson:d.composition||d.alternatives?JSON.stringify({composition:d.composition,alternatives:d.alternatives}):null,editorRevision:d.revision,cloudRevision:d.cloudRevision};
+      return {body:d.body,compositionJson:d.composition||d.alternatives||d.viewContext?JSON.stringify({composition:d.composition,alternatives:d.alternatives,viewContext:d.viewContext}):null,editorRevision:d.revision,cloudRevision:d.cloudRevision};
     },true);
     if(sending){
       const response=await request('m',sending.compositionJson?'saveStructuredDraft':'saveSocialDraft',{deviceKey:device,scope,body:sending.body,revision:sending.cloudRevision,...(sending.compositionJson?{compositionJson:sending.compositionJson}:{})},newIntent());
@@ -229,7 +234,7 @@ export async function syncScope(request: Request, drafts: Drafts, scope: string)
         // The server already retired the active cloud branch on publication.
         // Its empty tombstone is compatible with our retained posted cache.
         const publishedTombstone=current.posted && current.sealed && response.result.body==='' && response.result.revision>=(current.sealed.draftRevision||0)+1;
-        const currentJson=current.composition||current.alternatives?JSON.stringify({composition:current.composition,alternatives:current.alternatives}):null;
+        const currentJson=current.composition||current.alternatives||current.viewContext?JSON.stringify({composition:current.composition,alternatives:current.alternatives,viewContext:current.viewContext}):null;
         if((current.body!==response.result.body || currentJson!==(response.result.compositionJson??null)) && !publishedTombstone)throw new Error('A newer cloud draft was kept; your local copy is preserved too.');
       }
     }

@@ -6,7 +6,8 @@
     "network"
   ],
   "select": {
-    "lexicons": []
+    "lexicons": [],
+    "visibility": "private"
   },
   "presentation": {
     "order": "newest-first",

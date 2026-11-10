@@ -1,5 +1,5 @@
 // App-local experience authority. These events describe context, never content.
-// No network transport or permission enforcement is implied by this prototype.
+// The selected view is app context; source authorization remains server-enforced.
 export type ExperienceMode = 'private' | 'public';
 export type ExperienceSnapshot = Readonly<{ mode: ExperienceMode; revision: number }>;
 export type ExperienceChange = Readonly<{
@@ -8,7 +8,7 @@ export type ExperienceChange = Readonly<{
   previousMode: ExperienceMode;
   mode: ExperienceMode;
   revision: number;
-  origin: 'composer';
+  origin: 'view-tabs';
   at: number;
 }>;
 export type ExperienceListener = (event: ExperienceChange) => void;
@@ -38,7 +38,7 @@ export function createExperienceStore(initial: ExperienceMode = 'public') {
       if (mode === snapshot.mode) return snapshot;
       const previousMode = snapshot.mode;
       snapshot = Object.freeze({ mode, revision: snapshot.revision + 1 });
-      latest = Object.freeze({ type: 'jera.experience.changed', version: 1, previousMode, mode, revision: snapshot.revision, origin: 'composer', at });
+      latest = Object.freeze({ type: 'jera.experience.changed', version: 1, previousMode, mode, revision: snapshot.revision, origin: 'view-tabs', at });
       queue.push(latest);
       // A subscriber may react with another change. Deliver revisions in order.
       if (!notifying) {
