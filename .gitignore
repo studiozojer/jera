@@ -15,3 +15,11 @@ snapback/generated/
 *.tsbuildinfo
 .env*.local
 npm-debug.*
+
+# Generated remnants from the former foundation layout
+.expo/
+foundation/app/target/
+foundation/app/app.contract.d.ts
+foundation/app/assets/snapback4.wasm
+foundation/app/assets/snapback4.wasm.json
+foundation/snapback/generated/
