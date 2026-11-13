@@ -29,3 +29,15 @@ Exact stays pinned to 4e9000abbdaa8315ae864cdb8253af143aac510c with the same thr
 Review/merge this bounded startup fix, then explicitly release it to web/phone. Verify the real account's post/read/reply/delete/reload, draft recovery and sharing/revocation journeys; native keyboard/IME/accessibility and largest-text findings remain separate acceptance work.
 
 The full view editor is deferred by David's agreement until a concrete need appears. Its future Settings entry belongs on the profile/account sheet. The next product proof after acceptance remains an independently authenticated operator with explicit context, mandate, durable delivery/claims, attributable reply and linked provenance receipt. Tool-assisted autonomy, ranking/firehose ingestion, cross-device folder sync and operator VMs remain later work.
+
+## Tycho response vessel — November 13, 2026
+
+Branch `feat/tycho-worker`, PR https://github.com/studiozojer/jera/pull/13, adds the manually targeted, review-gated runner under `scripts/operator/`. No app, production schema or phone release changes. The two Bellhouse PRs were merged together at `dc18abc`; the laptop installation includes both controls and upstream cron locks/timeouts.
+
+Tycho has completed real Jera OAuth as `did:plc:ynouwsusgwwgnalvg5ms2kmo`. Its own session can read `01M7A0ZRT8S0AG58WWTMM7KDAR` and its selected graph notes in the local `operators` VM. Credential values stay outside Git. The root-owned guest release `/opt/jera-operator/dda264e` is selected by `/opt/jera-operator/current`. A manual systemd oneshot runs as `tycho`, with no timer or boot activation. Bellhouse reports the configured operator paused.
+
+The first draft attempt is held in `/home/tycho/state/jera-replies/reply.sqlite`: OpenCode returned HTTP 401, `This API key has expired`. No model answer or Jera post was created. David was asked to replace the key in OpenCode Console and update this laptop's OpenCode credential, without pasting it into chat. Transfer only the `opencode` credential entry privately to Tycho. Inspect and preserve the held attempt before explicitly retrying; repeated triggers do not automatically spend again. The saved Jera session lasts one day; renew via ordinary OAuth if expired, never privileged session minting.
+
+First response remains subject to David's review. Publication requires the saved envelope hash, rechecks source access, reuses its persisted intent and verifies the result. Full interactive Tycho boot, autonomous mention polling, per-operator enable/pause controls, graph synchronization and off-machine restore-tested backup remain later work. The current bounded vessel loads identity and selected notes, and denies model tools.
+
+Validation: real isolated Snapback contract test includes operator parent-audience inheritance, DID attribution, intent reuse and revocation; six OAuth tests pass; a separate-process Bun test verifies durable holds and review-hash refusal. Guest service verification and an actual repeated trigger retain the held job without another model request. No browser/UI change requiring a new app build.
