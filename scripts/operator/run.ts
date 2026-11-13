@@ -54,18 +54,19 @@ async function generate(prompt:string){
 async function main(){
   if(command==='status'){output();return;}
   if(command==='draft'){
+    let stage='authorization';
     // Atomic claim across processes. Crash/interruption never silently reruns paid work.
     const claim=db.query("INSERT OR IGNORE INTO jobs VALUES (?,'running',NULL,?)").run(key,new Date().toISOString());
     if(!claim.changes){output();return;}
     try{
-      const c=await client(),posts=await readContext(c,config.target,config);
-      const sources=loadSources(config.graph,config.sources),identity=loadSources(config.graph,['identity/self.md','identity/worldview.md']);
-      const prompt=promptFor(posts,sources,identity),body=await generate(prompt);
-      await verifyContext(c,posts,config);
+      const c=await client();stage='context';const posts=await readContext(c,config.target,config);
+      stage='graph';const sources=loadSources(config.graph,config.sources),identity=loadSources(config.graph,['identity/self.md','identity/worldview.md']);
+      const prompt=promptFor(posts,sources,identity);stage='model';const body=await generate(prompt);
+      stage='recheck';await verifyContext(c,posts,config);
       const envelope=makeEnvelope(posts,body);
       const data={envelope,posts,sources:sources.map(({content,...x}:any)=>x),identity:identity.map(({content,...x}:any)=>x),model:config.model,promptHash:digest(prompt),reviewHash:digest(envelope),createdAt:new Date().toISOString()};
       set('draft',data);saveJSON(join(config.state,'draft.json'),data);output();
-    }catch{set('needs-review',{reason:'Draft did not complete; inspect authorization/model/context before any manual retry.'});throw Error('DRAFT_HELD');}
+    }catch{set('needs-review',{stage,reason:'Draft did not complete; inspect authorization/model/context before any manual retry.'});throw Error('DRAFT_HELD');}
     return;
   }
   const row=get();if(!row||!['draft','uncertain'].includes(row.status))throw Error('NO_REVIEWABLE_DRAFT');
