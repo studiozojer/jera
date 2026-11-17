@@ -67,3 +67,5 @@ See [operations](ops/README.md) for release and recovery, [views](VIEWS.md) for 
 ## Startup performance regression
 
 The held-profile browser check uses a separate synthetic real-store preview, with no production credentials or posts. From the repository root, start the fixture with PORT=4477 node app/test-server.mjs, then the preview with EXACT_BACKEND_ORIGIN=http://127.0.0.1:4477 bun app/exact.mjs web --port 3037. Run bun tests/feed-startup.browser.mjs. It holds profile responses while requiring post text to appear, checks cached reload and later name/reply attribution, then exercises failed profiles and logout before late completion. Ports 4477/4478 and 3037 must be available; do not reset another preview's fixture. Stop this task's fixture before Exact test/verify commands, which manage their own disposable store. Existing fixture bindings and account/origin isolation remain explicit.
+
+Operator environments and the bounded reply runner live in [Hearth](https://github.com/studiozojer/hearth). Jera owns the authenticated API and record contracts used by those independent operators.
