@@ -10,6 +10,7 @@ import { createServer } from 'node:http';
 import { JeraClient, intentId } from '../scripts/client.mjs';
 import { createHandler } from '../auth/service.mjs';
 import { lexicons, validateRecord } from '../contracts/registry.mjs';
+import { readContext,makeEnvelope,verifyContext,mentioned } from '../scripts/operator/reply.mjs';
 import { checkSchema, validatePayload } from '../contracts/validate.mjs';
 
 const root = new URL('../', import.meta.url).pathname;
@@ -126,6 +127,19 @@ mutation probeOwnerMember(audience: audiences, principal: principal):
     return origin;
   }
   const origin = await openGateway();
+  // Operator preparation uses actual authorized point reads and the real gateway.
+  const request=(await owner.client.mutate('publishPost',{intent:intentId(),body:'@tycho can you explain this?',visibility:'private',audience:oldAudience.id,parent:null})).result;
+  const identity={did:operator.did,handle:'tycho.jera.ink'};
+  const context=await readContext(operator.client,request.id,identity);
+  const prepared=makeEnvelope(context,'A reviewed synthetic reply.');
+  assert.equal(prepared.audience,oldAudience.id);assert.equal(prepared.parent,request.id);
+  const replyResult=(await operator.gateway.publishRecord(prepared)).result;
+  assert.equal(replyResult.author,operator.did);
+  assert.equal((await operator.gateway.publishRecord(prepared)).result.id,replyResult.id);
+  await owner.client.mutate('removeAudienceMember',{audience:oldAudience.id,principal:operator.did});
+  await assert.rejects(verifyContext(operator.client,context,identity));
+  await assert.rejects(operator.gateway.publishRecord(prepared));
+  await owner.client.mutate('setAudienceMember',{audience:oldAudience.id,principal:operator.did,access:'reply'});
   const catalogResponse = await fetch(origin + '/records/lexicons', { headers: { authorization: `Bearer ${owner.token}` } });
   assert.equal(catalogResponse.status, 200);
   assert.deepEqual((await catalogResponse.json()).lexicons, lexicons);
@@ -258,3 +272,5 @@ mutation probeOwnerMember(audience: audiences, principal: principal):
   await service.request('/auth/revoke', { principal: owner.did });
   await refused(publish(owner, { intent: intentId() }), 'E_AUTH');
 });
+
+test('operator mention matching does not match other handles or embedded addresses',()=>{assert.equal(mentioned('@tycho hi','tycho.jera.ink'),true);assert.equal(mentioned('@tycho.jera.ink hi','tycho.jera.ink'),true);for(const body of ['@tycho.evil hi','x@tycho hi','@tychology hi','hi tycho'])assert.equal(mentioned(body,'tycho.jera.ink'),false);});

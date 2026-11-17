@@ -1,0 +1,25 @@
+[Unit]
+Description=Tycho bounded Jera draft runner (manual, review required)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=tycho
+Group=tycho
+WorkingDirectory=/home/tycho
+Environment=HOME=/home/tycho
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/local/bin/bun /opt/jera-operator/current/scripts/operator/run.ts draft /home/tycho/.config/jera/operator.json
+TimeoutStartSec=240
+TimeoutStopSec=15
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/tycho/state /home/tycho/.local /home/tycho/.cache /home/tycho/.config/opencode
+ReadOnlyPaths=/home/tycho/graph
+Restart=no
+# Deliberately no Install section or timer: starting the VM does not run Tycho.
