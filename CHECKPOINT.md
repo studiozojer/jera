@@ -41,3 +41,9 @@ The first draft attempt is held in `/home/tycho/state/jera-replies/reply.sqlite`
 First response remains subject to David's review. Publication requires the saved envelope hash, rechecks source access, reuses its persisted intent and verifies the result. Full interactive Tycho boot, autonomous mention polling, per-operator enable/pause controls, graph synchronization and off-machine restore-tested backup remain later work. The current bounded vessel loads identity and selected notes, and denies model tools.
 
 Validation: real isolated Snapback contract test includes operator parent-audience inheritance, DID attribution, intent reuse and revocation; six OAuth tests pass; a separate-process Bun test verifies durable holds and review-hash refusal. Guest service verification and an actual repeated trigger retain the held job without another model request. No browser/UI change requiring a new app build.
+
+## Hearth extraction — November 16, 2026
+
+David created `studiozojer/hearth` as the owner of operator environments and runners. Hearth PR #1 extracts the VM recipe and reply vessel; this follow-up removes Jera's runtime copy after PR #13 merged during the extraction. The canonical Jera client, record contracts, API and permission tests remain here. Hearth's real-store test harness retains the original operator preparation/revocation proof against the moved adapter.
+
+The existing laptop VM and Tycho home remain in place. Hearth now selects code through `/opt/hearth/operators/tycho/current`, with the same private Jera configuration and SQLite job. Bellhouse continues to report the operator inactive. The expired provider-key attempt remains held; no inference, OAuth renewal or publication occurred during migration. See Hearth's migration notes for the deployed content hash and retained rollback unit.
