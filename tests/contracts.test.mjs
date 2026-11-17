@@ -258,4 +258,3 @@ mutation probeOwnerMember(audience: audiences, principal: principal):
   await service.request('/auth/revoke', { principal: owner.did });
   await refused(publish(owner, { intent: intentId() }), 'E_AUTH');
 });
-
