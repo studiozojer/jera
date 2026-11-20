@@ -1,5 +1,9 @@
 # Jera's product contract
 
+## Remembered sign-in — November 20
+
+Returning to Jera on iOS should preserve the verified account across ordinary backgrounding, relaunch, temporary connection failures and gaps between visits. A newly enrolled phone can renew its one-day request token through a separate Keychain credential for up to 90 days of inactivity. Web sessions use a 30-day inactivity period and start renewing with a week remaining. Explicit logout, revocation and provider-required reauthorization still end access. Existing sessions continue to work with their original expiry until the next verified sign-in enrolls the device.
+
 ## Selected views and Personal — November 9 direction
 
 David selects Public / Personal as the initial main-experience tabs, using named feed tabs with an underline instead of the compact binary switch. Personal is the account’s starting sphere, with chosen people or operators granted read/reply access through audience membership. Its warmer personal direction does not change the server access boundary or activate operator work. Keep the previous switch as a reusable specimen.
