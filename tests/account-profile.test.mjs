@@ -16,9 +16,9 @@ test('verified DID selects the public profile without sending credentials, and c
   assert.equal(init.exactTimeout,5000);
   return Response.json({did:alice,handle:'alice.test',displayName:'Alice',avatar:photo});
  });
- assert.deepEqual(profile,{principal:alice,name:'Alice',handle:'alice.test',avatar:photo});
+ assert.deepEqual(profile,{principal:alice,name:'Alice',usesHandle:false,handle:'alice.test',avatar:photo});
  assert.deepEqual(await loadAccountProfile(alice,disk,offline),profile);
- assert.deepEqual(await loadAccountProfile(bob,disk,offline),{principal:bob,name:'Your account',handle:'',avatar:''});
+ assert.deepEqual(await loadAccountProfile(bob,disk,offline),{principal:bob,name:'Your account',usesHandle:false,handle:'',avatar:''});
 });
 test('mismatched profile identity and unsafe photo URLs never enter another account lockup',async()=>{
  const disk=storage();
@@ -40,9 +40,25 @@ test('cache-only presentation validates identity and reads without a network dep
  const fetched=await loadAccountProfile(alice,disk,async()=>{calls++;return Response.json({did:alice,handle:'alice.test',displayName:'Alice',avatar:photo});});
  assert.deepEqual(await readCachedAccountProfile(alice,disk),fetched);
  assert.equal(calls,1);
- assert.deepEqual(await readCachedAccountProfile(bob,disk),{principal:bob,name:'Your account',handle:'',avatar:''});
+ assert.deepEqual(await readCachedAccountProfile(bob,disk),{principal:bob,name:'Your account',usesHandle:false,handle:'',avatar:''});
  // A cache file cannot relabel another DID or introduce an arbitrary image host.
  disk.files.set(`app:/data/profile-${encodeURIComponent(bob)}.json`,new TextEncoder().encode(JSON.stringify({did:alice,handle:'alice.test',displayName:'Alice',avatar:photo})));
  assert.equal((await readCachedAccountProfile(bob,disk)).handle,'');
- assert.deepEqual(await readCachedAccountProfile('',{fs:{readFile:()=>{throw new Error('Unexpected read');}}}),{principal:'',name:'Your account',handle:'',avatar:''});
+ assert.deepEqual(await readCachedAccountProfile('',{fs:{readFile:()=>{throw new Error('Unexpected read');}}}),{principal:'',name:'Your account',usesHandle:false,handle:'',avatar:''});
+});
+
+test('handle bylines survive cache reloads and never reinterpret an explicit display name', async () => {
+  const disk = storage();
+  const handle = 'river.kairos.solar';
+  for (const displayName of ['', 'River', handle]) {
+    const profile = await loadAccountProfile(alice, disk, async () =>
+      Response.json({ did: alice, handle: 'River.Kairos.Solar', displayName }));
+    assert.equal(profile.handle, handle);
+    assert.equal(profile.usesHandle, !displayName);
+    assert.deepEqual(await readCachedAccountProfile(alice, disk), profile);
+  }
+  const invalid = await loadAccountProfile(alice, disk, async () =>
+    Response.json({ did: alice, handle: 'river..kairos.solar' }));
+  assert.equal(invalid.handle, '');
+  assert.equal(invalid.usesHandle, false);
 });

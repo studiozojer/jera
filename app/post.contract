@@ -41,6 +41,7 @@ shape Post
   parent: string
   visibility: string
   author: string
+  usesHandle: bool
   handle: string
   initial: string
   body: string
@@ -52,6 +53,25 @@ component PostAvatar
   view
     AccountAvatar(src=post.avatar, label=post.author, size="2.25rem", radius=radiusMd())
 
+// The profile's handle supplies the domain. Display names are free text.
+component HandleByline
+  props
+    handle: string
+  derive domain = match ["kairos.solar", "bsky.social", "jera.ink"].filter(d => handle.endsWith(`.${d}`)).at(0) { case some(d) => d, case none => "" }
+  state failedDomain = ""
+  action iconFailed(message: string)
+    failedDomain = domain
+  view
+    if domain != "" and failedDomain != domain
+      row role="img" aria-label=`@${handle}` title=`@${handle}` align-items="center" gap="0.25rem" max-width="100%" min-width=0
+        text handle.slice(0, handle.length - domain.length - 1) class=WhyteSm min-width=0 overflow-wrap="break-word" aria-hidden=true
+        if domain == "bsky.social"
+          image "assets/icons/bluesky-butterfly.svg" alt="" aria-hidden=true error=iconFailed width="1rem" height="1rem" object-fit="contain" flex-shrink=0
+        else
+          image (domain == "jera.ink" ? "symbol:icon.jera-mark" : "symbol:dao.glyph.kairos-logo") aria-hidden=true error=iconFailed font-size="1rem" color="tx.primary" flex-shrink=0
+    else
+      text `@${handle}` class=WhyteSm min-width=0 max-width="100%" overflow-wrap="break-word"
+
 component Author
   props
     post: Post
@@ -60,10 +80,15 @@ component Author
     clearance: number
   action copyPost
     copyText(post.body)
+  action copyHandle
+    copyText(`@${post.handle}`)
   view
     row gap=spaceSm() align-items="center" flex-wrap="wrap" min-width=0
       row gap=spaceSm() align-items="center" flex-wrap="wrap" min-width=0 flex=1 flex-basis="8rem"
-        text post.author class=WhyteSm
+        if post.usesHandle
+          HandleByline(handle=post.handle)
+        else
+          text post.author class=WhyteSm
         text post.stamp color="tx.secondary" class=WhyteXs
         if post.visibility == "private"
           text post.audienceLabel color="tx.secondary" class=WhyteXs
@@ -73,6 +98,8 @@ component Author
         box height="1.5rem" display="flex" align-items="center" flex-shrink=0
           Menu(id=menuId, label=`More options for ${post.author}: ${post.body.slice(0, 64)}`, symbol="symbol:ellipsis", disabled=false, testId=`more-${menuId}`, clearance=clearance)
             MenuItem(label="Copy text", menuId=menuId, destructive=false, disabled=false, press=copyPost, testId=`copy-${menuId}`)
+            if post.handle != ""
+              MenuItem(label=`Copy @${post.handle}`, menuId=menuId, destructive=false, disabled=false, press=copyHandle, testId=`copy-handle-${menuId}`)
             if post.canDelete
               MenuItem(label="Delete", menuId=menuId, destructive=true, disabled=false, press=remove(post.id), testId=`delete-${menuId}`)
 

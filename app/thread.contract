@@ -16,7 +16,8 @@ component ThreadReplyEntry
       button press=reply(post.id) testId=`thread-reply-entry-${post.id}` aria-label=`Reply to ${post.author}` appearance="none" class=Action width="100%" min-width=0 min-height=minTouchTarget() padding=spaceSm() border="1px solid bd.primary" border-radius=radiusFull() background-color="bg.field" color="tx.secondary" display="flex" align-items="center" gap=spaceMd() flex-wrap="wrap" text-align="left" scroll-margin-top=clearance
         :hover
           background-color="bg.field"
-        AccountAvatar(src=avatar, label=name, size="2.25rem", radius=radiusMd())
+        // Keep the avatar circular as its rem size grows with the reader's text size.
+        AccountAvatar(src=avatar, label=name, size="2.25rem", radius=999)
         text `Reply to ${post.author}…` class=WhyteSm min-width=0 flex=1 flex-basis="8rem"
 
 // Jera owns conversation structure; the shared author/actions keep their anatomy.

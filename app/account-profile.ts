@@ -1,20 +1,22 @@
+import { isHandle } from './login-input.ts';
+
 // Public presentation data only. The verified session DID remains the identity.
-export type AccountProfile = { principal: string; name: string; handle: string; avatar: string };
+export type AccountProfile = { principal: string; name: string; usesHandle: boolean; handle: string; avatar: string };
 type ProfileStorage = { fs: { readFile(path: string): Promise<ArrayBuffer>; atomicWriteFile(path: string, data: Uint8Array): Promise<unknown> } };
-export const emptyProfile = (principal: string): AccountProfile => ({ principal, name: 'Your account', handle: '', avatar: '' });
+export const emptyProfile = (principal: string): AccountProfile => ({ principal, name: 'Your account', usesHandle: false, handle: '', avatar: '' });
 
 function normalized(value: unknown, principal: string): AccountProfile | null {
   if (!value || typeof value !== 'object') return null;
   const profile = value as Record<string, unknown>;
   if (profile.did !== principal || typeof profile.handle !== 'string') return null;
-  const handle = profile.handle === 'handle.invalid' ? '' : profile.handle.slice(0, 253);
+  const handle = isHandle(profile.handle) ? profile.handle.toLowerCase() : '';
   let avatar = '';
   try {
     const url = new URL(String(profile.avatar ?? ''));
     if (url.protocol === 'https:' && url.hostname === 'cdn.bsky.app' && url.pathname.startsWith('/img/avatar/') && !url.username && !url.password) avatar = url.href;
   } catch { /* No photo uses the same fallback as an unavailable profile. */ }
   const name = typeof profile.displayName === 'string' ? profile.displayName.trim().slice(0, 160) : '';
-  return { principal, name: name || handle || 'Your account', handle, avatar };
+  return { principal, name: name || handle || 'Your account', usesHandle: !name && !!handle, handle, avatar };
 }
 
 // Cache-only presentation reads never wait on network or establish identity.
@@ -35,7 +37,7 @@ export async function loadAccountProfile(principal: string, storage: ProfileStor
     if (!response.ok) return cached;
     const profile = normalized(await response.json(), principal);
     if (!profile) return cached;
-    try { await storage.fs.atomicWriteFile(path, new TextEncoder().encode(JSON.stringify({ did: principal, displayName: profile.name, handle: profile.handle, avatar: profile.avatar }))); } catch { /* A cache failure must not hide a fetched profile. */ }
+    try { await storage.fs.atomicWriteFile(path, new TextEncoder().encode(JSON.stringify({ did: principal, displayName: profile.usesHandle ? '' : profile.name, handle: profile.handle, avatar: profile.avatar }))); } catch { /* A cache failure must not hide a fetched profile. */ }
     return profile;
   } catch { return cached; }
 }
