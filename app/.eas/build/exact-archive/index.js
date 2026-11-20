@@ -12,7 +12,9 @@ exports.default = async function exactArchive(ctx, { inputs } = {}) {
   if (!unsigned && (credentials.length !== 1 || !credentials[0].provisioningProfileBase64 || !credentials[0].distributionCertificate?.dataBase64)) {
     throw new Error('Expected one EAS-managed iOS signing target for studio.zojer.jera.exact.');
   }
-  const app = ctx.workingDirectory;
+  // EAS passes the checkout root as ctx.workingDirectory on its worker.
+  // Anchor to this checked-in function so the app subdirectory is unambiguous.
+  const app = path.resolve(__dirname, '../../..');
   const sdk = path.resolve(app, '../tooling/exact');
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'jera-signing-'));
   fs.chmodSync(temp, 0o700);
