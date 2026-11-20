@@ -9,5 +9,8 @@
     "ios:credentials": "npx eas-cli@27.2.0 credentials:configure-build --platform ios --profile preview",
     "web:live": "EXACT_BACKEND_ORIGIN=https://snapback.jera.ink bun exact.mjs web --port 3033"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "devDependencies": {
+    "expo-modules-autolinking": "2.0.8"
+  }
 }

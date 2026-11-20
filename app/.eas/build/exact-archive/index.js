@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { randomBytes } = require('node:crypto');
 
-exports.default = async function exactArchive(ctx, { inputs }) {
+exports.default = async function exactArchive(ctx, { inputs } = {}) {
   const unsigned = process.env.JERA_APPDROP_UNSIGNED === '1';
   const credentials = Object.values(inputs?.credentials?.value || {});
   if (!unsigned && (credentials.length !== 1 || !credentials[0].provisioningProfileBase64 || !credentials[0].distributionCertificate?.dataBase64)) {
@@ -48,7 +48,8 @@ exports.default = async function exactArchive(ctx, { inputs }) {
     run('rustup', ['target', 'add', '--toolchain', '1.99.1', 'aarch64-apple-ios', 'wasm32-unknown-unknown']);
     run('bun', ['install', '--frozen-lockfile'], { cwd: sdk });
     run('bun', ['install', '--frozen-lockfile'], { cwd: path.resolve(app, '..') });
-    run('bun', ['scripts/exact.mjs', 'setup', '--platform', 'ios', '--device'], { cwd: sdk });
+    const hermes = 'vendor/ibex/crates/hermes-lean-sys-installer/Cargo.toml';
+    run('cargo', ['run', '--locked', '--manifest-path', hermes, '--', '--target', 'aarch64-apple-ios'], { cwd: sdk });
     if (unsigned) {
       run('node', ['../scripts/ios.mjs', 'unsigned']);
       return;
