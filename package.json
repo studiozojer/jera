@@ -8,6 +8,7 @@
     "dev": "cd \"${JERA_BACKEND_DIR:-../jera-snapback}\" && npm run dev",
     "test": "node --test tests/*.test.mjs",
     "agent": "node scripts/agent.mjs",
+    "release:iphone": "node scripts/release-iphone.mjs",
     "ios:check": "cd app && bun run ios:check",
     "ios:local": "cd app && bun run ios:local",
     "ios:archive": "cd app && bun run ios:archive",

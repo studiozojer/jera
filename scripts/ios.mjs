@@ -14,14 +14,14 @@ function run(command, args, options = {}) {
   return r.stdout?.trim();
 }
 
-export function buildArgs(mode, args) {
+export function buildArgs(mode, args, archive = resolve(app, 'artifacts/jera.ipa')) {
   if (!['local', 'archive', 'unsigned'].includes(mode)) throw new Error('Use check, local, archive or unsigned.');
   if (mode === 'local') {
     if (args.length && (args.length !== 2 || args[0] !== '--phone' || !args[1])) throw new Error('local accepts only --phone <name-or-UDID>');
     return ['app-apple', '--device', '--release', '--run', ...args];
   }
   if (args.length) throw new Error('Archive output is app/artifacts/jera.ipa; no extra arguments.');
-  return ['app-apple', '--device', '--archive', resolve(app, 'artifacts/jera.ipa'), ...(mode === 'unsigned' ? ['--unsigned'] : [])];
+  return ['app-apple', '--device', '--archive', archive, ...(mode === 'unsigned' ? ['--unsigned'] : [])];
 }
 
 function main() {
@@ -42,7 +42,7 @@ function main() {
   if (mode === 'archive' && (!process.env.EXACT_IDENTITY || !process.env.EXACT_PROFILE)) problems.push('Set EXACT_IDENTITY and EXACT_PROFILE for the signed archive.');
   if (problems.length) throw new Error(problems.join('\n'));
   if (mode === 'check') { console.log('Toolchain and signing identity found. The build will validate the selected phone and profile.'); return; }
-  const nativeArgs = buildArgs(mode, args);
+  const nativeArgs = buildArgs(mode, args, process.env.JERA_IOS_ARCHIVE);
   patchSDK(sdk);
   // Build the device first so the client check can read its version stamp.
   run(bun, ['exact.mjs', 'snapback', '--rebuild', '--artifact-only'], { stdio: 'inherit' });
