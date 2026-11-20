@@ -6,7 +6,7 @@ import { loadAccountProfile, readCachedAccountProfile } from './account-profile.
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type Request } from './social-data.ts';
 import { formFields, editedComposition, type Field } from './composition.ts';
 import { measureBlueskyPost, openBluesky, saveBluesky, sendBluesky } from './bluesky.ts';
-import { accountExperience } from './experience-store.ts';
+import { accountExperience, getExperienceSnapshot } from './experience-store.ts';
 import { preparePrivateWriting } from './private-writing.ts';
 import { selectedView, writingPolicy, viewChoices, prepareViewDraft, assertDraftContext, adoptLegacyPublicReply } from './view-context.ts';
 import { readTimeline } from './feed-page.ts';
@@ -69,7 +69,7 @@ function draftsFor(store: Store, storage: Storage, principal: string) {
 }
 async function experienceFor(store: Store, storage: Storage, principal: string) {
   const drafts=draftsFor(store,storage,principal);
-  const initial=await drafts.mode();
+  const initial=getExperienceSnapshot(principal)?.mode ?? await drafts.mode();
   return accountExperience(principal,initial);
 }
 function transport(session: Access | null, store: Store, principal: string): Request {
@@ -240,8 +240,8 @@ const sources: Sources = {
     const local=draftsFor(store,storage,principal);assertDraftContext(selectedView(mode),await local.get(scope));const draft=await local.save(scope,body,revision,await editedDraft(local,scope,audience,body,fields)); actor(store,principal);
     return draftEnvelope(principal,scope,draft);
   },
-  loadPosts: async ([principal,viewId,cursor,focus,browser,now],store,storage,native) => {
-    if(viewId==='bluesky' || !isActor(store,principal))return {principal:'',viewId,cursor,focus,next:'',partial:false,authorIds:[],posts:[],available:false};
+  loadPosts: async ([principal,viewId,cursor,focus,visit,browser,now],store,storage,native) => {
+    if(viewId==='bluesky' || !isActor(store,principal))return {principal:'',viewId,cursor,focus,visit,next:'',partial:false,authorIds:[],posts:[],available:false};
     try {return await using(store,now,browser,async db=>{
       const request=transport(db,store,principal);
       const {rows,next,partial}=await readTimeline(request,selectedView(viewId),cursor,focus);
@@ -262,8 +262,8 @@ const sources: Sources = {
         if(!p.deleted&&p.lexicon==='contribution.v1'&&p.payloadJson){const value=JSON.parse(p.payloadJson);detail={purpose:value.purpose,references:value.references.map((r:any,i:number)=>({id:`${p.id}-${i}`,uri:r.uri,revision:r.revision||''}))};}
         return {...detail,feed,audienceLabel,id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPrincipal:parent?.author||'',parentPublic:parent?.visibility==='public',publicReplies,readableReplies,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,usesHandle:profile?.usesHandle ?? false,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
       });
-      return {principal,viewId,cursor,focus,next,partial,authorIds:ids,posts,available:true};
-    });} catch {return {principal:isActor(store,principal)?principal:'',viewId,cursor,focus,next:'',partial:false,authorIds:[],posts:[],available:false};}
+      return {principal,viewId,cursor,focus,visit,next,partial,authorIds:ids,posts,available:true};
+    });} catch {return {principal:isActor(store,principal)?principal:'',viewId,cursor,focus,visit,next:'',partial:false,authorIds:[],posts:[],available:false};}
   },
   loadEarlierDrafts: async ([principal,active,now,browser],store,storage,native) => {
     if(!active||!isActor(store,principal))return {principal:'',items:[],available:false};

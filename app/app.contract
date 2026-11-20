@@ -68,6 +68,7 @@ shape Ack
   state: string
   id: string
 shape Timeline
+  visit: number
   cursor: string
   focus: string
   next: string
@@ -332,13 +333,18 @@ component App
     every(10000, sampleDataClock)
   action sampleDataClock
     dataNow = time.epochAtZero + performanceNow()
+  state feedVisit = 0
+  state requestedFeed = ""
+  state publicScroll = 0
+  state personalScroll = 0
   state feedCursors: string[] = []
   state revealPage = false
   derive pageCursor = match feedCursors.at(feedCursors.length - 1) { case some(c) => c, case none => "" }
   derive threadFocus = top(nav).name == "thread" ? top(nav).params.id : (top(nav).name == "compose" ? replyTo : "")
-  derive queryCursor = threadFocus == "" ? pageCursor : ""
-  resource timeline = loadPosts(account.principal, mode, queryCursor, threadFocus, page.navigationType != "", dataNow) as shape Timeline else empty()
-  derive currentTimeline = timeline.principal == account.principal and timeline.viewId == mode and timeline.cursor == queryCursor and timeline.focus == threadFocus
+  derive requestedMode = pending(experienceChanged) and requestedFeed != "" ? requestedFeed : mode
+  derive queryCursor = threadFocus == "" and requestedMode == mode ? pageCursor : ""
+  resource timeline = loadPosts(account.principal, requestedMode, queryCursor, threadFocus, feedVisit, page.navigationType != "", dataNow) as shape Timeline else empty()
+  derive currentTimeline = timeline.visit == feedVisit and timeline.principal == account.principal and timeline.viewId == mode and timeline.cursor == queryCursor and timeline.focus == threadFocus
   derive rawPosts = currentTimeline ? timeline.posts : []
   derive authorIds = currentTimeline ? timeline.authorIds : []
   resource postProfiles = refreshPostProfiles(account.principal, mode, authorIds, dataNow) as shape PostProfiles else empty()
@@ -455,12 +461,22 @@ component App
       send deletedPost = deletePost(deleteActor, deleteTarget, time.epochAtZero + performanceNow(), page.navigationType != "")
     deleteTarget = ""
     deleteActor = ""
+  derive feedScroll = currentTimeline and queryCursor == "" and threadFocus == "" ? (mode == "private" ? personalScroll : (mode == "public" ? publicScroll : 0)) : 0
+  action rememberFeedScroll(left: number, offset: number)
+    if top(nav).name == "home" and currentTimeline and queryCursor == "" and not pending(experienceChanged) and not pending(timeline)
+      if mode == "public"
+        publicScroll = offset
+      if mode == "private"
+        personalScroll = offset
   action selectExperience(value: string)
     if top(nav).name == "home" and value != mode and not pending(experienceChanged) and not pending(published) and not pendingDraft and (top(nav).name != "compose" or replyTo == "" or canReplyInExperience(posts, replyTo, value))
       if top(nav).name != "compose"
         replyTo = ""
+      requestedFeed = value
+      feedVisit = feedVisit + 1
       send experienceChanged = changeExperience(account.principal, value, time.epochAtZero + performanceNow())
   action afterExperienceChange
+    requestedFeed = ""
     feedCursors = []
     revealPage = false
     composeContextChanged = true
@@ -598,6 +614,10 @@ component App
   action logout
     send signedOut = logout(time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterLogout
+    requestedFeed = ""
+    publicScroll = 0
+    personalScroll = 0
+    feedVisit = feedVisit + 1
     feedCursors = []
     revealPage = false
     skyOwner = ""
@@ -645,7 +665,7 @@ component App
               header appearance="none" border-width=0 padding="32px"
                 JeraWordmark(scale=2)
             if account.principal != ""
-              scroll id="stream" testId="stream" aria-label=(mode == "bluesky" ? "Bluesky posts" : activeViewLabel) tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
+              scroll id="stream" testId="stream" scrollTop=feedScroll scroll=rememberFeedScroll aria-label=(mode == "bluesky" ? "Bluesky posts" : activeViewLabel) tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
                 column min-height="100%"
                   ReadingHeader(account=openAccount, avatar=profileAvatar, name=profileName, compact=compact, measure=measureFeedHeader, mode=mode, options=views, changeExperience=selectExperience, switchDisabled=(pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
                   column id="view-feed" role="tabpanel" aria-labelledby=`view-tab-${mode}` flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
