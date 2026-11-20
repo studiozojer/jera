@@ -3,12 +3,13 @@ import { accessSession, forgetAccess, refused, type Access } from './access-sess
 import { rememberedSession, validAccess } from './remembered-session.ts';
 import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile, readCachedAccountProfile } from './account-profile.ts';
-import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
+import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type Request } from './social-data.ts';
 import { formFields, editedComposition, type Field } from './composition.ts';
 import { measureBlueskyPost, openBluesky, saveBluesky, sendBluesky } from './bluesky.ts';
 import { accountExperience } from './experience-store.ts';
 import { preparePrivateWriting } from './private-writing.ts';
-import { selectedView, writingPolicy, viewChoices, selectPosts, prepareViewDraft, assertDraftContext, adoptLegacyPublicReply } from './view-context.ts';
+import { selectedView, writingPolicy, viewChoices, prepareViewDraft, assertDraftContext, adoptLegacyPublicReply } from './view-context.ts';
+import { readTimeline } from './feed-page.ts';
 import { earlierPublicDrafts, copyEarlierPublicDraft } from './earlier-drafts.ts';
 
 const origin = 'http://127.0.0.1:4417';
@@ -239,35 +240,30 @@ const sources: Sources = {
     const local=draftsFor(store,storage,principal);assertDraftContext(selectedView(mode),await local.get(scope));const draft=await local.save(scope,body,revision,await editedDraft(local,scope,audience,body,fields)); actor(store,principal);
     return draftEnvelope(principal,scope,draft);
   },
-  loadPosts: async ([principal,viewId,browser,now],store,storage,native) => {
-    if(viewId==='bluesky' || !isActor(store,principal))return {principal:'',viewId,authorIds:[],posts:[],available:false};
+  loadPosts: async ([principal,viewId,cursor,focus,browser,now],store,storage,native) => {
+    if(viewId==='bluesky' || !isActor(store,principal))return {principal:'',viewId,cursor,focus,next:'',partial:false,authorIds:[],posts:[],available:false};
     try {return await using(store,now,browser,async db=>{
       const request=transport(db,store,principal);
-      const authorized=await allRows(request,'postsList') as PostRecord[];
-      const selection=selectPosts(selectedView(viewId),authorized), newest=selection.records;
-      const audiences=await allRows(request,'availableAudiences');
-      const audienceNames=new Map(audiences.map(a=>[a.id,a.kind==='owner'?'Only me':a.name==='Private'?'Personal · shared':a.name+' · shared']));
-      const records=[...newest].sort((a,b)=>a.at-b.at || a.id.localeCompare(b.id));
-      const ids=[...new Set(newest.slice(0,100).map(p=>p.author))].slice(0,24);
+      const {rows,next,partial}=await readTimeline(request,selectedView(viewId),cursor,focus);
+      const records=rows.sort((a,b)=>a.post.at-b.post.at || a.post.id.localeCompare(b.post.id));
+      const ids=[...new Set(records.slice(-100).reverse().flatMap(row=>row.parent ? [row.post.author,row.parent.author] : [row.post.author]))].slice(0,24);
       // Fresh records do not wait for optional public profile networking.
       const profiles=new Map(await Promise.all(ids.map(async did=>[did,await readCachedAccountProfile(did,storage)] as const)));
       actor(store,principal);
-      const byId=new Map(records.map(p=>[p.id,p]));
-      const publicCounts=new Map<string,number>(),readableCounts=new Map<string,number>();
-      for(const p of records)if(p.parent&&!p.deleted){readableCounts.set(p.parent,(readableCounts.get(p.parent)||0)+1);if(p.visibility==='public')publicCounts.set(p.parent,(publicCounts.get(p.parent)||0)+1);}
       const displayName=(did:string)=>{const profile=profiles.get(did);return profile?.handle?profile.name:did===principal?'You':'…'+did.slice(-6);};
-      const posts=records.map(p=>{
+      const posts=records.map(({post:p,feed,parent,audience,publicReplies,readableReplies})=>{
         const profile=profiles.get(p.author);
         const name=displayName(p.author);
-        const parentAuthor=p.parent?displayName(byId.get(p.parent)?.author||''):'';
+        const parentAuthor=parent ? displayName(parent.author) : '';
+        const audienceLabel=audience ? (audience.kind==='owner' ? 'Only me' : (audience.name==='Private' ? 'Personal' : audience.name)+' · shared') : 'Personal';
         const elapsed=Math.max(0,now-p.at),minutes=Math.floor(elapsed/60000);
         const stamp=minutes<1?'now':minutes<60?`${minutes}m`:minutes<1440?`${Math.floor(minutes/60)}h`:`${Math.floor(minutes/1440)}d`;
         let detail={purpose:'',references:[] as {id:string;uri:string;revision:string}[]};
         if(!p.deleted&&p.lexicon==='contribution.v1'&&p.payloadJson){const value=JSON.parse(p.payloadJson);detail={purpose:value.purpose,references:value.references.map((r:any,i:number)=>({id:`${p.id}-${i}`,uri:r.uri,revision:r.revision||''}))};}
-        return {...detail,feed:selection.feed.has(p.id),audienceLabel:audienceNames.get(p.audience)||'Personal',id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPrincipal:p.parent?byId.get(p.parent)?.author||'':'',parentPublic:p.parent?byId.get(p.parent)?.visibility==='public':false,publicReplies:publicCounts.get(p.id)||0,readableReplies:readableCounts.get(p.id)||0,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,usesHandle:profile?.usesHandle ?? false,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
+        return {...detail,feed,audienceLabel,id:p.id,network:false,missingParent:false,images:[],embedUrl:'',embedLabel:'',sourceUrl:'',canDelete:p.author===principal&&!p.deleted,deleted:!!p.deleted,parentAuthor,parentPrincipal:parent?.author||'',parentPublic:parent?.visibility==='public',publicReplies,readableReplies,root:p.root||'',parent:p.parent||'',principal:p.author,avatar:profile?.avatar||'',audience:p.audience||'',at:p.at,visibility:p.visibility,author:name,usesHandle:profile?.usesHandle ?? false,handle:profile?.handle||'',initial:name.slice(0,1).toUpperCase(),body:p.deleted?"This post was deleted.":p.body,stamp};
       });
-      return {principal,viewId,authorIds:ids,posts,available:true};
-    });} catch {return {principal:isActor(store,principal)?principal:'',viewId,authorIds:[],posts:[],available:false};}
+      return {principal,viewId,cursor,focus,next,partial,authorIds:ids,posts,available:true};
+    });} catch {return {principal:isActor(store,principal)?principal:'',viewId,cursor,focus,next:'',partial:false,authorIds:[],posts:[],available:false};}
   },
   loadEarlierDrafts: async ([principal,active,now,browser],store,storage,native) => {
     if(!active||!isActor(store,principal))return {principal:'',items:[],available:false};

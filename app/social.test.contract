@@ -76,18 +76,23 @@ test "Public reads historical Snapback posts and supports new posts and replies"
   tap "post"
   clock settle
   expect state published.message == ""
-  expect state posts.length == 2
-  expect state posts.1 .visibility == "public"
+  expect state posts.length == 1
+  expect state posts.0 .body == "New public Snapback post ♍︎ ♍️"
+  expect state posts.0 .visibility == "public"
   tap "reply"
   clock settle
   type "composer" "A public reply"
   tap "post"
   clock settle
-  expect state posts.length == 3
-  expect state posts.2 .visibility == "public"
+  expect state posts.length == 2
+  expect state posts.1 .body == "A public reply"
+  expect state posts.1 .visibility == "public"
+  expect state posts.0 .publicReplies == 1
   reload
   clock settle
-  expect state posts.length == 3
+  expect state posts.length == 2
+  expect state posts.0 .body == "New public Snapback post ♍︎ ♍️"
+  expect state posts.1 .body == "A public reply"
   tap "back"
   clock settle
   tap "header-experience-private"
@@ -103,7 +108,11 @@ test "Public reads historical Snapback posts and supports new posts and replies"
   tap "header-experience-public"
   clock settle
   expect state feedPosts.length == 2
-  expect state visiblePosts.length == 3
+  expect state visiblePosts.length == 2
+  expect state feedPosts.0 .body == "New public Snapback post ♍︎ ♍️"
+  expect state feedPosts.0 .publicReplies == 1
+  expect state feedPosts.1 .body == "An earlier public Snapback post"
+  expect state feedPosts.1 .publicReplies == 0
 
 test "a private audience grants and revokes DID access through the real store"
   fail fetch "https://public.api.bsky.app/"

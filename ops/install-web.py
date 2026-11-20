@@ -13,12 +13,19 @@ if not re.fullmatch(r'[0-9a-f]{40}', release):
 root = pathlib.Path('/opt/jera-web')
 artifact = root / 'releases' / release
 entries = ['app.js']
+immutable = set()
 if (artifact / 'jera-start.js').is_file():
     routes = json.loads((artifact / 'routes.json').read_text())
     entry = routes['files']['app.js']
     if not re.fullmatch(r'app-[\w-]+\.js', entry):
         raise SystemExit('Unexpected public Exact entry')
     entries = ['jera-start.js', entry]
+    if re.fullmatch(r'app-[A-Za-z0-9_-]{8}\.js', entry):
+        immutable.add('/' + entry)
+    for css in artifact.glob('style-*.css'):
+        if re.fullmatch(r'style-[A-Za-z0-9_-]{8}\.css', css.name):
+            entries.append(css.name)
+            immutable.add('/' + css.name)
 for name in ('index.html', *entries, '.exact/auth/callback', '.exact/auth/callback.js'):
     if not (artifact / name).is_file():
         raise SystemExit('Incomplete web artifact: ' + name)
@@ -58,7 +65,8 @@ try:
     for path in ('/', *('/' + entry for entry in entries), '/.exact/auth/callback', '/.exact/auth/callback.js', '/thread/release-check', '/account', '/write', '/audience', '/earlier-drafts'):
         with urllib.request.urlopen('http://127.0.0.1:4421' + path, timeout=15) as response:
             assert response.status == 200
-            assert response.headers['Cache-Control'] == 'no-store'
+            expected_cache = 'public, max-age=31536000, immutable' if path in immutable else 'no-store'
+            assert response.headers['Cache-Control'] == expected_cache, path
             if path == '/.exact/auth/callback' or path.startswith('/thread/') or path in ('/account', '/write', '/audience', '/earlier-drafts'):
                 assert response.headers.get_content_type() == 'text/html'
     for url in ('https://snapback.jera.ink/oauth/health', 'https://pds.jera.ink/xrpc/_health'):
