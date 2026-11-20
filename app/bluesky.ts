@@ -1,10 +1,19 @@
 // Stored in the existing per-account, per-origin vault, outside the map of
 // Snapback drafts. Background draft sync never sends this text anywhere.
+import { countGraphemes } from 'unicode-segmenter/grapheme';
 import { Drafts, newIntent } from './social-data.ts';
 
 export type PostedLink = { uri: string; cid: string; url: string; text: string };
 export type BlueskyDraft = { intent: string; text: string; revision: number; pending: boolean; posts: PostedLink[] };
 const fresh = (posts: PostedLink[] = []): BlueskyDraft => ({ intent: newIntent(), text: '', revision: 0, pending: false, posts });
+
+export function measureBlueskyPost(text: string) {
+  const count = countGraphemes(text);
+  const bytes = new TextEncoder().encode(text).length;
+  const limit = 300;
+  const byteLimit = 3000;
+  return { text, count, limit, bytes, byteLimit, valid: count <= limit && bytes <= byteLimit };
+}
 
 export function openBluesky(drafts: Drafts) {
   return drafts.use(v => v.bluesky ??= fresh(), true);
@@ -29,7 +38,9 @@ export function saveBluesky(drafts: Drafts, intent: string, revision: number, te
 
 export async function sendBluesky(drafts: Drafts, intent: string, revision: number, text: string,
   submit: (payload: { did: string; intent: string; text: string }) => Promise<Omit<PostedLink, 'text'>>) {
-  if (new TextEncoder().encode(text).length > 3000) throw new Error('A Bluesky post can contain up to 3,000 UTF-8 bytes. Shorten your draft and try again.');
+  const size = measureBlueskyPost(text);
+  if (size.count > size.limit) throw new Error('A Bluesky post can contain up to 300 characters. Shorten your draft and try again.');
+  if (size.bytes > size.byteLimit) throw new Error('A Bluesky post can contain up to 3,000 UTF-8 bytes. Shorten your draft and try again.');
   await saveBluesky(drafts, intent, revision, text, true);
   let receipt;
   try {

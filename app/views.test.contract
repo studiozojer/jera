@@ -69,13 +69,25 @@ test "Bluesky opens first, restores its private draft and posts with explicit co
   clock settle
   expect state mode == "bluesky"
   expect tree missing "feed-write"
+  expect text "sky-count" == "0 / 300"
   type "sky-composer" "A public thought ♍︎"
   clock settle
   reload
   clock settle
   expect text "sky-composer" == "A public thought ♍︎"
+  expect text "sky-count" == "18 / 300"
   tap "sky-enable"
   authorize
+  clock settle
+  type "sky-composer" "👩🏽‍💻aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaax"
+  clock settle
+  expect text "sky-count" == "301 / 300"
+  expect disabled "sky-post"
+  type "sky-composer" "👩🏽‍💻aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  clock settle
+  expect text "sky-count" == "300 / 300"
+  expect enabled "sky-post"
+  type "sky-composer" "A public thought ♍︎"
   clock settle
   expect enabled "sky-post"
   expect state skyPosts.length == 0
@@ -84,6 +96,7 @@ test "Bluesky opens first, restores its private draft and posts with explicit co
   expect state skyPosts.length == 1
   expect state skyPosts.0 .text == "A public thought ♍︎"
   expect text "sky-composer" == ""
+  expect text "sky-count" == "0 / 300"
   screenshot ".exact/bluesky-posted.png"
   reload
   clock settle

@@ -144,6 +144,13 @@ shape SkyResult
   pending: bool
   posts: SkyPost[]
   message: string
+shape SkyPostSize
+  text: string
+  count: number
+  limit: number
+  bytes: number
+  byteLimit: number
+  valid: bool
 shape SkyPermission
   principal: string
   available: bool
@@ -256,6 +263,9 @@ component App
   state skyOwner = ""
   state skyIntent = ""
   state skyText = ""
+  resource skySize = skyPostSize(skyText) as shape SkyPostSize else empty()
+  derive skySizeCurrent = skySize.limit > 0 and skySize.text == skyText
+  derive skyCanPost = skyReady and skyAllowed and skyText.trim() != "" and skySizeCurrent and skySize.valid
   state skyRevision = 0
   state skyPending = false
   state skyMessage = ""
@@ -292,7 +302,7 @@ component App
   action checkPermission
     refresh skyAccess
   action postSky
-    if skyReady and skyAllowed and skyText.trim() != "" and not pending(skyPublished)
+    if skyCanPost and not pending(skyPublished)
       skyMessage = ""
       send skyPublished = publishSky(account.principal, skyIntent, skyRevision, skyText)
   action receiveSkyResult
@@ -606,16 +616,20 @@ component App
                       if mode == "bluesky"
                         column padding=spaceLg() gap=spaceMd()
                           text (profileHandle != "" ? `Posting as @${profileHandle}` : `Posting as ${account.principal.slice(0, 8)}…${account.principal.slice(-6)}`) class=WhyteSm color="tx.secondary" overflow-wrap="break-word"
-                          textarea id="sky-composer" testId="sky-composer" aria-label="Write a Bluesky post" placeholder="What's on your mind?" value=(skyReady ? skyText : "") input=editSky disabled=(not skyReady or skyPending or pending(skyPublished)) maxlength=12000 rows=4 width="100%" box-sizing="border-box" padding=spaceMd() border="1px solid bd.primary" border-radius=radiusMd() background-color="bg.field" color="tx.primary" class=WhyteMd font-family="Whyte"
+                          textarea id="sky-composer" testId="sky-composer" aria-label="Write a Bluesky post" aria-describedby="sky-count" placeholder="What's on your mind?" value=(skyReady ? skyText : "") input=editSky disabled=(not skyReady or skyPending or pending(skyPublished)) maxlength=12000 rows=3 width="100%" box-sizing="border-box" padding=spaceMd() border="1px solid bd.primary" border-radius=radiusMd() background-color="bg.field" color="tx.primary" class=WhyteSm
                           if failed(skyOpened)
                             Button(controlId="", label="Reopen draft", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(skyOpened), press=openSky, testId="sky-reopen")
                           if failed(skySaved)
                             text "Couldn’t save this edit on this device." role="status" class=WhyteXs
                           row justify-content="flex-end" align-items="center" gap=spaceSm() flex-wrap="wrap"
+                            if skySizeCurrent and skyReady
+                              text `${skySize.count} / ${skySize.limit}` id="sky-count" testId="sky-count" class=WhyteXs color=(skySize.valid ? "tx.secondary" : "dao.tx.error")
+                              if skySize.bytes > skySize.byteLimit
+                                text `${skySize.bytes} / ${skySize.byteLimit} UTF-8 bytes` class=WhyteXs color="dao.tx.error"
                             if failed(skyAccess) or (not pending(skyAccess) and not skyAccess.available)
                               Button(controlId="", label="Check posting permission", kind="secondary", size="medium", icon=none, disabled=false, busy=pending(skyAccess), press=checkPermission, testId="sky-check")
                             else if skyAllowed
-                              Button(controlId="", label=(skyPending ? "Retry pending post" : "Post to Bluesky"), kind="primary", size="medium", icon=none, disabled=(not skyReady or skyText.trim() == ""), busy=pending(skyPublished), press=postSky, testId="sky-post")
+                              Button(controlId="", label=(skyPending ? "Retry pending post" : "Post to Bluesky"), kind="primary", size="medium", icon=none, disabled=(not skyCanPost), busy=pending(skyPublished), press=postSky, testId="sky-post")
                             else
                               Button(controlId="", label="Enable Bluesky posting", kind="primary", size="medium", icon=none, disabled=(not skyReady or pending(skyAccess)), busy=pending(skyEnabled), press=enablePosting, testId="sky-enable")
                           if failed(skyEnabled)

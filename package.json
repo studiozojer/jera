@@ -17,6 +17,7 @@
     "test:integration": "node --test tests/views.integration.mjs"
   },
   "dependencies": {
-    "snapback4": "0.4.33"
+    "snapback4": "0.4.33",
+    "unicode-segmenter": "0.17.3"
   }
 }

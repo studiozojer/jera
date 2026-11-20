@@ -5,7 +5,7 @@ import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile, readCachedAccountProfile } from './account-profile.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
 import { formFields, editedComposition, type Field } from './composition.ts';
-import { openBluesky, saveBluesky, sendBluesky } from './bluesky.ts';
+import { measureBlueskyPost, openBluesky, saveBluesky, sendBluesky } from './bluesky.ts';
 import { accountExperience } from './experience-store.ts';
 import { preparePrivateWriting } from './private-writing.ts';
 import { selectedView, writingPolicy, viewChoices, selectPosts, prepareViewDraft, assertDraftContext, adoptLegacyPublicReply } from './view-context.ts';
@@ -127,6 +127,7 @@ const sources: Sources = {
       return post?.id === id ? { id, state: post.visibility === 'public' ? 'public' : 'private' } : { state: '', id: '' };
     });
   },
+  skyPostSize: ([text]) => measureBlueskyPost(text),
   openSkyDraft: async ([did], store, storage) => ({ principal: did, ...await openBluesky(draftsFor(store, storage, did)) }),
   saveSkyDraft: async ([did, intent, revision, text], store, storage) => {
     await saveBluesky(draftsFor(store, storage, did), intent, revision, text);
