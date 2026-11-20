@@ -26,20 +26,39 @@ const port = Number(process.env.PORT ?? '4417'), upstream = `http://127.0.0.1:${
 const child = attached ? null : spawn(`${root}node_modules/.bin/snapback4`, ['dev', '--port', String(port + 1), '--no-watch', '--unsafe-dev-doors'], { cwd: directory, stdio: 'inherit' });
 const store = new AuthStore(':memory:');
 let fixtureServiceToken;
+const skyRecords = new Map();
+const scopes = new Map();
 const callbacks = ['studio.zojer.jera.exact:/oauth'];
 const client = {
   clientMetadata: { scope: 'atproto' }, jwks: { keys: [] },
-  authorize: async (handle, { state }) => {
+  authorize: async (handle, { state, scope }) => {
     // Exact's `authorize` driver consumes one redirect. Simulate the verified
     // provider result here; service.test.mjs exercises the actual handoff.
     const flow = store.get('flow', state), code = randomBytes(32).toString('base64url');
-    const did = 'did:plc:' + (handle.startsWith('owner') ? 'a' : handle.startsWith('other') ? 'b' : 'c').repeat(24);
+    const did = flow.postingDid || 'did:plc:' + (handle.startsWith('owner') ? 'a' : handle.startsWith('other') ? 'b' : 'c').repeat(24);
+    scopes.set(did, scope);
     store.set('flow', state, { ...flow, phase: 'complete', did, code: digest(code) }, 60000);
     const back = new URL(flow.callback); back.searchParams.set('state', state); back.searchParams.set('code', code);
     return back;
   },
   callback: async () => { throw new Error('Browser fixture completes authorization in its start route.'); },
-  restore: async did => ({ did }),
+  restore: async did => ({
+    did, getTokenInfo: async () => ({ sub: did, scope: scopes.get(did) }),
+    fetchHandler: async (path, init) => {
+      if (path.startsWith('/xrpc/com.atproto.repo.getRecord?')) {
+        const rkey = new URL(path, 'https://pds.test').searchParams.get('rkey');
+        const result = skyRecords.get(did + '/' + rkey);
+        return result ? Response.json(result) : Response.json({ error: 'RecordNotFound' }, { status: 400 });
+      }
+      if (path !== '/xrpc/com.atproto.repo.createRecord') throw new Error('Unexpected fixture call');
+      const { repo, collection, rkey, record } = JSON.parse(init.body);
+      if (repo !== did || collection !== 'app.bsky.feed.post' || skyRecords.has(did + '/' + rkey))
+        return Response.json({ error: 'InvalidRequest' }, { status: 400 });
+      const receipt = { uri: `at://${did}/${collection}/${rkey}`, cid: 'fixture-cid' };
+      skyRecords.set(did + '/' + rkey, { ...receipt, value: record });
+      return Response.json(receipt);
+    },
+  }),
 };
 const handler = createHandler({ client, store, publicOrigin: `http://127.0.0.1:${port}`, callbacks, snapbackOrigin: upstream, serviceToken: 'fixture-only',
 searchAccounts: async query => ({ query, available: true, complete: true, items: 'owner.test'.includes(query.toLowerCase()) ? [{ did: 'did:plc:' + 'a'.repeat(24), handle: 'owner.test', displayName: 'Test Owner', avatar: '' }] : [] }),

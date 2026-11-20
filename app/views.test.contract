@@ -11,6 +11,9 @@ test "main tabs own writing context and restore separate drafts"
   clock settle
   expect text "header-experience-private" == "Personal"
   expect text "header-experience-public" == "Public"
+  expect state mode == "bluesky"
+  tap "header-experience-private"
+  clock settle
   expect state mode == "private"
   screenshot ".exact/views-personal-narrow.png"
   tap "feed-write"
@@ -56,3 +59,36 @@ test "main tabs own writing context and restore separate drafts"
   tap "feed-write"
   clock settle
   expect text "composer" == "My personal draft ♍︎"
+
+test "Bluesky opens first, restores its private draft and posts with explicit consent"
+  fail fetch "https://public.api.bsky.app/"
+  type "handle" "owner.test"
+  clock data
+  tap "login"
+  authorize
+  clock settle
+  expect state mode == "bluesky"
+  expect tree missing "feed-write"
+  type "sky-composer" "A public thought ♍︎"
+  clock settle
+  reload
+  clock settle
+  expect text "sky-composer" == "A public thought ♍︎"
+  tap "sky-enable"
+  authorize
+  clock settle
+  expect enabled "sky-post"
+  expect state skyPosts.length == 0
+  tap "sky-post"
+  clock settle
+  expect state skyPosts.length == 1
+  expect state skyPosts.0 .text == "A public thought ♍︎"
+  expect text "sky-composer" == ""
+  screenshot ".exact/bluesky-posted.png"
+  reload
+  clock settle
+  expect state skyPosts.length == 1
+  expect text "sky-composer" == ""
+  tap "header-experience-public"
+  clock settle
+  expect state feedPosts.length == 0

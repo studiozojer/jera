@@ -1,5 +1,6 @@
 import { TokenRefreshError, TokenRevokedError } from '@atproto/oauth-client-node';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { postScope, hasPostScope, publishBluesky } from './bluesky.mjs';
 import { createRecordHandler } from './records.mjs';
 
 const ttl = 10 * 60_000;
@@ -10,11 +11,16 @@ const validNonce = value => typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.t
 export const validDid = value => typeof value === 'string' && /^did:(plc:[a-z2-7]{24}|web:[A-Za-z0-9._:%-]+)$/.test(value);
 function fail(message = 'Sign-in expired or could not be verified. Start again.', status = 400) { throw Object.assign(new Error(message), { status, jeraSafe: true }); }
 function cookie(req, name) { return (req.headers.cookie ?? '').split(';').map(s => s.trim()).find(s => s.startsWith(`${name}=`))?.slice(name.length + 1); }
-async function body(req) {
+async function body(req, maxBytes = 4096) {
   if (!req.headers['content-type']?.startsWith('application/json')) fail('Expected JSON.', 415);
-  let text = '';
-  for await (const chunk of req) { text += chunk; if (Buffer.byteLength(text) > 4096) fail('Request too large.', 413); }
-  try { return JSON.parse(text); } catch { fail('Invalid JSON.'); }
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > maxBytes) fail('Request too large.', 413);
+    chunks.push(chunk);
+  }
+  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { fail('Invalid JSON.'); }
 }
 function json(res, status, value) { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(value)); }
 
@@ -59,6 +65,18 @@ export function createHandler({ client, store, publicOrigin, callbacks, snapback
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST'); res.writeHead(204); return res.end();
     }
     try {
+      if (req.method === 'POST' && ['/oauth/posting-status', '/records/bluesky'].includes(url.pathname)) {
+        const bearer = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
+        const did = await check(bearer);
+        const input = await body(req, 24000);
+        if (input?.did !== did) fail('The posting account changed.', 403);
+        const enabledHere = store.get('bluesky-grant', digest(bearer)) === did;
+        const session = enabledHere ? await client.restore(did) : null;
+        const enabled = Boolean(session && await hasPostScope(session, did));
+        if (url.pathname === '/oauth/posting-status') return json(res, 200, { did, enabled });
+        if (!enabled) fail('Authorize Bluesky posting for this account.', 403);
+        return json(res, 200, await publishBluesky(store, session, input));
+      }
       if (url.pathname.startsWith('/records/')) return await records(req, res);
       if (req.method === 'POST' && url.pathname === '/oauth/accounts') {
         const peer = req.headers['x-forwarded-for'] ?? req.socket.remoteAddress;
@@ -86,10 +104,13 @@ export function createHandler({ client, store, publicOrigin, callbacks, snapback
         const state = url.searchParams.get('state'), challenge = url.searchParams.get('challenge'), callback = url.searchParams.get('callback');
         if (!validNonce(state) || !validNonce(challenge) || !callbacks.includes(callback)) fail();
         if (!validDid(handle) && !/^(?=.{3,253}$)[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/.test(handle)) fail('Enter your full ATproto handle or DID.');
+        const posting = url.searchParams.get('purpose') === 'bluesky';
+        if (posting && !validDid(handle)) fail('Expected a verified account DID.');
+        const postingDid = posting ? handle : undefined;
         const browser = nonce();
-        if (!store.insert('flow', state, { challenge, callback, browser: digest(browser), phase: 'authorizing' }, ttl)) fail();
+        if (!store.insert('flow', state, { challenge, callback, postingDid, browser: digest(browser), phase: 'authorizing' }, ttl)) fail();
         // select_account requires an existing provider session and rejects first-time browsers.
-        const authorization = await client.authorize(handle, { state, scope: 'atproto', prompt: 'consent' });
+        const authorization = await client.authorize(handle, { state, scope: posting ? `atproto ${postScope}` : 'atproto', prompt: 'consent' });
         res.setHeader('Set-Cookie', `jera_${state}=${browser}; Path=/oauth; HttpOnly; SameSite=Lax; Max-Age=600${publicOrigin.startsWith('https:') ? '; Secure' : ''}`);
         res.writeHead(302, { location: authorization.toString() }); return res.end();
       }
@@ -97,6 +118,7 @@ export function createHandler({ client, store, publicOrigin, callbacks, snapback
         const { session, state } = await client.callback(url.searchParams);
         const flow = store.get('flow', state);
         if (!flow || flow.phase !== 'authorizing' || !equal(flow.browser, digest(cookie(req, `jera_${state}`) ?? '')) || !validDid(session.did)) fail();
+        if (flow.postingDid && flow.postingDid !== session.did) fail('Authorize the same account you use in Jera.', 403);
         const code = nonce();
         store.set('flow', state, { ...flow, phase: 'complete', did: session.did, code: digest(code) }, 60000);
         const back = new URL(flow.callback); back.searchParams.set('state', state); back.searchParams.set('code', code);
@@ -110,6 +132,14 @@ export function createHandler({ client, store, publicOrigin, callbacks, snapback
         if (!flow || flow.phase !== 'complete' || !equal(flow.code, digest(code)) || !equal(flow.challenge, digest(verifier))) fail();
         // No await between read and consume: concurrent requests cannot both mint.
         store.del('flow', state);
+        if (flow.postingDid) {
+          const bearer = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
+          const did = await check(bearer);
+          if (did !== flow.did || did !== flow.postingDid || !await hasPostScope(await client.restore(did), did))
+            fail('Posting permission was not granted for this account.', 403);
+          store.set('bluesky-grant', digest(bearer), did);
+          return json(res, 200, { did, enabled: true });
+        }
         const result = await upstream('/auth/session', serviceToken, { principal: flow.did, kind: 'account', days: 1 });
         if (result.session?.principal !== flow.did) fail('Unexpected account binding.', 502);
         return json(res, 200, { session: result.session });
@@ -117,14 +147,20 @@ export function createHandler({ client, store, publicOrigin, callbacks, snapback
       if (req.method === 'POST' && ['/oauth/check', '/auth/refresh'].includes(url.pathname)) {
         const token = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
         const did = await check(token);
-        return json(res, 200, url.pathname === '/auth/refresh' ? await upstream('/auth/refresh', token, {}) : { did });
+        if (url.pathname === '/oauth/check') return json(res, 200, { did });
+        const renewed = await upstream('/auth/refresh', token, {});
+        if (renewed.session?.principal === did && renewed.session.token && store.get('bluesky-grant', digest(token)) === did) {
+          store.del('bluesky-grant', digest(token));
+          store.set('bluesky-grant', digest(renewed.session.token), did);
+        }
+        return json(res, 200, renewed);
       }
       return json(res, 404, { denied: { code: 'E_NOT_FOUND', message: 'Not found.' } });
     } catch (error) {
       // OAuth errors can contain credentials/callbacks: never log their raw value.
       if (!error.jeraSafe) console.error('Authorization failure', JSON.stringify({ type: error.constructor?.name, cause: error.cause?.constructor?.name, code: error.error, causeCode: error.cause?.error, issues: error.issues?.map(i => ({ path: i.path, code: i.code })) }));
       const status = error.jeraSafe === true ? error.status : 400;
-      return json(res, status, { denied: { code: status === 401 ? 'E_AUTH' : 'E_SIGN_IN', message: error.jeraSafe === true ? error.message : 'Account authorization did not complete. Close this window and try again.' } });
+      return json(res, status, { denied: { code: status === 401 ? 'E_AUTH' : status === 403 ? 'E_PERMISSION' : status === 422 ? 'E_POST_TEXT' : 'E_SIGN_IN', message: error.jeraSafe === true ? error.message : 'Account authorization did not complete. Close this window and try again.' } });
     }
   };
 }

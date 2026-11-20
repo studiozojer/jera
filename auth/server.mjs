@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { NodeOAuthClient, requestLocalLock } from '@atproto/oauth-client-node';
 import { JoseKey } from '@atproto/jwk-jose';
+import { postScope } from './bluesky.mjs';
 import { AuthStore } from './store.mjs';
 import { createHandler } from './service.mjs';
 import { createAccountSearch } from './accounts.mjs';
@@ -25,7 +26,7 @@ const store = new AuthStore(resolve(directory, 'auth.sqlite'));
 const client = new NodeOAuthClient({
   clientMetadata: {
     client_id: `${publicOrigin}/oauth/client-metadata.json`, client_name: 'Jera',
-    redirect_uris: [`${publicOrigin}/oauth/callback`], scope: 'atproto',
+    redirect_uris: [`${publicOrigin}/oauth/callback`], scope: `atproto ${postScope}`,
     grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'], application_type: 'web',
     token_endpoint_auth_method: 'private_key_jwt', token_endpoint_auth_signing_alg: 'ES256',
     dpop_bound_access_tokens: true, jwks_uri: `${publicOrigin}/oauth/jwks.json`,

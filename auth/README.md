@@ -1,6 +1,6 @@
 # Jera account authorization
 
-Jera uses existing ATproto accounts. The native app accepts a handle or DID and opens its system authentication browser. The official `@atproto/oauth-client-node` SDK resolves the account, performs PAR/PKCE/DPoP and verifies the returned subject. Only `atproto` identity scope is requested; this service does not publish input or request collection access.
+Jera uses existing ATproto accounts. The native app accepts a handle or DID and opens its system authentication browser. The official `@atproto/oauth-client-node` SDK resolves the account, performs PAR/PKCE/DPoP and verifies the returned subject. Ordinary sign-in requests only `atproto`. The optional Bluesky posting flow adds `repo:app.bsky.feed.post?action=create` and binds the consent to the verified DID and current Jera session. `/records/bluesky` creates a text post via that account’s OAuth session and journals each intent before the PDS write.
 
 The server issues a Snapback session whose principal is the verified DID. There is no email mapping, new user table, password signup or guest login. Snapback remains the authoritative private application store.
 

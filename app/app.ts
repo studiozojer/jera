@@ -4,6 +4,7 @@ import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile, readCachedAccountProfile } from './account-profile.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
 import { formFields, editedComposition, type Field } from './composition.ts';
+import { openBluesky, saveBluesky, sendBluesky } from './bluesky.ts';
 import { accountExperience } from './experience-store.ts';
 import { preparePrivateWriting } from './private-writing.ts';
 import { selectedView, writingPolicy, viewChoices, selectPosts, prepareViewDraft, assertDraftContext, adoptLegacyPublicReply } from './view-context.ts';
@@ -18,12 +19,13 @@ function storageKey(value: string): string {
   // Explicit loopback bindings isolate concurrent worktree verification.
   if (value === 'http://127.0.0.1:4437') return 'jera-http-127.0.0.1-4437';
   if (value === 'http://127.0.0.1:4457') return 'jera-http-127.0.0.1-4457';
+  if (value === 'http://127.0.0.1:4497') return 'jera-http-127.0.0.1-4497';
   if (value === 'http://127.0.0.1:4477') return 'jera-http-127.0.0.1-4477';
   throw new Error('Unconfigured Jera backend: add an origin-specific storage key and grant before using it.');
 }
 const sessionKey = storageKey(origin) + '-atproto-v1';
 const pendingKey = sessionKey + '-login';
-export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nauth.callback https://jera.ink/.exact/auth/callback\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
+export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nauth.callback https://jera.ink/.exact/auth/callback\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
 
 function randomToken(): string {
   return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -91,9 +93,67 @@ async function editedDraft(local:Drafts,scope:string,audience:string,body:string
   const saved=await local.get(scope);
   return saved.composition?editedComposition(saved.composition,saved.composition.audience,body,fields):undefined;
 }
+async function authorize(store: Store, handle: string, posting = false) {
+  const pending = store.get(pendingKey);
+  if (!pending) reject('E_AUTH', 'Refresh before authorizing.');
+  const account = store.get(sessionKey);
+  const token = posting ? JSON.parse(account || '{}').token : undefined;
+  if (posting) actor(store, handle);
+  const flow = { ...JSON.parse(pending), callback: authCallback() };
+  const url = `${origin}/oauth/start?handle=${encodeURIComponent(handle)}&state=${flow.state}&challenge=${flow.challenge}&callback=${encodeURIComponent(flow.callback)}${posting ? '&purpose=bluesky' : ''}`;
+  try {
+    const back = new URL(await openAuthSession(url, { callback: flow.callback, state: flow.state }));
+    if (back.searchParams.get('state') !== flow.state || !back.searchParams.get('code')) reject('E_AUTH', 'Authorization could not be verified.');
+    const result = await authRequest('/oauth/exchange', { state: flow.state, code: back.searchParams.get('code'), verifier: flow.verifier }, token);
+    if (store.get(pendingKey) !== pending || store.get(sessionKey) !== account) reject('E_STALE', 'The account changed during authorization.');
+    return result;
+  } finally {
+    if (store.get(pendingKey) === pending) await prepareLogin(store, true);
+  }
+}
+
 const sources: Sources = {
+  threadView: async ([did, id, browser, now], store, storage, native) => {
+    if (!id || !isActor(store, did)) return { state: '', id: '' };
+    return using(store, storage, native, now, browser, async db => {
+      const post = (await transport(db, store, did)('q', 'postById', { id })).data;
+      return post?.id === id ? { id, state: post.visibility === 'public' ? 'public' : 'private' } : { state: '', id: '' };
+    });
+  },
+  openSkyDraft: async ([did], store, storage) => ({ principal: did, ...await openBluesky(draftsFor(store, storage, did)) }),
+  saveSkyDraft: async ([did, intent, revision, text], store, storage) => {
+    await saveBluesky(draftsFor(store, storage, did), intent, revision, text);
+    return { state: 'saved', id: intent };
+  },
+  skyPermission: async ([did], store) => {
+    const offline = { principal: did, available: false, enabled: false };
+    if (!isActor(store, did)) return offline;
+    try {
+      const result = await authRequest('/oauth/posting-status', { did }, JSON.parse(store.get(sessionKey)!).token);
+      if (!isActor(store, did) || result.did !== did) return offline;
+      return { principal: did, available: true, enabled: result.enabled === true };
+    } catch { return offline; }
+  },
+  enableSky: async ([did], store) => {
+    const result = await authorize(store, did, true);
+    if (result.did !== did || result.enabled !== true) reject('E_PERMISSION', 'Posting permission was not granted.');
+    return { state: 'enabled', id: did };
+  },
+  publishSky: async ([did, intent, revision, text], store, storage) => {
+    const drafts = draftsFor(store, storage, did);
+    try {
+      const saved = await sendBluesky(drafts, intent, revision, text, payload => {
+        actor(store, did);
+        return authRequest('/records/bluesky', payload, JSON.parse(store.get(sessionKey)!).token);
+      });
+      return { principal: did, ...saved, message: '' };
+    } catch (error) {
+      return { principal: did, ...await openBluesky(drafts), message: (error as Error).message || 'Could not confirm publication.' };
+    }
+  },
   viewOptions: async () => viewChoices,
   viewPolicy: async ([id]) => {
+    if (id === 'bluesky') return { id, mode: id, writable: false, available: true }; // Dedicated PDS composer.
     try {const view=selectedView(id);const policy=writingPolicy(view);return {id, mode:policy?.mode || '', writable:Boolean(policy), available:true};}
     catch {return {id,mode:'',writable:false,available:false};}
   },
@@ -126,7 +186,7 @@ const sources: Sources = {
     catch {return {principal:'',mode:'private',revision:0};}
   },
   changeExperience: async ([principal,mode,now],store,storage) => {
-    if(mode!=='public' && mode!=='private')reject('E_INPUT','Unknown experience.');
+    if(mode!=='public' && mode!=='private' && mode!=='bluesky')reject('E_INPUT','Unknown experience.');
     const context=await experienceFor(store,storage,principal);
     await draftsFor(store,storage,principal).setMode(mode);
     actor(store,principal); return {principal,...context.change(mode,now)};
@@ -175,7 +235,7 @@ const sources: Sources = {
     return draftEnvelope(principal,scope,draft);
   },
   loadPosts: async ([principal,viewId,browser,now],store,storage,native) => {
-    if(!isActor(store,principal))return {principal:'',viewId,authorIds:[],posts:[],available:false};
+    if(viewId==='bluesky' || !isActor(store,principal))return {principal:'',viewId,authorIds:[],posts:[],available:false};
     try {return await using(store,storage,native,now,browser,async db=>{
       const request=transport(db,store,principal);
       const authorized=await allRows(request,'postsList') as PostRecord[];
@@ -306,22 +366,11 @@ const sources: Sources = {
     const input = parseLoginInput(handle);
     if (!input.valid) reject('E_INPUT', 'Enter your full ATproto handle or DID.');
     if (store.get(sessionKey)) reject('E_AUTH', 'Sign out before changing accounts.');
-    const pending = store.get(pendingKey);
-    if (!pending) reject('E_AUTH', 'Refresh before signing in.');
-    const flow = { ...JSON.parse(pending), callback: authCallback() };
-    const url = `${origin}/oauth/start?handle=${encodeURIComponent(input.value)}&state=${flow.state}&challenge=${flow.challenge}&callback=${encodeURIComponent(flow.callback)}`;
-    try {
-      const back = new URL(await openAuthSession(url, { callback: flow.callback, state: flow.state }));
-      if (back.searchParams.get('state') !== flow.state || !back.searchParams.get('code')) reject('E_AUTH', 'Sign-in could not be verified.');
-      const result = await authRequest('/oauth/exchange', { state: flow.state, code: back.searchParams.get('code'), verifier: flow.verifier });
-      if (store.get(pendingKey) !== pending || store.get(sessionKey)) reject('E_AUTH', 'The sign-in attempt changed. Try again.');
-      const session = result.session;
-      if (!session || !/^did:(plc|web):/.test(session.principal) || typeof session.token !== 'string' || !session.token || !Number.isFinite(session.expiresAt) || session.expiresAt <= now) reject('E_AUTH', 'The server returned an invalid account session.');
-      store.set(sessionKey, JSON.stringify(session));
-      return { state: 'sent', id: session.principal };
-    } finally {
-      if (store.get(pendingKey) === pending) await prepareLogin(store, true);
-    }
+    const result = await authorize(store, input.value);
+    const session = result.session;
+    if (!session || !/^did:(plc|web):/.test(session.principal) || typeof session.token !== 'string' || !session.token || !Number.isFinite(session.expiresAt) || session.expiresAt <= now) reject('E_AUTH', 'The server returned an invalid account session.');
+    store.set(sessionKey, JSON.stringify(session));
+    return { state: 'sent', id: session.principal };
   },
 };
 export const answer: Answer = (source, args, store, storage, native) => sources[source](args, store, storage, native);

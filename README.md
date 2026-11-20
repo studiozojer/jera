@@ -2,7 +2,7 @@
 
 Jera is an Exact native and web app backed by Snapback. The active application lives in `app/`; contracts, authentication, storage and operations live beside it at the repository root. The obsolete Expo implementation is preserved in Git history before the root-layout cleanup.
 
-The web app is hosted at https://jera.ink and uses https://snapback.jera.ink. Existing ATproto accounts provide verified DID identity. Public and Personal views write posts using the simple `post.v1` application lexicon in Snapback. Posting does not publish to ATproto. Feed text uses freshly authorized Snapback results and cached author labels; updated public names/avatars load through an independent resource, so profile networking does not hold back post content. Read [PRODUCT.md](PRODUCT.md), [RECORDS.md](RECORDS.md) and [PERMISSIONS.md](PERMISSIONS.md) for these boundaries.
+The web app is hosted at https://jera.ink and uses https://snapback.jera.ink. Existing ATproto accounts provide verified DID identity. Public and Personal views write posts using the simple `post.v1` application lexicon in Snapback. The default Bluesky view publishes text to the signed-in account’s PDS after a separate create-post consent and explicit submission. Feed text uses freshly authorized Snapback results and cached author labels; updated public names/avatars load through an independent resource, so profile networking does not hold back post content. Read [PRODUCT.md](PRODUCT.md), [RECORDS.md](RECORDS.md) and [PERMISSIONS.md](PERMISSIONS.md) for these boundaries.
 
 ## Setup
 

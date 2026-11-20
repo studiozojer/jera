@@ -11,6 +11,7 @@ async function device(handle){
  await context.route('https://public.api.bsky.app/**',route=>{const did=new URL(route.request().url()).searchParams.get('actor');return route.fulfill({json:{did,handle:did.includes('aaaa')?'owner.test':'other.test',displayName:did.includes('aaaa')?'Test Owner':'Other Account'}});});
  const page=await context.newPage();const at=id=>page.locator(`[data-testid="${id}"]:visible`).last();
  await page.goto(base+'/');await at('handle').fill(handle);await at('login').click();await at('account-avatar').waitFor();
+ await at('header-experience-private').click();
  return {page,at};
 }
 async function audience(owner){await owner.at('account-avatar').click();await owner.at('private-audience').click();await owner.at('audience-did').waitFor();}
