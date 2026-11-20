@@ -9,8 +9,8 @@ for name,expected in receipt['files'].items():
     p=app/name
     if not p.is_file() or sha(p.read_bytes())!=expected: bad.append(name)
 for name,expected in receipt['tamberBlocks'].items():
-    match=re.search(r'// daoUI:'+name+r':begin\n(.*?)\n// daoUI:'+name+r':end',(app/'app.tamber').read_text(),re.S)
-    if not match or sha(match[1].encode())!=expected: bad.append('app.tamber:'+name)
+    match=re.search(r'// daoUI:'+name+r':begin\n(.*?)\n// daoUI:'+name+r':end',(app/'app.forma').read_text(),re.S)
+    if not match or sha(match[1].encode())!=expected: bad.append('app.forma:'+name)
 # Additional files in dao/ could silently shadow a copied module.
 known=set(receipt['files'])|{'dao/provenance.json'}
 for p in (app/'dao').rglob('*'):

@@ -1,0 +1,13 @@
+build:
+  name: Jera public Exact AppDrop preview
+  steps:
+    - eas/checkout
+    - exact_archive
+    - eas/upload_artifact:
+        inputs:
+          path: artifacts/jera.ipa
+          type: application-archive
+functions:
+  exact_archive:
+    name: Build device IPA for AppDrop signing
+    path: ./exact-archive

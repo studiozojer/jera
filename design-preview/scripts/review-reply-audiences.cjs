@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || path.resolve(__dirname, '../../tooling/exact2/node_modules/playwright-core'));
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || path.resolve(__dirname, '../../tooling/exact/node_modules/playwright-core'));
 (async () => {
   const browser = await chromium.launch({ headless: true });
   try {

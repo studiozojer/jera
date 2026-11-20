@@ -5,8 +5,8 @@
 // Public profile transport is held; post/auth queries still use real Snapback.
 import assert from 'node:assert/strict';
 import {mkdirSync,writeFileSync} from 'node:fs';
-import {chromium} from '../tooling/exact2/node_modules/playwright-core/index.mjs';
-import {chromium as binary} from '../tooling/exact2/scripts/agent-launch.mjs';
+import {chromium} from '../tooling/exact/node_modules/playwright-core/index.mjs';
+import {chromium as binary} from '../tooling/exact/scripts/agent-launch.mjs';
 const origin='http://127.0.0.1:3037',backend='http://127.0.0.1:4477';
 const output=new URL('../.local/feed-startup/',import.meta.url);mkdirSync(output,{recursive:true});
 const phases=[],measurements=[];

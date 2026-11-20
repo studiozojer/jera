@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || path.resolve(__dirname, '../../tooling/exact2/node_modules/playwright-core'));
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || path.resolve(__dirname, '../../tooling/exact/node_modules/playwright-core'));
 const output = path.resolve(__dirname, '../.exact/experience-review');
 
 (async () => {

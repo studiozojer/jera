@@ -1,6 +1,6 @@
 // Normal-browser evidence over simulated OAuth/PDS and real Snapback storage.
-import { chromium } from '../tooling/exact2/node_modules/playwright-core/index.mjs';
-import { chromium as browserBinary } from '../tooling/exact2/scripts/agent-launch.mjs';
+import { chromium } from '../tooling/exact/node_modules/playwright-core/index.mjs';
+import { chromium as browserBinary } from '../tooling/exact/scripts/agent-launch.mjs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 

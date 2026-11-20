@@ -2,7 +2,7 @@
 // app Keychain. Store the device proof separately so the data driver's expiry
 // cleanup cannot also discard the means to renew it.
 type Store = { get(key: string): string | null; set(key: string, value: string): void; forget(key: string): void };
-type Access = { token: string; principal: string; kind: string; expiresAt: number };
+export type Access = { token: string; principal: string; kind: string; expiresAt: number };
 type Device = { credential: string; principal: string; expiresAt: number };
 type Request = (path: string, body: unknown, token?: string) => Promise<any>;
 

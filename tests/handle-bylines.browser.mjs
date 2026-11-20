@@ -1,7 +1,7 @@
 // Run against an isolated preview on 3049 with its disposable test-server on 4497.
 import assert from 'node:assert/strict';
-import { chromium } from '../tooling/exact2/node_modules/playwright-core/index.mjs';
-import { chromium as browserBinary } from '../tooling/exact2/scripts/agent-launch.mjs';
+import { chromium } from '../tooling/exact/node_modules/playwright-core/index.mjs';
+import { chromium as browserBinary } from '../tooling/exact/scripts/agent-launch.mjs';
 
 const preview = 'http://127.0.0.1:3049';
 assert.equal((await fetch('http://127.0.0.1:4497/dev/legacy-public', { method: 'POST' })).status, 200);

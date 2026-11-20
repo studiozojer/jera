@@ -1,5 +1,5 @@
 {
-  "$schema": "../tooling/exact2/scripts/app.schema.json",
+  "$schema": ".exact/checkout/scripts/app.schema.json",
   "name": "Jera design preview",
   "short_name": "Jera preview",
   "id": "studio.zojer.jera.design-preview",
@@ -24,7 +24,8 @@
         "height": 700
       }
     },
-    "web": {}
+    "web": {},
+    "linux": {}
   },
   "deploy": {
     "store": {

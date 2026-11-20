@@ -1,14 +1,14 @@
 // Exact's native async lowering must keep each queued draft operation in the
 // answer that issued it. Browser async/await alone does not exercise this gate.
-import { test } from 'node:test';
+import { test } from 'bun:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { webcrypto } from 'node:crypto';
 import { createContext, runInContext } from 'node:vm';
 import { fileURLToPath } from 'node:url';
-import { asyncContext, lowered } from '../tooling/exact2/js/bake/src/typescript.mjs';
+import { asyncContext, lowered } from '../tooling/exact/js/bake/src/typescript.mjs';
 
-const sdkRequire=createRequire(new URL('../tooling/exact2/package.json',import.meta.url));
+const sdkRequire=createRequire(new URL('../tooling/exact/package.json',import.meta.url));
 const {rolldown}=await import(sdkRequire.resolve('rolldown'));
 
 test('queued draft storage retains its issuing answer across native async steps',async()=>{

@@ -1,7 +1,7 @@
 // Run with Bun 1.4.2, the disposable test-server.mjs and Exact web on port 3034.
 // This uses normal browser popups, not the held-auth agent fixture.
-import {chromium} from '../tooling/exact2/node_modules/playwright-core/index.mjs';
-import {chromium as browserBinary} from '../tooling/exact2/scripts/agent-launch.mjs';
+import {chromium} from '../tooling/exact/node_modules/playwright-core/index.mjs';
+import {chromium as browserBinary} from '../tooling/exact/scripts/agent-launch.mjs';
 import assert from 'node:assert/strict';
 const browser=await chromium.launch({executablePath:browserBinary().executable});
 const context=await browser.newContext({viewport:{width:390,height:844},colorScheme:'dark'});

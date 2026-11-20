@@ -1,8 +1,8 @@
 // Run with Bun 1.4.2. Uses real production discovery, never enters credentials.
 // Optional JERA_WEB_ARTIFACT_ORIGIN substitutes only root-domain asset transport.
 import assert from 'node:assert/strict';
-import {chromium} from '../tooling/exact2/node_modules/playwright-core/index.mjs';
-import {chromium as binary} from '../tooling/exact2/scripts/agent-launch.mjs';
+import {chromium} from '../tooling/exact/node_modules/playwright-core/index.mjs';
+import {chromium as binary} from '../tooling/exact/scripts/agent-launch.mjs';
 const artifactOrigin=process.env.JERA_WEB_ARTIFACT_ORIGIN;
 const browser=await chromium.launch({executablePath:binary().executable});
 const context=await browser.newContext({viewport:{width:1100,height:800}});

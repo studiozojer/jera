@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
-const source=readFileSync(new URL('../tooling/exact2/host/web/auth-glue.js',import.meta.url),'utf8').replace('export function arm','function arm');
+const source=readFileSync(new URL('../tooling/exact/host/web/auth-glue.js',import.meta.url),'utf8').replaceAll('export function ', 'function ');
 function host({channel=true}={}){
  let now=0,next=0;
  const timers=new Map(),reports=[],delivered=[];
@@ -12,7 +12,7 @@ function host({channel=true}={}){
   constructor(){if(!channel)throw new Error('unsupported');channels.push(this);}
   close(){this.closed=true;}
  }
- const scope={URL,Date:{now:()=>now},navigator:{userActivation:{isActive:true}},location:{origin:'https://jera.test'},
+ const scope={URL,URLSearchParams,performance:{now:()=>now},Date:{now:()=>now},navigator:{userActivation:{isActive:true}},location:{origin:'https://jera.test'},
   crypto:{getRandomValues:bytes=>bytes.fill(7)},window:{open:()=>popup},BroadcastChannel,
   addEventListener(){},removeEventListener(){},
   setInterval:(fn,ms)=>{const id=++next;timers.set(id,{fn,ms,at:now+ms,repeat:true});return id;},
@@ -21,7 +21,7 @@ function host({channel=true}={}){
  };
  runInNewContext(source,scope);
  const env={agent:false,log(){},active:()=>true,deliver:ticket=>delivered.push(ticket),call:request=>{
-  if(request.op==='arm')return{present:{url:'https://provider.test/authorize',callback:'https://jera.test/.exact/auth/callback'}};
+  if(request.op==='arm')return{present:{state:'fixture',url:'https://provider.test/authorize',callback:'https://jera.test/.exact/auth/callback'}};
   reports.push(request);return{};
  }};
  scope.arm({ticket:1},env);
@@ -41,6 +41,6 @@ test('callback with a different origin or path is ignored',()=>{
 test('channel wait retains its ten-minute bound',()=>{
  const h=host();h.advance(600000);assert.equal(h.reports.length,1);assert.equal(h.reports[0].status,499);
 });
-test('closed popup still cancels after grace when no callback channel exists',()=>{
- const h=host({channel:false});h.advance(4000);assert.equal(h.reports.length,1);assert.equal(h.reports[0].status,499);
+test('a closed proxy without a broadcast channel still observes the bounded wait',()=>{
+ const h=host({channel:false});h.advance(4000);assert.equal(h.reports.length,0);h.advance(596000);assert.equal(h.reports.length,1);assert.equal(h.reports[0].status,499);
 });

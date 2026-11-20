@@ -8,3 +8,4 @@
 /assets/snapback4.wasm.json
 /artifacts/
 /credentials.json
+/.env.local
