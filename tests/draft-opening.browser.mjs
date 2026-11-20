@@ -12,7 +12,7 @@ async function ready(value){await page.waitForFunction(value=>{const el=document
 async function open(){await at('write').filter({visible:true}).click();await at('composer').waitFor();}
 async function send(text){await at('composer').fill(text);await at('post').click();await page.waitForURL(/\/thread\//);return page.url();}
 try{
- await page.goto('http://127.0.0.1:3035/');await at('handle').fill('owner.test');await at('login').click();await at('feed-write').click();await ready('');
+ await page.goto('http://127.0.0.1:3035/');await at('handle').fill('owner.test');await at('login').click();await at('header-experience-private').click();await at('feed-write').click();await ready('');
  const root=await send('First private synthetic post');
  let before=lookups;await open();await ready('');assert.equal(lookups,before+1,'opening explicitly checks the retained publication');
  await page.waitForTimeout(500);await page.screenshot({path:'/tmp/jera-draft-open-empty-1120.png'});

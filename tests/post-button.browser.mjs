@@ -8,7 +8,7 @@ const browser=await chromium.launch({executablePath:binary().executable});
 const context=await browser.newContext({viewport:{width:1120,height:800},colorScheme:'dark',recordVideo:{dir,size:{width:1120,height:800}}});
 await context.route('https://public.api.bsky.app/**',route=>{const did=new URL(route.request().url()).searchParams.get('actor');return route.fulfill({json:{did,handle:'owner.test',displayName:'Synthetic review account',avatar:''}});});
 const page=await context.newPage();const video=page.video();
-await page.goto('http://127.0.0.1:3035/');await page.getByTestId('handle').fill('owner.test');await page.getByTestId('login').click();await page.getByTestId('feed-write').click();await page.getByTestId('composer').waitFor();
+await page.goto('http://127.0.0.1:3035/');await page.getByTestId('handle').fill('owner.test');await page.getByTestId('login').click();await page.getByTestId('header-experience-private').click();await page.getByTestId('feed-write').click();await page.getByTestId('composer').waitFor();
 await page.evaluate(()=>{
  window.buttonTrace=[];const button=document.querySelector('[data-testid="post"]');
  const sample=reason=>window.buttonTrace.push({ms:Math.round(performance.now()),reason,disabled:button.disabled,opacity:getComputedStyle(button).opacity,background:getComputedStyle(button).backgroundColor});

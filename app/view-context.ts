@@ -4,7 +4,7 @@ import { draftScope, type Drafts, type Draft, newIntent, syncScope, type Request
 
 export type View = { schemaVersion: number; id: string; version: number; sources: string[]; select: {lexicons:{ref:string;digest:string}[];visibility?:string}; presentation:{order:string;group:string}; compose:null|{destination:string;audience:string;lexicons:{ref:string;digest:string}[];defaultLexicon:string} };
 // Labels are presentation metadata, never storage keys or permission grants.
-export const viewChoices = [{id:'public',label:'Public'}, {id:'private',label:'Personal'}];
+export const viewChoices = [{id:'bluesky',label:'Bluesky'}, {id:'public',label:'Public'}, {id:'private',label:'Personal'}];
 export function selectedView(id:string):View {
   const view = [publicView,privateView].find(v=>v.id===id);
   if(!view)throw new Error('This view is unavailable. Your draft is kept.');

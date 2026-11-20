@@ -9,6 +9,8 @@ test "ordinary writing inherits Private without configuration controls"
   tap "login"
   authorize
   clock settle
+  tap "header-experience-private"
+  clock settle
   tap "feed-write"
   clock settle
   expect tree missing "composer-format"
@@ -41,6 +43,8 @@ test "an earlier Contribution draft becomes simple writing without widening its 
   clock data
   tap "login"
   authorize
+  clock settle
+  tap "header-experience-private"
   clock settle
   tap "feed-write"
   clock settle
