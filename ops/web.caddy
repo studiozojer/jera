@@ -6,8 +6,16 @@
         X-Content-Type-Options nosniff
         Referrer-Policy no-referrer
         X-Frame-Options DENY
-        Cache-Control "no-store"
         -Server
+    }
+    # Only fingerprinted build assets may be reused across page loads.
+    header Cache-Control "no-store"
+    @fingerprinted {
+        path_regexp fingerprint ^/(app-[A-Za-z0-9_-]{8}\.js|style-[A-Za-z0-9_-]{8}\.css)$
+        file
+    }
+    header @fingerprinted >Cache-Control "public, max-age=31536000, immutable" {
+        match status 200 206 304
     }
     # Exact emits an extensionless callback; nosniff requires the HTML type.
     @callback path /.exact/auth/callback
