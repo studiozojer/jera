@@ -1,5 +1,9 @@
 # Jera's product contract
 
+## Remembered sign-in — November 20
+
+Returning to Jera on iOS should preserve the verified account across ordinary backgrounding, relaunch, temporary connection failures and gaps between visits. A newly enrolled phone can renew its one-day request token through a separate Keychain credential for up to 90 days of inactivity. Web sessions use a 30-day inactivity period and start renewing with a week remaining. Explicit logout, revocation and provider-required reauthorization still end access. Existing sessions continue to work with their original expiry until the next verified sign-in enrolls the device.
+
 ## Bluesky as the default view — November 20
 
 David selects a one-way Bluesky publishing view as the default feed. Open it on first use and the first launch after upgrading, then restore the account’s subsequent tab choice. Public and Personal keep their Snapback audiences and their existing draft keys. The Bluesky editor has an independent, device-local draft. Only an explicit Post to Bluesky creates an `app.bsky.feed.post` on the verified account's PDS. The view shows receipts for the latest 30 posts sent from this device. It requests posting consent separately from ordinary sign-in. For the future social-feature discovery rule, see the composed commons’ `projects/jera/social-features.md`.
