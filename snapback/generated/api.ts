@@ -72,6 +72,15 @@ export type Rows = {
     /** True on this device's own unconfirmed change (the card). */
     pending?: boolean;
   };
+  feedReplyCounts: {
+    audience: string | null;
+    id: string;
+    parent: string | null;
+    value: number;
+    visibility: "public" | "private";
+    /** True on this device's own unconfirmed change (the card). */
+    pending?: boolean;
+  };
   members: {
     access: "read" | "write";
     armillary: string;
@@ -146,6 +155,30 @@ export type Rows = {
     root: string;
     rootKey: string;
     uri: string;
+    /** True on this device's own unconfirmed change (the card). */
+    pending?: boolean;
+  };
+  readers: {
+    id: string;
+    owner: string;
+    reader: string;
+    /** True on this device's own unconfirmed change (the card). */
+    pending?: boolean;
+  };
+  recordings: {
+    at: number;
+    captured: number;
+    digest: string;
+    /** int 0..4 */
+    element: number;
+    expected: string;
+    /** int 1..2400 */
+    frames: number;
+    id: string;
+    label: string;
+    model: string;
+    owner: string;
+    trace: { id: string; bytes?: number; type?: string; name?: string | null };
     /** True on this device's own unconfirmed change (the card). */
     pending?: boolean;
   };
@@ -246,6 +279,10 @@ export type Ops = {
   saveStructuredDraft: Mutation<{ deviceKey: string; scope: string; body: string; compositionJson: string; revision: number }, Rows["socialDrafts"] | null> & { available(release: ReleaseSnapshot): boolean };
   /** Arguments: { c?: Cursor | null }. Result: Rows["posts"][]. runs: server. Horizon sites: none. Require codes: none. Read.cut: meter | words | null, beside complete. Unwrap with isReady(read) && read.data, or matchRead(read, handlers) from snapback4/contract (also snapback4/react). React: usePage (declares c) or useQuery. */
   postsList: Query<{ c?: Cursor | null }, Rows["posts"][]> & { available(release: ReleaseSnapshot): boolean };
+  /** Arguments: { visibility: "public" | "private"; c?: Cursor | null }. Result: { at: number; audience: string | null; audienceInfo: { kind: "owner" | "shared"; name: string; pending?: boolean; retained?: boolean } | null; author: string; body: string; deleted: boolean; id: string; intent: string; lexicon: string | null; lexiconDigest: string | null; parent: string | null; parentInfo: { author: string; visibility: "public" | "private"; pending?: boolean; retained?: boolean } | null; payloadJson: string | null; replyCount: number | null; root: string | null; visibility: "public" | "private"; pending?: boolean; retained?: boolean }[]. runs: server. Horizon sites: none. Require codes: none. Read.cut: meter | words | null, beside complete. Unwrap with isReady(read) && read.data, or matchRead(read, handlers) from snapback4/contract (also snapback4/react). React: usePage (declares c) or useQuery. */
+  feedRoots: Query<{ visibility: "public" | "private"; c?: Cursor | null }, { at: number; audience: string | null; audienceInfo: { kind: "owner" | "shared"; name: string; pending?: boolean; retained?: boolean } | null; author: string; body: string; deleted: boolean; id: string; intent: string; lexicon: string | null; lexiconDigest: string | null; parent: string | null; parentInfo: { author: string; visibility: "public" | "private"; pending?: boolean; retained?: boolean } | null; payloadJson: string | null; replyCount: number | null; root: string | null; visibility: "public" | "private"; pending?: boolean; retained?: boolean }[]> & { available(release: ReleaseSnapshot): boolean };
+  /** Arguments: { root: string; c?: Cursor | null }. Result: Rows["posts"][]. runs: server. Horizon sites: none. Require codes: none. Read.cut: meter | words | null, beside complete. Unwrap with isReady(read) && read.data, or matchRead(read, handlers) from snapback4/contract (also snapback4/react). React: usePage (declares c) or useQuery. */
+  threadPosts: Query<{ root: string; c?: Cursor | null }, Rows["posts"][]> & { available(release: ReleaseSnapshot): boolean };
   /** Arguments: { id: string }. Result: Rows["posts"] | null. runs: server. Horizon sites: none. Require codes: none. Read.cut: meter | words | null, beside complete. Unwrap with isReady(read) && read.data, or matchRead(read, handlers) from snapback4/contract (also snapback4/react). React: useQuery (usePage needs c: cursor ?). */
   postById: Query<{ id: string }, Rows["posts"] | null> & { available(release: ReleaseSnapshot): boolean };
   /** Arguments: { intent: string }. Result: Rows["posts"] | null. runs: server. Horizon sites: none. Require codes: none. Read.cut: meter | words | null, beside complete. Unwrap with isReady(read) && read.data, or matchRead(read, handlers) from snapback4/contract (also snapback4/react). React: useQuery (usePage needs c: cursor ?). */
@@ -270,6 +307,20 @@ export type Ops = {
   publishPost: Mutation<{ intent: string; body: string; visibility: "public" | "private"; audience?: string | null; parent?: string | null; draftDevice?: string | null; draftRevision?: number | null; draftScope?: string | null }, Rows["posts"]> & { available(release: ReleaseSnapshot): boolean };
   /** Arguments: { author: string; intent: string; audience?: string | null; parent?: string | null; lexicon: string; lexiconDigest: string; payloadJson: string; body: string; draftDevice?: string | null; draftRevision?: number | null; draftScope?: string | null }. Result: Rows["posts"]. predicts: never. Horizon sites: none. Require codes: AUDIENCE_UNAVAILABLE, CANNOT_WIDEN_AUDIENCE, DIFFERENT_AUDIENCE, EMPTY_POST, INTENT_REUSE, PARENT_DELETED, PARENT_UNAVAILABLE, RECORD_GATEWAY_REQUIRED, REPLY_NOT_ALLOWED. Bounds: draftRevision: int 0..9007199254740990 ?. Timing: no predicted row; query results change after server settlement and delivery. Call client.mutate(op, args, { id }) to retry an intent with its original write id; replay returns a receipt without historical results. */
   commitStructuredPost: Mutation<{ author: string; intent: string; audience?: string | null; parent?: string | null; lexicon: string; lexiconDigest: string; payloadJson: string; body: string; draftDevice?: string | null; draftRevision?: number | null; draftScope?: string | null }, Rows["posts"]> & { available(release: ReleaseSnapshot): boolean };
+  /** Arguments: { owner: string; c?: Cursor | null }. Result: Rows["recordings"][]. runs: server. Horizon sites: none. Require codes: none. Read.cut: meter | words | null, beside complete. Unwrap with isReady(read) && read.data, or matchRead(read, handlers) from snapback4/contract (also snapback4/react). React: usePage (declares c) or useQuery. */
+  history: Query<{ owner: string; c?: Cursor | null }, Rows["recordings"][]> & { available(release: ReleaseSnapshot): boolean };
+  /** Arguments: { owner: string; digest: string }. Result: Rows["recordings"] | null. runs: server. Horizon sites: none. Require codes: none. Read.cut: meter | words | null, beside complete. Unwrap with isReady(read) && read.data, or matchRead(read, handlers) from snapback4/contract (also snapback4/react). React: useQuery (usePage needs c: cursor ?). */
+  findTake: Query<{ owner: string; digest: string }, Rows["recordings"] | null> & { available(release: ReleaseSnapshot): boolean };
+  /** Arguments: Record<string, never>. Result: Rows["readers"][]. runs: server. Horizon sites: none. Require codes: none. Read.cut: meter | words | null, beside complete. Unwrap with isReady(read) && read.data, or matchRead(read, handlers) from snapback4/contract (also snapback4/react). React: useQuery (usePage needs c: cursor ?). */
+  access: Query<Record<string, never>, Rows["readers"][]> & { available(release: ReleaseSnapshot): boolean };
+  /** Arguments: { owner: string; digest: string; label: string; expected: string; element: number; captured: number; frames: number; model: string; trace: { id: string; bytes?: number; type?: string; name?: string | null } }. Result: Rows["recordings"]. predicts: never. Horizon sites: none. Require codes: none. Bounds: element: int 0..4; frames: int 1..2400. Timing: no predicted row; query results change after server settlement and delivery. Call client.mutate(op, args, { id }) to retry an intent with its original write id; replay returns a receipt without historical results. */
+  archive: Mutation<{ owner: string; digest: string; label: string; expected: string; element: number; captured: number; frames: number; model: string; trace: { id: string; bytes?: number; type?: string; name?: string | null } }, Rows["recordings"]> & { available(release: ReleaseSnapshot): boolean };
+  /** Arguments: { reader: string }. Result: Rows["readers"] | null. predicts: never. Horizon sites: none. Require codes: none. Timing: no predicted row; query results change after server settlement and delivery. Call client.mutate(op, args, { id }) to retry an intent with its original write id; replay returns a receipt without historical results. */
+  allowReader: Mutation<{ reader: string }, Rows["readers"] | null> & { available(release: ReleaseSnapshot): boolean };
+  /** Arguments: { reader: string }. Result: null. predicts: never. Horizon sites: none. Require codes: none. Timing: no predicted row; query results change after server settlement and delivery. Call client.mutate(op, args, { id }) to retry an intent with its original write id; replay returns a receipt without historical results. */
+  removeReader: Mutation<{ reader: string }, null> & { available(release: ReleaseSnapshot): boolean };
+  /** Arguments: { c?: Cursor | null }. Result: Rows["readers"][]. runs: server. Horizon sites: none. Require codes: none. Read.cut: meter | words | null, beside complete. Unwrap with isReady(read) && read.data, or matchRead(read, handlers) from snapback4/contract (also snapback4/react). React: usePage (declares c) or useQuery. */
+  sharedLibraries: Query<{ c?: Cursor | null }, Rows["readers"][]> & { available(release: ReleaseSnapshot): boolean };
 };
 
 export const api: Ops = {
@@ -308,6 +359,8 @@ export const api: Ops = {
   saveSocialDraft: { kind: "mutation", name: "saveSocialDraft", predicts: "never", available: (release) => operationAvailable(release, "saveSocialDraft", "mutation", JSON.parse("{\"body\":{\"Text\":{\"max\":12000}},\"deviceKey\":{\"Text\":{\"max\":26,\"min\":26}},\"revision\":{\"IntRange\":{\"min\":0}},\"scope\":{\"Text\":{\"max\":200,\"min\":1}}}")) },
   saveStructuredDraft: { kind: "mutation", name: "saveStructuredDraft", predicts: "never", available: (release) => operationAvailable(release, "saveStructuredDraft", "mutation", JSON.parse("{\"body\":{\"Text\":{\"max\":12000}},\"compositionJson\":{\"Text\":{\"max\":262144,\"min\":1}},\"deviceKey\":{\"Text\":{\"max\":26,\"min\":26}},\"revision\":{\"IntRange\":{\"min\":0}},\"scope\":{\"Text\":{\"max\":200,\"min\":1}}}")) },
   postsList: { kind: "query", name: "postsList", runs: "server", rowKey: "id", available: (release) => operationAvailable(release, "postsList", "query", JSON.parse("{\"c\":{\"Optional\":\"Cursor\"}}")) },
+  feedRoots: { kind: "query", name: "feedRoots", runs: "server", available: (release) => operationAvailable(release, "feedRoots", "query", JSON.parse("{\"c\":{\"Optional\":\"Cursor\"},\"visibility\":{\"Enum\":{\"variants\":[\"public\",\"private\"]}}}")) },
+  threadPosts: { kind: "query", name: "threadPosts", runs: "server", rowKey: "id", available: (release) => operationAvailable(release, "threadPosts", "query", JSON.parse("{\"c\":{\"Optional\":\"Cursor\"},\"root\":{\"Ref\":{\"table\":\"posts\"}}}")) },
   postById: { kind: "query", name: "postById", runs: "server", available: (release) => operationAvailable(release, "postById", "query", JSON.parse("{\"id\":{\"Ref\":{\"table\":\"posts\"}}}")) },
   postForIntent: { kind: "query", name: "postForIntent", runs: "server", available: (release) => operationAvailable(release, "postForIntent", "query", JSON.parse("{\"intent\":{\"Text\":{\"max\":26,\"min\":26}}}")) },
   audienceList: { kind: "query", name: "audienceList", runs: "server", rowKey: "id", available: (release) => operationAvailable(release, "audienceList", "query", JSON.parse("{}")) },
@@ -320,4 +373,11 @@ export const api: Ops = {
   deletePost: { kind: "mutation", name: "deletePost", predicts: "never", available: (release) => operationAvailable(release, "deletePost", "mutation", JSON.parse("{\"id\":{\"Ref\":{\"table\":\"posts\"}}}")) },
   publishPost: { kind: "mutation", name: "publishPost", predicts: "never", available: (release) => operationAvailable(release, "publishPost", "mutation", JSON.parse("{\"audience\":{\"Optional\":{\"Ref\":{\"table\":\"audiences\"}}},\"body\":{\"Text\":{\"max\":12000,\"min\":1}},\"draftDevice\":{\"Optional\":{\"Text\":{\"max\":26,\"min\":26}}},\"draftRevision\":{\"Optional\":{\"IntRange\":{\"min\":0}}},\"draftScope\":{\"Optional\":{\"Text\":{\"max\":200,\"min\":1}}},\"intent\":{\"Text\":{\"max\":26,\"min\":26}},\"parent\":{\"Optional\":{\"Ref\":{\"table\":\"posts\"}}},\"visibility\":{\"Enum\":{\"variants\":[\"public\",\"private\"]}}}")) },
   commitStructuredPost: { kind: "mutation", name: "commitStructuredPost", predicts: "never", available: (release) => operationAvailable(release, "commitStructuredPost", "mutation", JSON.parse("{\"audience\":{\"Optional\":{\"Ref\":{\"table\":\"audiences\"}}},\"author\":\"Principal\",\"body\":{\"Text\":{\"max\":12000,\"min\":1}},\"draftDevice\":{\"Optional\":{\"Text\":{\"max\":26,\"min\":26}}},\"draftRevision\":{\"Optional\":{\"IntRange\":{\"min\":0,\"max\":9007199254740990}}},\"draftScope\":{\"Optional\":{\"Text\":{\"max\":200,\"min\":1}}},\"intent\":{\"Text\":{\"max\":26,\"min\":26}},\"lexicon\":{\"Text\":{\"max\":200,\"min\":1}},\"lexiconDigest\":{\"Text\":{\"max\":64,\"min\":64}},\"parent\":{\"Optional\":{\"Ref\":{\"table\":\"posts\"}}},\"payloadJson\":{\"Text\":{\"max\":65536,\"min\":1}}}")) },
+  history: { kind: "query", name: "history", runs: "server", rowKey: "id", available: (release) => operationAvailable(release, "history", "query", JSON.parse("{\"c\":{\"Optional\":\"Cursor\"},\"owner\":\"Principal\"}")) },
+  findTake: { kind: "query", name: "findTake", runs: "server", available: (release) => operationAvailable(release, "findTake", "query", JSON.parse("{\"digest\":{\"Text\":{\"max\":64,\"min\":64}},\"owner\":\"Principal\"}")) },
+  access: { kind: "query", name: "access", runs: "server", rowKey: "id", available: (release) => operationAvailable(release, "access", "query", JSON.parse("{}")) },
+  archive: { kind: "mutation", name: "archive", predicts: "never", available: (release) => operationAvailable(release, "archive", "mutation", JSON.parse("{\"captured\":\"Time\",\"digest\":{\"Text\":{\"max\":64,\"min\":64}},\"element\":{\"IntRange\":{\"min\":0,\"max\":4}},\"expected\":{\"Text\":{\"max\":1000}},\"frames\":{\"IntRange\":{\"min\":1,\"max\":2400}},\"label\":{\"Text\":{\"max\":100,\"min\":1}},\"model\":{\"Text\":{\"max\":100}},\"owner\":\"Principal\",\"trace\":{\"File\":{\"max\":2097152,\"types\":[\"application/json\"]}}}")) },
+  allowReader: { kind: "mutation", name: "allowReader", predicts: "never", available: (release) => operationAvailable(release, "allowReader", "mutation", JSON.parse("{\"reader\":\"Principal\"}")) },
+  removeReader: { kind: "mutation", name: "removeReader", predicts: "never", available: (release) => operationAvailable(release, "removeReader", "mutation", JSON.parse("{\"reader\":\"Principal\"}")) },
+  sharedLibraries: { kind: "query", name: "sharedLibraries", runs: "server", rowKey: "id", available: (release) => operationAvailable(release, "sharedLibraries", "query", JSON.parse("{\"c\":{\"Optional\":\"Cursor\"}}")) },
 };

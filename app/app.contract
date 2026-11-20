@@ -68,6 +68,10 @@ shape Ack
   state: string
   id: string
 shape Timeline
+  cursor: string
+  focus: string
+  next: string
+  partial: bool
   authorIds: string[]
   viewId: string
   available: bool
@@ -328,9 +332,15 @@ component App
     every(10000, sampleDataClock)
   action sampleDataClock
     dataNow = time.epochAtZero + performanceNow()
-  resource timeline = loadPosts(account.principal, mode, page.navigationType != "", dataNow) as shape Timeline else empty()
-  derive rawPosts = timeline.principal == account.principal and timeline.viewId == mode ? timeline.posts : []
-  derive authorIds = timeline.principal == account.principal and timeline.viewId == mode ? timeline.authorIds : []
+  state feedCursors: string[] = []
+  state revealPage = false
+  derive pageCursor = match feedCursors.at(feedCursors.length - 1) { case some(c) => c, case none => "" }
+  derive threadFocus = top(nav).name == "thread" ? top(nav).params.id : (top(nav).name == "compose" ? replyTo : "")
+  derive queryCursor = threadFocus == "" ? pageCursor : ""
+  resource timeline = loadPosts(account.principal, mode, queryCursor, threadFocus, page.navigationType != "", dataNow) as shape Timeline else empty()
+  derive currentTimeline = timeline.principal == account.principal and timeline.viewId == mode and timeline.cursor == queryCursor and timeline.focus == threadFocus
+  derive rawPosts = currentTimeline ? timeline.posts : []
+  derive authorIds = currentTimeline ? timeline.authorIds : []
   resource postProfiles = refreshPostProfiles(account.principal, mode, authorIds, dataNow) as shape PostProfiles else empty()
   derive freshPeople = postProfiles.principal == account.principal and postProfiles.viewId == mode ? postProfiles.profiles : []
   derive people = [profile].filter(p => p.principal == account.principal).concat(freshPeople)
@@ -402,6 +412,24 @@ component App
   action syncSavedDrafts
     send draftsSynced = syncAllDrafts(account.principal, time.epochAtZero + performanceNow(), page.navigationType != "")
   mutation published as shape Published refreshes timeline then afterPost
+  action olderPosts
+    if currentTimeline and timeline.next != "" and not pending(timeline)
+      feedCursors = feedCursors.concat([timeline.next])
+      revealPage = true
+  action newerPosts
+    if feedCursors.length > 0
+      feedCursors = feedCursors.slice(0, feedCursors.length - 1)
+      revealPage = true
+  task changedFeedPage when revealPage and currentTimeline and not pending(timeline)
+    after(1, showFeedPage)
+  action showFeedPage
+    revealPage = false
+    match feedPosts.at(0)
+      case some(p)
+        focus(`feed-item-${p.id}`)
+        scrollIntoView(`feed-item-${p.id}`, block="start")
+      case none
+        revealPage = false
   action refreshPosts
     refresh timeline
   state deleteTarget = ""
@@ -433,6 +461,8 @@ component App
         replyTo = ""
       send experienceChanged = changeExperience(account.principal, value, time.epochAtZero + performanceNow())
   action afterExperienceChange
+    feedCursors = []
+    revealPage = false
     composeContextChanged = true
     if recoveringEarlierDraft and top(nav).name == "earlierDrafts" and currentExperience.principal == account.principal
       recoveringEarlierDraft = false
@@ -568,6 +598,8 @@ component App
   action logout
     send signedOut = logout(time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterLogout
+    feedCursors = []
+    revealPage = false
     skyOwner = ""
     skyText = ""
     skyIntent = ""
@@ -654,7 +686,7 @@ component App
                       if canWrite
                         FeedComposer(write=write, avatar=profileAvatar, name=profileName)
                       for item, index in feedPosts key=item.id
-                        article press=openThread(item.id) role="link" aria-label=`Open thread by ${bylineLabel(item)}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom="dao.space.xs" padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
+                        article id=`feed-item-${item.id}` press=openThread(item.id) role="link" aria-label=`Open thread by ${bylineLabel(item)}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom="dao.space.xs" padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                           :hover
                             background-color="transparent"
                           row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
@@ -668,9 +700,17 @@ component App
                                     text `Replying to ${item.parentAuthor}` class=WhyteXs color="tx.secondary"
                                   PostContent(post=item, bodyTestId=`body-${item.id}`)
                               PostActions(post=item, comments=(mode == "public" ? item.publicReplies : item.readableReplies), comment=openThread(item.id), commentId=`thread-${item.id}`, commentLabel="Open conversation", context=`stream-${item.id}`, clearance=(feedHeaderHeight + spaceSm()))
-                      if mode != "bluesky" and feedPosts.length == 0 and timeline.available and not pending(timeline) and not failed(timeline)
+                      if mode != "bluesky" and (feedCursors.length > 0 or (currentTimeline and timeline.next != ""))
+                        row gap=spaceSm() padding=spaceLg()
+                          if feedCursors.length > 0
+                            Button(controlId="", label="Newer posts", kind="ghost", size="medium", icon=none, disabled=false, busy=false, press=newerPosts, testId="newer-posts")
+                          if currentTimeline and timeline.next != ""
+                            Button(controlId="", label="Older posts", kind="ghost", size="medium", icon=none, disabled=pending(timeline), busy=false, press=olderPosts, testId="older-posts")
+                      if currentTimeline and timeline.partial
+                        text "Some posts could not be loaded." role="status" color="tx.secondary" class=WhyteSm padding=spaceLg()
+                      if mode != "bluesky" and currentTimeline and feedPosts.length == 0 and timeline.available and not timeline.partial and timeline.next == "" and not pending(timeline) and not failed(timeline)
                         text "Nothing here yet." color="tx.secondary" class=WhyteSm padding=spaceXxl()
-                      if mode != "bluesky" and (failed(timeline) or (timeline.principal == account.principal and not timeline.available and not pending(timeline)))
+                      if mode != "bluesky" and (failed(timeline) or (currentTimeline and not timeline.available and not pending(timeline)))
                         column padding=spaceLg() gap=spaceSm()
                           text "Couldn’t load posts." color="tx.secondary" class=WhyteSm
                           Button(controlId="", label="Try again", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(timeline), press=refreshPosts, testId="retry-posts")
@@ -720,9 +760,9 @@ component App
                 ThreadHeader(back=dismiss, compact=compact, measure=measureThreadHeader, mode=mode)
                 column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd()) padding-bottom=(compact ? "5rem" : "6rem")
                   column flex-shrink=0 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-bottom-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-bottom-style="solid" border-color="bd.primary" border-bottom-left-radius=(compact ? 0 : radiusFull()) border-bottom-right-radius=(compact ? 0 : radiusFull()) testId="thread-frame"
-                    if visiblePosts.filter(p => p.id == entry.params.id).length == 0 and timeline.available and not pending(timeline) and not failed(timeline)
+                    if visiblePosts.filter(p => p.id == entry.params.id).length == 0 and currentTimeline and timeline.available and not pending(timeline) and not failed(timeline)
                       text "Conversation unavailable." class=WhyteSm color="tx.secondary" padding=spaceXxl() testId="thread-unavailable"
-                    if mode != "bluesky" and (failed(timeline) or (timeline.principal == account.principal and not timeline.available and not pending(timeline)))
+                    if mode != "bluesky" and (failed(timeline) or (currentTimeline and not timeline.available and not pending(timeline)))
                       Button(controlId="", label="Try loading again", kind="ghost", size="medium", icon=none, disabled=false, busy=pending(timeline), press=refreshPosts, testId="retry-thread")
                     for focused in visiblePosts.filter(p => p.id == entry.params.id) key=focused.id
                       if focused.network and focused.missingParent
