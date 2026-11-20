@@ -294,6 +294,7 @@ theme
 
 // Local outline expressions for the post toolbar; use SF Symbols on Apple.
 icons
+  icon.jera-mark = icon(svg "brand/jera-mark.svg")
   icon.experience-public = icon(svg "icons/experience-public.svg")
   icon.experience-private = icon(svg "icons/experience-private.svg")
   icon.post-comment = icon(sf "bubble.left", svg "icons/post-comment.svg")

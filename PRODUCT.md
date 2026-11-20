@@ -10,7 +10,7 @@ David selects a one-way Bluesky publishing view as the default feed. Open it on 
 
 ## Feed and thread bylines
 
-Show the author's display name when supplied. When the byline uses a handle, replace the exact `.kairos.solar` or `.bsky.social` suffix with its domain icon and keep every preceding label. Show other handles and the fallback for an unavailable icon as a full `@handle`. The mark identifies the handle domain. Account selection, publishing confirmation, the byline's accessible label and the post menu's copy action retain the full address.
+Show the author's display name when supplied. When the byline uses a handle, replace the exact `.kairos.solar`, `.bsky.social`, or `.jera.ink` suffix with its domain icon and keep every preceding label. Show other handles and the fallback for an unavailable icon as a full `@handle`. The mark identifies the handle domain. Account selection, publishing confirmation, the byline's accessible label and the post menu's copy action retain the full address.
 
 ## Selected views and Personal — November 9 direction
 

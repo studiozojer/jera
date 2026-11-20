@@ -14,4 +14,4 @@ To make tint semantic on every Exact host, temporary instance copies were export
 
 ## Handle domains
 
-The Kairos mark comes from the bundled daoUI glyph collection. The Bluesky mark uses the [official blue butterfly SVG](https://bsky.social/about/brand-assets/butterfly/bluesky_media_kit_logo_transparent_1.svg).
+The Jera mark uses the [bundled Jera glyph](../brand/jera-mark.svg). The Kairos mark comes from the bundled daoUI glyph collection. The Bluesky mark uses the [official blue butterfly SVG](https://bsky.social/about/brand-assets/butterfly/bluesky_media_kit_logo_transparent_1.svg).

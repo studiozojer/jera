@@ -8,6 +8,9 @@ assert.equal((await fetch('http://127.0.0.1:4497/dev/legacy-public', { method: '
 const browser = await chromium.launch({ executablePath: browserBinary().executable });
 try {
   for (const { handle, name, label, icon, fail } of [
+    { handle: 'pageofswrds.jera.ink', label: 'pageofswrds', icon: 'jera' },
+    { handle: 'river.jera.ink.example.com', label: '@river.jera.ink.example.com' },
+    { handle: 'jera.ink', label: '@jera.ink' },
     { handle: 'river.kairos.solar', label: 'river', icon: 'kairos' },
     { handle: 'river.bsky.social', label: 'river', icon: 'bluesky' },
     { handle: 'east.river.bsky.social', label: 'east.river', icon: 'bluesky' },
@@ -35,6 +38,7 @@ try {
       const image = mark.locator('img');
       await image.waitFor();
       if (icon === 'kairos') assert.match(await image.getAttribute('data-symbol-source'), /kairos-logo/);
+      else if (icon === 'jera') assert.match(await image.getAttribute('data-symbol-source'), /jera-mark/);
       else await image.evaluate(el => el.decode());
     } else {
       assert.equal(await mark.count(), 0);
