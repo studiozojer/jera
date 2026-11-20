@@ -1,6 +1,6 @@
 // Synthetic fixture only, on3035. State transitions only; no key values or request bodies.
-import {chromium} from '../tooling/exact2/node_modules/playwright-core/index.mjs';
-import {chromium as binary} from '../tooling/exact2/scripts/agent-launch.mjs';
+import {chromium} from '../tooling/exact/node_modules/playwright-core/index.mjs';
+import {chromium as binary} from '../tooling/exact/scripts/agent-launch.mjs';
 import assert from 'node:assert/strict';
 import {mkdir,writeFile,rename} from 'node:fs/promises';
 const label=process.env.JERA_CAPTURE_LABEL||'after';const dir=process.env.JERA_CAPTURE_DIR||'/tmp/jera-button-flicker';await mkdir(dir,{recursive:true});

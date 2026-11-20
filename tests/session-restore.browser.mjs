@@ -1,7 +1,7 @@
 // Run against the loopback Exact web preview and Jera's disposable auth fixture.
 import assert from 'node:assert/strict';
-import { chromium } from '../tooling/exact2/node_modules/playwright-core/index.mjs';
-import { chromium as browserBinary } from '../tooling/exact2/scripts/agent-launch.mjs';
+import { chromium } from '../tooling/exact/node_modules/playwright-core/index.mjs';
+import { chromium as browserBinary } from '../tooling/exact/scripts/agent-launch.mjs';
 
 const base = new URL(process.env.JERA_REVIEW_URL ?? 'http://127.0.0.1:3035');
 assert.equal(base.hostname, '127.0.0.1');

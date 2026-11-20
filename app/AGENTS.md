@@ -1,35 +1,38 @@
 <!-- exact:begin (exact new writes this block; bun exact.mjs update rewrites it) -->
 # app: an Exact app
 
-`app.contract` is the view, `app.ts` its data module, `app.test.contract` its tests, `app.json`
-the manifest: set its `app.name` and `app.id` before the first build. The app uses the exact2
-checkout at `../tooling/exact2` by path (`EXACT2` overrides it).
+Run `bun exact.mjs --help` first to create `.exact/checkout`; set `EXACT=<checkout>` if needed.
 
-This file is already in your instructions. Start from the nearest pattern: `bun exact.mjs
-pattern` lists them and `pattern <name>` writes one, tested. ../tooling/exact2/docs/start-here.md is the guide,
-the only required reading (LLP 1115 D7). `bun exact.mjs contract vocab <name>` answers a
-name (none: the card, ../tooling/exact2/docs/card.md); `bun exact.mjs docs <heading words>` a guide's
-section. Run `bun exact.mjs verify` when the features work, and `verify ios` once at the end for an iPhone
-app. `bun exact.mjs help` lists the verbs, and your own in app.json `"commands"`.
-`bun exact.mjs update` refreshes files; `bun exact.mjs lock` repairs Cargo lock drift.
-`bun exact.mjs update --without linux` stops shipping Linux.
-`bun ../tooling/exact2/scripts/exact.mjs setup --check` names what a native build lacks.
-The authoring diary: `bun exact.mjs feedback status` says whether this project keeps one.
-A backend: this app's data is Snapback 4's (../tooling/exact2/snapback4/README.md). The backend is above it:
-`../snapback/schema.q`, with `snapback4@0.4.33` installed. `app.json` mounts the driver and
-`../snapback/generated`; `app.ts` names and grants its origin. `bun exact.mjs snapback --rebuild` generates operations
-and rebuilds the device, including after exact2 moves; `snapback --port <n>` moves the origin. Start
-`bunx snapback4 dev --port <the origin's port>` above before `test web`. `fresh` resets it per test
-(Snapback4 0.4.33, dev only; a password-only schema's dev needs `--unsafe-dev-doors` for it). Typed reads use `db.read(api.recent, {}, now)`; `send` writes, syncs and answers
-the write's fate. `failure(x).reason` carries a refusal's code. Read the guide before data code.
+`app.contract` is the view, `app.ts` the data module, `app.test.contract` the tests, `app.json`
+the manifest: set `app.name` and `app.id` before building. The app uses Exact at
+`.exact/checkout` by path (`EXACT` overrides it).
 
-Generated, so don't edit: `exact.mjs`, `rust-toolchain.toml`, `.cargo/config.toml`,
-`Cargo.toml`'s `[patch.crates-io]` and this block.
+Start from the nearest pattern: `bun exact.mjs
+pattern` lists them and `pattern <name>` writes one, tested. .exact/checkout/docs/start-here-site.md (a site) or
+.exact/checkout/docs/start-here.md is the only required reading. `bun exact.mjs contract vocab <name>` answers a
+name (none: the card); `bun exact.mjs docs <heading words>` a guide's
+section. Run `bun exact.mjs verify` when the features work, and `verify ios|android` at the end for a
+phone app. When an iPhone app is ready to try, run `bun exact.mjs share` and send its link;
+repeat for each change the person should see. `bun exact.mjs help` lists the verbs, including
+app.json's `"commands"`.
+`bun exact.mjs update` refreshes files. Native verbs (`ios`, `mac`, `linux`, `android`, `windows`)
+name their platform in app.json on first use and build in a generated workspace;
+`update --without <platform>` stops shipping it.
+`bun .exact/checkout/scripts/exact.mjs setup --check` names what a native build lacks (`--platform ios --device` for a phone's: `share`, `ios --device`).
+
+Generated, so don't edit: `exact.mjs` and this block.
+
+## Feedback (required)
+
+When a doc was wrong or missing, a workaround was needed, something took several tries or a
+command confused you, record it: `bun exact.mjs feedback note "<what happened>"`. It attaches
+exact2's commit and the last exit code, never output or code. `bun exact.mjs feedback status` says
+whether notes are sent and whether to keep a diary; under `never`, skip all of this.
 <!-- exact:end -->
 
 ## Shared server checkout
 
-The generated SDK guidance above describes its default combined-repository layout. Jera’s app mounts the checked-in `../snapback/generated` client contract. Use `bun exact.mjs snapback --rebuild --artifact-only` to rebuild the device. The shared schema, identity gateway and server checks belong to `studiozojer/jera-snapback`. The local browser fixture resolves a sibling checkout or absolute `JERA_BACKEND_DIR` as documented in the root README.
+The generated SDK guidance above describes its default combined-repository layout. Jera’s app mounts the checked-in `../snapback/generated` client contract. Run `bun run check` from the repository root to verify the generated API. The shared schema, identity gateway and server checks belong to `studiozojer/jera-snapback`. The local browser fixture resolves a sibling checkout or absolute `JERA_BACKEND_DIR` as documented in the root README.
 
 ## Jera native verification boundary
 

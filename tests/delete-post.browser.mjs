@@ -1,8 +1,8 @@
 // Normal browser + disposable real Snapback, with explicitly simulated OAuth.
 // This test publishes fixture posts: never point it at the live-account client.
 import assert from 'node:assert/strict';
-import {chromium} from '../tooling/exact2/node_modules/playwright-core/index.mjs';
-import {chromium as binary} from '../tooling/exact2/scripts/agent-launch.mjs';
+import {chromium} from '../tooling/exact/node_modules/playwright-core/index.mjs';
+import {chromium as binary} from '../tooling/exact/scripts/agent-launch.mjs';
 const browser=await chromium.launch({executablePath:binary().executable});
 const contexts=[];
 const at=(page,id)=>page.getByTestId(id);

@@ -1,7 +1,7 @@
 // Real disposable Snapback + explicitly simulated OAuth on3035; no live account.
 import assert from 'node:assert/strict';
-import {chromium} from '../tooling/exact2/node_modules/playwright-core/index.mjs';
-import {chromium as binary} from '../tooling/exact2/scripts/agent-launch.mjs';
+import {chromium} from '../tooling/exact/node_modules/playwright-core/index.mjs';
+import {chromium as binary} from '../tooling/exact/scripts/agent-launch.mjs';
 const browser=await chromium.launch({executablePath:binary().executable});
 const context=await browser.newContext({viewport:{width:1120,height:800},colorScheme:'dark'});
 await context.route('https://public.api.bsky.app/**',r=>{const did=new URL(r.request().url()).searchParams.get('actor');return r.fulfill({json:{did,handle:'owner.test',displayName:'Synthetic Owner',avatar:''}});});

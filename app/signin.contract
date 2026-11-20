@@ -1,4 +1,4 @@
-// Screenshot-led hierarchy; shared daoUI color roles live in app.tamber.
+// Screenshot-led hierarchy; shared daoUI color roles live in app.forma.
 style AccountRow
   background-color = "bg.card"
   :hover

@@ -1,13 +1,35 @@
 {
-  "cli": { "version": "27.2.0", "appVersionSource": "local" },
+  "cli": {
+    "version": "27.2.0",
+    "appVersionSource": "local"
+  },
   "build": {
     "preview": {
       "distribution": "internal",
       "environment": "preview",
       "node": "24.11.0",
       "bun": "1.4.2",
-      "env": { "EXACT_BACKEND_ORIGIN": "https://snapback.jera.ink" },
-      "ios": { "config": "exact-ios.yml", "image": "latest", "credentialsSource": "remote" }
+      "env": {
+        "EXACT_BACKEND_ORIGIN": "https://snapback.jera.ink"
+      },
+      "ios": {
+        "config": "exact-ios.yml",
+        "image": "latest",
+        "credentialsSource": "remote"
+      }
+    },
+    "appdrop": {
+      "extends": "preview",
+      "withoutCredentials": true,
+      "env": {
+        "EXACT_BUILD_NUMBER": "35",
+        "JERA_APPDROP_UNSIGNED": "1"
+      },
+      "ios": {
+        "config": "exact-appdrop.yml",
+        "resourceClass": "medium",
+        "image": "macos-tahoe-26.6-xcode-27.1"
+      }
     }
   }
 }

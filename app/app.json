@@ -1,5 +1,5 @@
 {
-  "$schema": "../tooling/exact2/scripts/app.schema.json",
+  "$schema": ".exact/checkout/scripts/app.schema.json",
   "name": "Jera",
   "short_name": "Jera",
   "id": "studio.zojer.jera.exact",
@@ -26,7 +26,8 @@
         "height": 700
       }
     },
-    "web": {}
+    "web": {},
+    "linux": {}
   },
   "deploy": {
     "store": {
@@ -38,7 +39,6 @@
   },
   "typescript": {
     "sources": {
-      "snapback4": "../tooling/exact2/snapback4/ts",
       "backend": "../snapback/generated"
     }
   },

@@ -1,7 +1,7 @@
 // Normal browser, separate device contexts, simulated OAuth, real isolated storage.
 // Run test-server.mjs and the authenticated app on port3035 first.
-import {chromium} from '../tooling/exact2/node_modules/playwright-core/index.mjs';
-import {chromium as browserBinary} from '../tooling/exact2/scripts/agent-launch.mjs';
+import {chromium} from '../tooling/exact/node_modules/playwright-core/index.mjs';
+import {chromium as browserBinary} from '../tooling/exact/scripts/agent-launch.mjs';
 import assert from 'node:assert/strict';
 const browser=await chromium.launch({executablePath:browserBinary().executable});
 const base=process.env.JERA_REVIEW_URL||'http://127.0.0.1:3035';

@@ -13,8 +13,7 @@
     "ios:local": "cd app && bun run ios:local",
     "ios:archive": "cd app && bun run ios:archive",
     "web": "cd app && bun run web:live",
-    "pretest": "node scripts/prepare-sdk.mjs",
-    "test:app": "bun test ./app/*.test.ts",
+    "test:app": "bun test ./app/*.test.ts ./tests/draft-context.test.ts",
     "test:integration": "node --test tests/views.integration.mjs"
   },
   "dependencies": {

@@ -1,5 +1,5 @@
-import type { Answer, Sources, Store, Storage, NativeModule } from './app.contract.d.ts';
-import { Snapback, refused } from './snapback4/snapback.ts';
+import type { Answer, Sources, Store, Storage } from './app.contract.d.ts';
+import { accessSession, forgetAccess, refused, type Access } from './access-session.ts';
 import { rememberedSession, validAccess } from './remembered-session.ts';
 import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile, readCachedAccountProfile } from './account-profile.ts';
@@ -52,13 +52,10 @@ async function authRequest(path: string, body: unknown, token?: string): Promise
 }
 
 function reject(code: string, message: string): never { throw refused({ code, message }); }
-async function using<T>(store: Store, storage: Storage, native: NativeModule | null | undefined, now: number, browser: boolean, fn: (db: Snapback) => Promise<T>): Promise<T> {
-  // A web presentation hatch supplies a module too; it is not the native
-  // Snapback device. Navigation Timing is present only in a browser.
+async function using<T>(store: Store, now: number, browser: boolean, fn: (session: Access | null) => Promise<T>): Promise<T> {
   const remembered = rememberedSession(store, sessionKey, authRequest);
   if (remembered.present() && !await remembered.restore(now, browser, false)) reject('E_AUTH', 'Sign in again.');
-  const db = await Snapback.open({ app: appId, name: sessionKey, origin, storage, native, device: browser ? 'web' : 'native', auth: { store, key: sessionKey, now } });
-  try { return await fn(db); } finally { await db.close(); }
+  return fn(await accessSession(store, sessionKey, now, authRequest));
 }
 function isActor(store: Store, principal: string) {
   try { return Boolean(principal) && JSON.parse(store.get(sessionKey)||'{}').principal === principal; } catch {return false;}
@@ -74,10 +71,10 @@ async function experienceFor(store: Store, storage: Storage, principal: string) 
   const initial=await drafts.mode();
   return accountExperience(principal,initial);
 }
-function transport(db: Snapback, store: Store, principal: string): Request {
+function transport(session: Access | null, store: Store, principal: string): Request {
   actor(store, principal);
-  const raw=store.get(sessionKey), token=db.session?.token;
-  if (!token || db.session?.principal !== principal) reject('E_AUTH','Sign in before reading or posting.');
+  const raw=store.get(sessionKey), token=session?.token;
+  if (!token || session?.principal !== principal) reject('E_AUTH','Sign in before reading or posting.');
   const check=()=>{if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed while the request was in flight.');};
   return async (kind,operation,args,id) => {
     check();
@@ -122,7 +119,7 @@ async function authorize(store: Store, handle: string, posting = false) {
 const sources: Sources = {
   threadView: async ([did, id, browser, now], store, storage, native) => {
     if (!id || !isActor(store, did)) return { state: '', id: '' };
-    return using(store, storage, native, now, browser, async db => {
+    return using(store, now, browser, async db => {
       const post = (await transport(db, store, did)('q', 'postById', { id })).data;
       return post?.id === id ? { id, state: post.visibility === 'public' ? 'public' : 'private' } : { state: '', id: '' };
     });
@@ -177,7 +174,7 @@ const sources: Sources = {
   loadWritingContext: async ([principal,active,audienceId,parent,now,browser],store,storage,native) => {
     const unavailable={principal,audienceId,audienceLabel:'',available:false};
     if(!active||!audienceId||!isActor(store,principal))return unavailable;
-    return using(store,storage,native,now,browser,async db=>{
+    return using(store,now,browser,async db=>{
       const request=transport(db,store,principal);
       const all=await allRows(request,'availableAudiences');
       const parentResult=parent?await request('q','postById',{id:parent}):null;
@@ -205,7 +202,7 @@ const sources: Sources = {
     // publication lookup preserves the sealed draft, including while offline.
     const view=selectedView(mode);
     await adoptLegacyPublicReply(local,parent);
-    let draft=await beginDraft((kind,operation,args,id)=>using(store,storage,native,now,browser,db=>transport(db,store,principal)(kind,operation,args,id)),local,mode as Mode,parent,view.id);
+    let draft=await beginDraft((kind,operation,args,id)=>using(store,now,browser,db=>transport(db,store,principal)(kind,operation,args,id)),local,mode as Mode,parent,view.id);
     if(mode==='private' && !draft.viewContext)draft=await preparePrivateWriting(local,draftScope(view.id,parent))||draft;
     draft=await prepareViewDraft(local,view,parent)||draft;
     actor(store,principal);
@@ -216,7 +213,7 @@ const sources: Sources = {
     if(!isActor(store,principal))return {principal:'',scope,body:'',revision:0,priorRevision:0,state:'pending',context,format:'text',audienceId:'',fields:[]};
     const local=draftsFor(store,storage,principal);
     try {
-      const synced=await using(store,storage,native,now,browser,async db=>{
+      const synced=await using(store,now,browser,async db=>{
         const request=transport(db,store,principal);
         await adoptLegacyPublicReply(local,parent,mode==='public'?request:undefined);
         return syncScope(request,local,scope);
@@ -233,7 +230,7 @@ const sources: Sources = {
   syncAllDrafts: async ([principal,now,browser],store,storage,native) => {
     if(!isActor(store,principal))return {state:'pending',id:''};
     try {
-      await using(store,storage,native,now,browser,db=>syncDrafts(transport(db,store,principal),draftsFor(store,storage,principal)));
+      await using(store,now,browser,db=>syncDrafts(transport(db,store,principal),draftsFor(store,storage,principal)));
       return {state:'sent',id:''};
     } catch {return {state:'pending',id:''};}
   },
@@ -244,7 +241,7 @@ const sources: Sources = {
   },
   loadPosts: async ([principal,viewId,browser,now],store,storage,native) => {
     if(viewId==='bluesky' || !isActor(store,principal))return {principal:'',viewId,authorIds:[],posts:[],available:false};
-    try {return await using(store,storage,native,now,browser,async db=>{
+    try {return await using(store,now,browser,async db=>{
       const request=transport(db,store,principal);
       const authorized=await allRows(request,'postsList') as PostRecord[];
       const selection=selectPosts(selectedView(viewId),authorized), newest=selection.records;
@@ -276,19 +273,19 @@ const sources: Sources = {
     if(!active||!isActor(store,principal))return {principal:'',items:[],available:false};
     const drafts=draftsFor(store,storage,principal);
     let result;
-    try {result=await using(store,storage,native,now,browser,db=>earlierPublicDrafts(transport(db,store,principal),drafts));}
+    try {result=await using(store,now,browser,db=>earlierPublicDrafts(transport(db,store,principal),drafts));}
     catch {result=await earlierPublicDrafts(async()=>{throw new Error('Offline');},drafts);}
     actor(store,principal);return {principal,...result};
   },
   copyEarlierDraft: async ([principal,id,body,revision,now,browser],store,storage,native) => {
     const experience=await experienceFor(store,storage,principal), drafts=draftsFor(store,storage,principal);
     try {
-      await using(store,storage,native,now,browser,db=>copyEarlierPublicDraft(transport(db,store,principal),drafts,{id,body,revision}));
+      await using(store,now,browser,db=>copyEarlierPublicDraft(transport(db,store,principal),drafts,{id,body,revision}));
     } catch(error) {reject('E_DRAFT',(error as Error).message||'Could not copy this draft. The original is kept.');}
     actor(store,principal);await drafts.setMode('private');actor(store,principal);
     return {principal,...experience.change('private',now)};
   },
-  publishPost: async ([principal,mode,parent,body,revision,audience,fields,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+  publishPost: async ([principal,mode,parent,body,revision,audience,fields,now,browser],store,storage,native) => using(store,now,browser,async db=>{
     try {
       if(parent.startsWith('at://'))throw new Error('Bluesky replies are not available in this view. Your draft is kept.');
       const local=draftsFor(store,storage,principal), view=selectedView(mode);
@@ -299,7 +296,7 @@ const sources: Sources = {
       const composition=await editedDraft(local,draftScope(mode as Mode,parent),audience,body,fields);
       const result=await publish(transport(db,store,principal),local,policy?.mode || saved.sealed!.visibility,parent,revision,body,composition,async envelope=>{
         actor(store,principal);const raw=store.get(sessionKey);
-        try {const result=await authRequest('/records/publish',envelope,db.session?.token);if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed.');return result;}
+        try {const result=await authRequest('/records/publish',envelope,db?.token);if(store.get(sessionKey)!==raw)reject('E_STALE','The account changed.');return result;}
         catch(e){const code=(e as any).code||'';if(['INVALID_PAYLOAD','UNKNOWN_LEXICON','LEXICON_CHANGED','AUDIENCE_UNAVAILABLE','DIFFERENT_AUDIENCE','PARENT_UNAVAILABLE','PARENT_DELETED','CANNOT_WIDEN_AUDIENCE','REPLY_NOT_ALLOWED','INTENT_REUSE','E_INPUT'].includes(code))return {state:'failed',why:{message:(e as Error).message}};throw e;}
       },policy?.definition,view.id);
       actor(store,principal); return {...result,principal,message:''};
@@ -308,7 +305,7 @@ const sources: Sources = {
       return {state:'failed',id:'',parent,principal,visibility:mode,message:(error as Error).message || 'Could not post. Your draft is kept.'};
     }
   }),
-  deletePost: async ([principal,id,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+  deletePost: async ([principal,id,now,browser],store,storage,native) => using(store,now,browser,async db=>{
     const response=await transport(db,store,principal)('m','deletePost',{id},newIntent());
     if(response.state==='failed')throw refused(response.why);
     if(response.state!=='sent'||response.result?.id!==id||response.result?.deleted!==true)reject('E_NETWORK','Could not confirm deletion. Try again.');
@@ -316,14 +313,14 @@ const sources: Sources = {
   }),
   loadAudience: async ([principal,browser,now],store,storage,native) => {
     if(!isActor(store,principal))return {principal:'',id:'',members:[],available:false};
-    try {return await using(store,storage,native,now,browser,async db=>{
+    try {return await using(store,now,browser,async db=>{
       const request=transport(db,store,principal);const groups=await allRows(request,'audienceList');
       const id=groups[0]?.id||'';
       const members=id?await allRows(request,'audienceMembersList',{audience:id}):[];
       return {principal,id,members:members.map(m=>({principal:m.principal,access:m.access})),available:true};
     });} catch {return {principal:isActor(store,principal)?principal:'',id:'',members:[],available:false};}
   },
-  grantAudience: async ([principal,did,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+  grantAudience: async ([principal,did,now,browser],store,storage,native) => using(store,now,browser,async db=>{
     const value=parseLoginInput(did.trim());
     if(!value.valid || !value.value.startsWith('did:'))reject('E_INPUT','Enter a complete DID.');
     const request=transport(db,store,principal);const group=await request('m','ensureAudience',{},newIntent());
@@ -332,14 +329,14 @@ const sources: Sources = {
     if(result.state==='failed')throw refused(result.why);
     return {state:'sent',id:value.value};
   }),
-  revokeAudience: async ([principal,audience,did,now,browser],store,storage,native) => using(store,storage,native,now,browser,async db=>{
+  revokeAudience: async ([principal,audience,did,now,browser],store,storage,native) => using(store,now,browser,async db=>{
     const result=await transport(db,store,principal)('m','removeAudienceMember',{audience,principal:did},newIntent());
     if(result.state==='failed')throw refused(result.why);
     return {state:'sent',id:did};
   }),
   accountProfile: ([principal], store, storage) => loadAccountProfile(principal, storage),
   logout: async ([now, browser], store, storage, native) => {
-    const retireAccess = () => using(store, storage, native, now, browser, db => db.logout());
+    const retireAccess = () => forgetAccess(store, sessionKey, authRequest);
     if (!await rememberedSession(store, sessionKey, authRequest).logout(retireAccess)) await retireAccess();
     return { state: 'sent', id: '' };
   },
@@ -358,21 +355,21 @@ const sources: Sources = {
     await prepareLogin(store);
     const remembered = await rememberedSession(store, sessionKey, authRequest).restore(now, browser, true);
     if (remembered !== null) return { principal: remembered };
-    return using(store, storage, native, now, browser, async db => {
-      if (!db.session) return { principal: '' };
+    return using(store, now, browser, async db => {
+      if (!db) return { principal: '' };
       const raw = store.get(sessionKey);
       try {
-        const { did } = await authRequest('/oauth/check', {}, db.session.token);
+        const { did } = await authRequest('/oauth/check', {}, db.token);
         if (store.get(sessionKey) !== raw) reject('E_STALE', 'The account changed while checking authorization.');
         if (typeof did !== 'string' || !/^did:(plc|web):/.test(did)) throw new Error('Could not verify account status.');
-        if (did !== db.session.principal) reject('E_AUTH', 'The account changed. Sign in again.');
+        if (did !== db.principal) reject('E_AUTH', 'The account changed. Sign in again.');
       } catch (error) {
         if (store.get(sessionKey) !== raw) throw error;
-        if ((error as { code?: string }).code === 'E_AUTH') { await db.logout(); return { principal: '' }; }
+        if ((error as { code?: string }).code === 'E_AUTH') { await forgetAccess(store, sessionKey, authRequest); return { principal: '' }; }
         // Offline restoration preserves this account's partition and draft.
         // Online operations still require a valid backend session.
       }
-      return { principal: db.session?.principal ?? '' };
+      return { principal: db.principal };
     });
   },
   login: async ([handle, now], store, storage, native) => {
