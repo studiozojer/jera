@@ -6,13 +6,16 @@ import { Readable } from 'node:stream';
 import { mkdtemp, mkdir, copyFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { AuthStore } from '../auth/store.mjs';
-import { createHandler, digest } from '../auth/service.mjs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { backendDirectory } from '../scripts/backend-location.mjs';
 import { JeraClient, intentId } from '../scripts/client.mjs';
 import { lexicons } from '../contracts/registry.mjs';
 import { randomBytes } from 'node:crypto';
-import { createPublicIndexer, indexTransport } from '../auth/public-index.mjs';
+const backend = backendDirectory();
+const authModule = name => import(pathToFileURL(join(backend, 'auth', name)));
+const { AuthStore } = await authModule('store.mjs');
+const { createHandler, digest } = await authModule('service.mjs');
+const { createPublicIndexer, indexTransport } = await authModule('public-index.mjs');
 const root = fileURLToPath(new URL('../', import.meta.url));
 // A local preview can refresh the gateway while keeping its existing fixture
 // backend alive. Normal Exact tests always create and clean up their own store.
@@ -20,7 +23,7 @@ const attached = process.env.JERA_FIXTURE_DIRECTORY;
 const directory = attached || await mkdtemp(join(tmpdir(), 'jera-browser-'));
 if (!attached) {
   await mkdir(join(directory, 'snapback'));
-  await copyFile(root + 'snapback/schema.q', join(directory, 'snapback/schema.q'));
+  await copyFile(join(backend, 'snapback/schema.q'), join(directory, 'snapback/schema.q'));
 }
 const port = Number(process.env.PORT ?? '4417'), upstream = `http://127.0.0.1:${port + 1}`;
 const child = attached ? null : spawn(`${root}node_modules/.bin/snapback4`, ['dev', '--port', String(port + 1), '--no-watch', '--unsafe-dev-doors'], { cwd: directory, stdio: 'inherit' });

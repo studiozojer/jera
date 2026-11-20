@@ -1,7 +1,0 @@
-[Unit]
-Description=Consistent backup of Jera Snapback
-
-[Service]
-Type=oneshot
-ExecStart=/opt/jera-snapback/backup.sh
-UMask=0077

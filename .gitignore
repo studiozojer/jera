@@ -5,7 +5,9 @@ node_modules
 .snapback4/
 .exact/
 releases/
-snapback/generated/
+/snapback/generated/*
+!/snapback/generated/api.ts
+!/snapback/generated/package.json
 .DS_Store
 *.pem
 *.p8
