@@ -44,8 +44,7 @@ function main() {
   if (mode === 'check') { console.log('Toolchain and signing identity found. The build will validate the selected phone and profile.'); return; }
   const nativeArgs = buildArgs(mode, args);
   patchSDK(sdk);
-  // A fresh checkout has neither generated API types nor the device wasm.
-  // Build the device first; schema check deliberately refuses a missing device.
+  // Build the device first so the client check can read its version stamp.
   run(bun, ['exact.mjs', 'snapback', '--rebuild', '--artifact-only'], { stdio: 'inherit' });
   run(bun, ['run', 'check'], { cwd: resolve(app, '..'), stdio: 'inherit' });
   mkdirSync(resolve(app, 'artifacts'), { recursive: true });
