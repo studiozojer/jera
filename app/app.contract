@@ -448,7 +448,12 @@ component App
     nav = push(nav, path("thread", id))
   action dismiss
     recoveringEarlierDraft = false
-    nav = top(nav).name == "compose" and composeContextChanged ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : back(nav)
+    let previous = depth(nav) > 1 ? back(nav) : go(nav, "/")
+    // The browser can restore the submitted composer beneath a reloaded thread.
+    if top(nav).name == "thread" and top(previous).name == "compose"
+      nav = depth(previous) > 1 ? back(previous) : go(previous, "/")
+    else
+      nav = top(nav).name == "compose" and composeContextChanged ? (replyTo == "" ? go(nav, "/") : push(go(nav, "/"), path("thread", replyTo))) : previous
   action write
     cloudSynced = none
     if canWrite
@@ -559,7 +564,7 @@ component App
   action openAccount
     nav = push(nav, "/account")
   action closeAccount
-    nav = back(nav)
+    nav = depth(nav) > 1 ? back(nav) : go(nav, "/")
   action logout
     send signedOut = logout(time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterLogout

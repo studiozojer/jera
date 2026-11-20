@@ -39,3 +39,26 @@ test('device revocation clears this installation and a late restore cannot undo 
   expect(await revoked.restore(100,false,true)).toBe('');
   expect(revoked.present()).toBe(false);
 });
+
+test('simultaneous legacy bearer renewals share the request and preserve a later logout', async () => {
+  const { accessSession, forgetAccess } = await import('./access-session.ts');
+  const store = memory();
+  store.set('account', JSON.stringify({ ...access, expiresAt: 1000 }));
+  const renewed = { ...access, token: 'replacement' };
+  let resolve!: (body: unknown) => void;
+  let requests = 0;
+  const refresh = async () => {
+    requests++;
+    return new Promise(done => { resolve = done; });
+  };
+  const first = accessSession(store, 'account', 100, refresh);
+  const second = accessSession(store, 'account', 100, refresh);
+  resolve({session: renewed});
+  expect(await Promise.all([first, second])).toEqual([renewed, renewed]);
+  expect(requests).toBe(1);
+  const late = accessSession(store, 'account', day - 100, refresh);
+  await forgetAccess(store, 'account', async () => ({}));
+  resolve({session: { ...renewed, token: 'late', expiresAt: day * 2 }});
+  await expect(late).rejects.toThrow('account changed');
+  expect(store.get('account')).toBeNull();
+});

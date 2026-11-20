@@ -49,32 +49,30 @@ async function restoreVaults(app, namespace) {
 
 export async function upgradeBrowserStore(key = 'jera-https-snapback-jera-ink-atproto-v1', namespaces = releasedStores) {
   const marker = 'jera.public-exact-storage-v1.' + key;
-  if (localStorage.getItem(marker)) return;
+  if (localStorage.getItem(marker) === 'done') return;
   await navigator.locks.request(marker, async () => {
-    if (localStorage.getItem(marker)) return;
-    const prefix = 'exact.secret.';
-    const current = prefix + key;
-    const suffixes = ['', '-device', '-login'];
-    const source = namespaces.find(ns => suffixes.some(suffix => localStorage.getItem(prefix+'@'+ns+'/'+key+suffix) !== null));
-    if (source) {
+    const pending = localStorage.getItem(marker);
+    if (pending === 'done') return;
+    const current = 'exact.secret.' + key;
+    const suffixes = ['-device', '', '-login'];
+    const oldValue = (ns, suffix) => localStorage.getItem('exact.secret.@' + ns + '/' + key + suffix);
+    const source = pending || namespaces.find(ns => suffixes.some(suffix => oldValue(ns, suffix) !== null));
+
+    if (source && namespaces.includes(source)) {
       await restoreVaults('studio.zojer.jera.exact', source);
-      // A login preparation also marks a used (possibly signed-out) store.
-      // Never resurrect a grant from an older namespace or replace a new login.
-      if (!suffixes.some(suffix => localStorage.getItem(current + suffix) !== null)) {
-        // Write the device grant first so retry can finish a partial migration.
-        // Roll back our own writes on a storage exception; old keys stay intact.
-        const writes = [];
-        try {
-          for (const suffix of ['-device', '', '-login']) {
-            const value = localStorage.getItem(prefix+'@'+source+'/'+key+suffix);
-            if (value !== null) { localStorage.setItem(current+suffix, value); writes.push(current+suffix); }
-          }
-          localStorage.setItem(marker, 'done');
-        } catch (error) {
-          for (const written of writes) localStorage.removeItem(written);
-          throw error;
+      // A prepared login also identifies the most recently used signed-out store.
+      // Persist the chosen namespace before copying across multiple storage keys.
+      // A reload can finish that copy. An existing newer login takes precedence.
+      const canResume = suffixes.every(suffix => {
+        const saved = localStorage.getItem(current + suffix);
+        return saved === null || (pending === source && saved === oldValue(source, suffix));
+      });
+      if (canResume) {
+        localStorage.setItem(marker, source);
+        for (const suffix of suffixes) {
+          const value = oldValue(source, suffix);
+          if (value !== null) localStorage.setItem(current + suffix, value);
         }
-        return;
       }
     }
     localStorage.setItem(marker, 'done');

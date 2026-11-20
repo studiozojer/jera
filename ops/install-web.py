@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Activate an already-staged web artifact; restore routing on failed checks."""
 import datetime
+import json
 import pathlib
 import re
 import sys
@@ -11,7 +12,14 @@ if not re.fullmatch(r'[0-9a-f]{40}', release):
     raise SystemExit('Expected the full source commit SHA')
 root = pathlib.Path('/opt/jera-web')
 artifact = root / 'releases' / release
-for name in ('index.html', 'app.js', '.exact/auth/callback', '.exact/auth/callback.js'):
+entries = ['app.js']
+if (artifact / 'jera-start.js').is_file():
+    routes = json.loads((artifact / 'routes.json').read_text())
+    entry = routes['files']['app.js']
+    if not re.fullmatch(r'app-[\w-]+\.js', entry):
+        raise SystemExit('Unexpected public Exact entry')
+    entries = ['jera-start.js', entry]
+for name in ('index.html', *entries, '.exact/auth/callback', '.exact/auth/callback.js'):
     if not (artifact / name).is_file():
         raise SystemExit('Incomplete web artifact: ' + name)
 config = pathlib.Path('/etc/caddy/Caddyfile')
@@ -47,7 +55,7 @@ try:
         config.write_bytes(original.rstrip() + b'\n\n' + line + b'\n')
     switch(artifact)
     load(config.read_bytes())
-    for path in ('/', '/app.js', '/.exact/auth/callback', '/.exact/auth/callback.js', '/thread/release-check', '/account', '/write', '/audience', '/earlier-drafts'):
+    for path in ('/', *('/' + entry for entry in entries), '/.exact/auth/callback', '/.exact/auth/callback.js', '/thread/release-check', '/account', '/write', '/audience', '/earlier-drafts'):
         with urllib.request.urlopen('http://127.0.0.1:4421' + path, timeout=15) as response:
             assert response.status == 200
             assert response.headers['Cache-Control'] == 'no-store'

@@ -32,7 +32,7 @@ whether notes are sent and whether to keep a diary; under `never`, skip all of t
 
 ## Shared server checkout
 
-The generated SDK guidance above describes its default combined-repository layout. Jera’s app mounts the checked-in `../snapback/generated` client contract. Use `bun exact.mjs snapback --rebuild --artifact-only` to rebuild the device. The shared schema, identity gateway and server checks belong to `studiozojer/jera-snapback`. The local browser fixture resolves a sibling checkout or absolute `JERA_BACKEND_DIR` as documented in the root README.
+The generated SDK guidance above describes its default combined-repository layout. Jera’s app mounts the checked-in `../snapback/generated` client contract. Run `bun run check` from the repository root to verify the generated API. The shared schema, identity gateway and server checks belong to `studiozojer/jera-snapback`. The local browser fixture resolves a sibling checkout or absolute `JERA_BACKEND_DIR` as documented in the root README.
 
 ## Jera native verification boundary
 

@@ -6,19 +6,16 @@ The web app is hosted at https://jera.ink and uses https://snapback.jera.ink. Ex
 
 ## Setup
 
-Use Bun 1.4.2 and Node 22 or newer. Exact is pinned to `4e9000abbdaa8315ae864cdb8253af143aac510c` with the recorded [compatibility patches](patches/README.md). Device compilation requires access to the pinned Exact2 and Snapback SDK sources. The client build uses the generated API in this checkout.
-
-From the repository root:
+Use Bun 1.4.2 and Node 22 or newer. The public [Exact SDK](https://github.com/expo/exact) is pinned to `d648efb2887d8c3bd5cc81d4c77c1e45cd0f3bc9`. Jera uses the checked-in Snapback API over HTTPS.
 
 ```sh
-git submodule update --init tooling/exact2
-(cd tooling/exact2 && bun install --frozen-lockfile)
+git submodule update --init tooling/exact
+(cd tooling/exact && bun install --frozen-lockfile)
 bun install --frozen-lockfile
-(cd app && bun exact.mjs snapback --rebuild --artifact-only)
 bun run check
 ```
 
-The device build generates the WebAssembly engine and its bindings. The client check verifies the device and mounted API version. The checked-in Jera API snapshot comes from the original Jera schema at commit `5157982`, generated with Snapback 0.4.33. Review client contract changes alongside the matching backend release. Local database files, signing credentials and build artifacts are ignored.
+The checked-in Jera API snapshot comes from the original Jera schema at commit `5157982`, generated with Snapback 0.4.33. Review client contract changes alongside the matching backend release. Local database files, signing credentials and build artifacts are ignored.
 
 ## Run
 
@@ -32,7 +29,7 @@ bun run ios:local --phone "hazy's iPhone"
 
 `web` serves the real-account client on http://127.0.0.1:3033 against production. That loopback callback is explicitly registered. The native commands forward to the Exact app in `app/`. `expo run:ios` does not build this implementation.
 
-Native builds require Xcode, Rust 1.97.0 with the iOS target, a signing certificate and a profile covering bundle ID `studio.zojer.jera.exact`, the device and Associated Domains. The old wildcard profile lacked that capability. Xcode automatic signing generated a matching explicit profile; the retained app was re-signed, installed and launched on November 9. See [the current checkpoint](CHECKPOINT.md) for signing evidence, retained artifacts and the next work.
+Local device builds require Xcode 27.1 or newer, the pinned Hermes device bundle and Rust 1.99.1 with the iOS target, a signing certificate and a profile covering bundle ID `studio.zojer.jera.exact`, the device and Associated Domains. The old wildcard profile lacked that capability. Xcode automatic signing generated a matching explicit profile; the retained app was re-signed, installed and launched on November 9. See [the current checkpoint](CHECKPOINT.md) for signing evidence, retained artifacts and the next work.
 
 The existing custom EAS builder lives in `app/.eas/`, with configuration in `app/eas.json`. Its Expo configuration supplies EAS project/signing metadata only. Paid EAS builds require explicit approval. Native typing and complete real-account acceptance require physical-device evidence.
 
@@ -43,7 +40,7 @@ bun run test
 bun run test:app
 ```
 
-The client suite applies the recorded SDK patches before running. For local integration, clone [jera-snapback](https://github.com/studiozojer/jera-snapback) alongside this repository, then install its dependencies with `npm ci` at its root and `npm ci --prefix auth`. A worktree or alternate layout can set `JERA_BACKEND_DIR` to the backend checkout’s absolute path. The client consumes that checkout only for local server development and integration.
+For local integration, clone [jera-snapback](https://github.com/studiozojer/jera-snapback) alongside this repository, then install its dependencies with `npm ci` at its root and `npm ci --prefix auth`. A worktree or alternate layout can set `JERA_BACKEND_DIR` to the backend checkout’s absolute path. The client consumes that checkout only for local server development and integration.
 
 ```sh
 bun run test:integration
@@ -60,11 +57,11 @@ The real-store view test and simulated-provider browser fixture use disposable s
 | `snapback/generated/` | Generated client API for Jera’s pinned Snapback release |
 | `contracts/` | Immutable lexicons and portable view definitions |
 | `views/` | Read-only source adapters and bounded evaluation |
-| `scripts/` | Build, packaging, SDK patches and agent CLI |
+| `scripts/` | Build, packaging and agent CLI |
 | `ops/` | Static Jera web release and routing |
 | `tests/` | Client, view-integration and browser checks |
 | `design-preview/` | Separate synthetic Exact design specimen |
-| `tooling/exact2/` | Pinned SDK submodule |
+| `tooling/exact/` | Pinned SDK submodule |
 
 See [web release instructions](ops/README.md), [views](VIEWS.md) for the source contract, and [draft lifecycle](DRAFT-LIFECYCLE.md) for recovery. Dated delivery documents retain earlier states. The two selected definitions govern the app’s Snapback reading, writing and draft contexts; see VIEWS.md. Account-owned view editing and autonomous operators remain follow-up work.
 
