@@ -1,5 +1,6 @@
 import type { Answer, Sources, Store, Storage, NativeModule } from './app.contract.d.ts';
 import { Snapback, refused } from './snapback4/snapback.ts';
+import { rememberedSession, validAccess } from './remembered-session.ts';
 import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile, readCachedAccountProfile } from './account-profile.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type PostRecord, type Request } from './social-data.ts';
@@ -25,7 +26,7 @@ function storageKey(value: string): string {
 }
 const sessionKey = storageKey(origin) + '-atproto-v1';
 const pendingKey = sessionKey + '-login';
-export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nauth.callback https://jera.ink/.exact/auth/callback\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nfs.read app:/data\nfs.write app:/data`;
+export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nauth.callback https://jera.ink/.exact/auth/callback\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1-device\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-device\nfs.read app:/data\nfs.write app:/data`;
 
 function randomToken(): string {
   return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -42,7 +43,11 @@ async function authRequest(path: string, body: unknown, token?: string): Promise
   // runtime can turn AbortSignal.timeout's remaining time into a fraction.
   const response = await fetch(`${origin}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body), exactTimeout: 15000 });
   const result = await response.json();
-  if (!response.ok) throw refused(result.denied ?? { code: 'E_AUTH', message: 'Sign-in could not complete. Try again.' });
+  if (!response.ok) {
+    const denied = result?.denied;
+    const code = denied?.code === 'E_AUTH' && response.status !== 401 ? 'E_SIGN_IN' : denied?.code ?? 'E_SIGN_IN';
+    throw refused({ code, message: denied?.message ?? 'Sign-in could not complete. Try again.' });
+  }
   return result;
 }
 
@@ -50,6 +55,8 @@ function reject(code: string, message: string): never { throw refused({ code, me
 async function using<T>(store: Store, storage: Storage, native: NativeModule | null | undefined, now: number, browser: boolean, fn: (db: Snapback) => Promise<T>): Promise<T> {
   // A web presentation hatch supplies a module too; it is not the native
   // Snapback device. Navigation Timing is present only in a browser.
+  const remembered = rememberedSession(store, sessionKey, authRequest);
+  if (remembered.present() && !await remembered.restore(now, browser, false)) reject('E_AUTH', 'Sign in again.');
   const db = await Snapback.open({ app: appId, name: sessionKey, origin, storage, native, device: browser ? 'web' : 'native', auth: { store, key: sessionKey, now } });
   try { return await fn(db); } finally { await db.close(); }
 }
@@ -104,7 +111,7 @@ async function authorize(store: Store, handle: string, posting = false) {
   try {
     const back = new URL(await openAuthSession(url, { callback: flow.callback, state: flow.state }));
     if (back.searchParams.get('state') !== flow.state || !back.searchParams.get('code')) reject('E_AUTH', 'Authorization could not be verified.');
-    const result = await authRequest('/oauth/exchange', { state: flow.state, code: back.searchParams.get('code'), verifier: flow.verifier }, token);
+    const result = await authRequest('/oauth/exchange', { state: flow.state, code: back.searchParams.get('code'), verifier: flow.verifier, rememberDevice: !posting }, token);
     if (store.get(pendingKey) !== pending || store.get(sessionKey) !== account) reject('E_STALE', 'The account changed during authorization.');
     return result;
   } finally {
@@ -330,9 +337,11 @@ const sources: Sources = {
     return {state:'sent',id:did};
   }),
   accountProfile: ([principal], store, storage) => loadAccountProfile(principal, storage),
-  logout: ([now, browser], store, storage, native) => using(store, storage, native, now, browser, async db => {
-    await db.logout(); return { state: 'sent', id: '' };
-  }),
+  logout: async ([now, browser], store, storage, native) => {
+    const retireAccess = () => using(store, storage, native, now, browser, db => db.logout());
+    if (!await rememberedSession(store, sessionKey, authRequest).logout(retireAccess)) await retireAccess();
+    return { state: 'sent', id: '' };
+  },
   loginInput: ([input]) => parseLoginInput(input),
   lookupAccounts: async ([query]) => {
     if (query.trim().replace(/^@/, '').length < 2 || query.trim().startsWith('did:')) return { query, items: [], available: true, complete: true };
@@ -346,12 +355,15 @@ const sources: Sources = {
   restore: async ([browser, now], store, storage, native) => {
     // Prepare before the press so web hosts can open their popup synchronously.
     await prepareLogin(store);
+    const remembered = await rememberedSession(store, sessionKey, authRequest).restore(now, browser, true);
+    if (remembered !== null) return { principal: remembered };
     return using(store, storage, native, now, browser, async db => {
       if (!db.session) return { principal: '' };
       const raw = store.get(sessionKey);
       try {
         const { did } = await authRequest('/oauth/check', {}, db.session.token);
         if (store.get(sessionKey) !== raw) reject('E_STALE', 'The account changed while checking authorization.');
+        if (typeof did !== 'string' || !/^did:(plc|web):/.test(did)) throw new Error('Could not verify account status.');
         if (did !== db.session.principal) reject('E_AUTH', 'The account changed. Sign in again.');
       } catch (error) {
         if (store.get(sessionKey) !== raw) throw error;
@@ -365,12 +377,11 @@ const sources: Sources = {
   login: async ([handle, now], store, storage, native) => {
     const input = parseLoginInput(handle);
     if (!input.valid) reject('E_INPUT', 'Enter your full ATproto handle or DID.');
-    if (store.get(sessionKey)) reject('E_AUTH', 'Sign out before changing accounts.');
+    if (store.get(sessionKey) || rememberedSession(store, sessionKey, authRequest).present()) reject('E_AUTH', 'Sign out before changing accounts.');
     const result = await authorize(store, input.value);
-    const session = result.session;
-    if (!session || !/^did:(plc|web):/.test(session.principal) || typeof session.token !== 'string' || !session.token || !Number.isFinite(session.expiresAt) || session.expiresAt <= now) reject('E_AUTH', 'The server returned an invalid account session.');
-    store.set(sessionKey, JSON.stringify(session));
-    return { state: 'sent', id: session.principal };
+    if (!validAccess(result.session, now)) reject('E_AUTH', 'The server returned an invalid account session.');
+    rememberedSession(store, sessionKey, authRequest).keep(result);
+    return { state: 'sent', id: result.session.principal };
   },
 };
 export const answer: Answer = (source, args, store, storage, native) => sources[source](args, store, storage, native);
