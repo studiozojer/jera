@@ -7,7 +7,7 @@ use spaceSm, spaceMd, spaceLg, spaceXl, spaceXxl, radiusMd, radiusFull, minTouch
 use WhyteSm, WhyteXs, WhyteMd, QuietAction from "./dao.contract"
 use Button, Action from "./dao/actions.contract"
 use Confirmation from "./dao/overlays.contract"
-use Post, PostContent, Author, PostAvatar, PostActions, canReplyInExperience from "./post.contract"
+use Post, PostContent, Author, PostAvatar, PostActions, bylineLabel, canReplyInExperience from "./post.contract"
 use ReadingHeader, ThreadHeader, WriteButton, FeedComposer from "./chrome.contract"
 use ThreadHero, ThreadBranch, ThreadReplyEntry from "./thread.contract"
 
@@ -649,7 +649,7 @@ component App
                       if canWrite
                         FeedComposer(write=write, avatar=profileAvatar, name=profileName)
                       for item, index in feedPosts key=item.id
-                        article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.usesHandle ? `@${item.handle}` : item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom="dao.space.xs" padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
+                        article press=openThread(item.id) role="link" aria-label=`Open thread by ${bylineLabel(item)}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom="dao.space.xs" padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                           :hover
                             background-color="transparent"
                           row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"
