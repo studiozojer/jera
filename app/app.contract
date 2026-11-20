@@ -30,6 +30,7 @@ shape Page
   navigationType: string
   visibilityState: string
 shape Profile
+  usesHandle: bool
   principal: string
   name: string
   handle: string
@@ -39,9 +40,11 @@ shape PostProfiles
   viewId: string
   profiles: Profile[]
 
-fn publicProfile(people: Profile[], did: string): Profile = match people.filter(p => p.principal == did and p.handle != "").at(0) { case some(p) => p, case none => Profile(principal="", name="", handle="", avatar="") }
-fn refreshedName(people: Profile[], did: string, fallback: string): string = publicProfile(people, did).principal == did and did != "" ? publicProfile(people, did).name : fallback
-fn attributedPost(post: Post, people: Profile[]): Post = Post(post, author=refreshedName(people, post.principal, post.author), initial=refreshedName(people, post.principal, post.author).slice(0, 1).toUpperCase(), handle=(publicProfile(people, post.principal).principal == post.principal ? publicProfile(people, post.principal).handle : post.handle), avatar=(publicProfile(people, post.principal).principal == post.principal ? publicProfile(people, post.principal).avatar : post.avatar), parentAuthor=refreshedName(people, post.parentPrincipal, post.parentAuthor))
+fn refreshedName(people: Profile[], did: string, fallback: string): string = match people.filter(p => p.principal == did and p.handle != "").at(0) { case some(p) => p.name, case none => fallback }
+fn attributedPost(post: Post, people: Profile[]): Post = match people.filter(p => p.principal == post.principal and p.handle != "").at(0) {
+  case some(p) => Post(post, author=p.name, initial=p.name.slice(0, 1).toUpperCase(), handle=p.handle, usesHandle=p.usesHandle, avatar=p.avatar, parentAuthor=refreshedName(people, post.parentPrincipal, post.parentAuthor)),
+  case none => Post(post, parentAuthor=refreshedName(people, post.parentPrincipal, post.parentAuthor))
+}
 
 shape Clock
   epochAtZero: number
@@ -632,7 +635,7 @@ component App
                       if canWrite
                         FeedComposer(write=write, avatar=profileAvatar, name=profileName)
                       for item, index in feedPosts key=item.id
-                        article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom="dao.space.xs" padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
+                        article press=openThread(item.id) role="link" aria-label=`Open thread by ${item.usesHandle ? `@${item.handle}` : item.author}: ${item.body.slice(0, 64)}` tabindex=0 testId=`post-row-${item.id}` class=Action border-radius=0 scroll-margin-top=(feedHeaderHeight + spaceSm()) padding-top=spaceMd() padding-bottom="dao.space.xs" padding-left=spaceLg() padding-right=spaceLg() border-top-width=(index == 0 ? 0 : 1) border-top-style="solid" border-top-color="bd.primary" display="flex" flex-direction="column" gap=spaceSm()
                           :hover
                             background-color="transparent"
                           row gap=spaceMd() align-items="flex-start" flex-wrap="wrap"

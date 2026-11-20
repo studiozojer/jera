@@ -1,5 +1,9 @@
 # Jera's product contract
 
+## Feed and thread bylines
+
+Show the author's display name when supplied. When the byline uses a handle, replace the exact `.kairos.solar` or `.bsky.social` suffix with its domain icon and keep every preceding label. Show other handles and the fallback for an unavailable icon as a full `@handle`. The mark identifies the handle domain. Account selection, publishing confirmation, the byline's accessible label and the post menu's copy action retain the full address.
+
 ## Bluesky as the default view — November 20
 
 David selects a one-way Bluesky publishing view as the default feed. Open it on first use and the first launch after upgrading, then restore the account’s subsequent tab choice. Public and Personal keep their Snapback audiences and their existing draft keys. The Bluesky editor has an independent, device-local draft. Only an explicit Post to Bluesky creates an `app.bsky.feed.post` on the verified account's PDS. The view shows receipts for the latest 30 posts sent from this device. It requests posting consent separately from ordinary sign-in. For the future social-feature discovery rule, see the composed commons’ `projects/jera/social-features.md`.
