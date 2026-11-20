@@ -22,7 +22,8 @@ const gateway = spawn('node', ['app/test-server.mjs'], {
 const types = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript', '.css':'text/css', '.wasm':'application/wasm', '.json':'application/json', '.svg':'image/svg+xml' };
 const server = createServer(async (req,res) => {
   const path = new URL(req.url,'http://localhost').pathname;
-  const file = resolve(site, '.' + (path === '/' ? '/index.html' : path));
+  const appRoute = ['/', '/account', '/write', '/audience', '/earlier-drafts'].includes(path) || path.startsWith('/thread/');
+  const file = resolve(site, '.' + (appRoute ? '/index.html' : path));
   if (path === '/migration.mjs') {res.writeHead(200,{'Content-Type':'text/javascript'}).end(await readFile(resolve(root,'scripts/web-upgrade.mjs')));return;}
   if (!file.startsWith(site+sep)) { res.writeHead(404).end(); return; }
   try {
