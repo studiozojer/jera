@@ -8,6 +8,12 @@ assert.equal((await fetch('http://127.0.0.1:4497/dev/legacy-public', { method: '
 const browser = await chromium.launch({ executablePath: browserBinary().executable });
 try {
   for (const { handle, name, label, icon, fail } of [
+    { handle: 'pageofswrds.kairos.solar', name: 'pageofswrds', label: 'pageofswrds', icon: 'kairos' },
+    { handle: 'tycho.jera.ink', name: 'Tycho', label: 'Tycho', icon: 'jera' },
+    { handle: 'east.river.bsky.social', name: 'East.River', label: 'East.River', icon: 'bluesky' },
+    { handle: 'east.river.bsky.social', name: 'River', label: 'River' },
+    { handle: 'river.bsky.social', name: 'River', label: '@river.bsky.social', fail: true },
+    { handle: 'river.example.com', name: 'River', label: 'River' },
     { handle: 'pageofswrds.jera.ink', label: 'pageofswrds', icon: 'jera' },
     { handle: 'river.jera.ink.example.com', label: '@river.jera.ink.example.com' },
     { handle: 'jera.ink', label: '@jera.ink' },
@@ -32,7 +38,7 @@ try {
     await page.getByTestId('header-experience-public').click();
     const row = page.locator('[data-testid^="post-row-"]:visible').first();
     await row.getByText(label, { exact: true }).waitFor();
-    assert.ok((await row.getAttribute('aria-label')).startsWith(`Open thread by ${name || '@' + handle}:`));
+    assert.ok((await row.getAttribute('aria-label')).startsWith(`Open thread by ${name && !icon && !fail ? name : '@' + handle}:`));
     const mark = row.getByRole('img', { name: '@' + handle, exact: true });
     if (icon) {
       const image = mark.locator('img');
@@ -47,6 +53,7 @@ try {
     const thread = page.getByTestId('thread-frame');
     await thread.getByText(label, { exact: true }).first().waitFor();
     if (icon) {
+      await thread.getByRole('img', { name: '@' + handle, exact: true }).first().waitFor();
       await thread.getByTestId(/^more-thread-menu-/).first().click();
       await page.getByRole('menuitem', { name: 'Copy @' + handle, exact: true }).click();
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '@' + handle);
