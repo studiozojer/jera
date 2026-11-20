@@ -19,7 +19,8 @@ try {
     await context.route('**/oauth/exchange', async route => {
       assert.equal(new URL(route.request().url()).hostname, '127.0.0.1');
       const request = route.request().postDataJSON();
-      const response = await route.fetch({data:{...request, rememberDevice:!legacy}});
+      assert.equal(request.rememberDevice, true);
+      const response = legacy ? await route.fetch({data:{...request, rememberDevice:false}}) : await route.fetch();
       assert.equal(response.status(), 200);
       assert.equal(Boolean((await response.json()).deviceCredential), !legacy);
       await route.fulfill({response});

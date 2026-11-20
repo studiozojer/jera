@@ -1,6 +1,6 @@
 // App-local experience authority. These events describe context, never content.
 // The selected view is app context; source authorization remains server-enforced.
-export type ExperienceMode = 'private' | 'public';
+export type ExperienceMode = 'private' | 'public' | 'bluesky';
 export type ExperienceSnapshot = Readonly<{ mode: ExperienceMode; revision: number }>;
 export type ExperienceChange = Readonly<{
   type: 'jera.experience.changed';
@@ -14,10 +14,10 @@ export type ExperienceChange = Readonly<{
 export type ExperienceListener = (event: ExperienceChange) => void;
 
 export function isExperienceMode(value: unknown): value is ExperienceMode {
-  return value === 'private' || value === 'public';
+  return value === 'private' || value === 'public' || value === 'bluesky';
 }
 
-export function createExperienceStore(initial: ExperienceMode = 'public') {
+export function createExperienceStore(initial: ExperienceMode = 'bluesky') {
   if (!isExperienceMode(initial)) throw new Error('Unknown experience mode');
   let snapshot: ExperienceSnapshot = Object.freeze({ mode: initial, revision: 0 });
   let latest: ExperienceChange | null = null;

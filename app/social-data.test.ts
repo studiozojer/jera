@@ -120,3 +120,15 @@ test('a late opening check cannot discard text from the next intent',async()=>{
  const fresh=await beginDraft(request,drafts,'public','');await drafts.save('root:public','New intention',fresh.revision+1);
  finish({data:record});expect((await opening).body).toBe('New intention');expect((await drafts.get('root:public')).body).toBe('New intention');
 });
+
+test('upgrading opens Bluesky while old drafts and the next explicit view choice survive', async () => {
+  const { fs } = files();
+  const journal = new Drafts(fs, 'https://jera.test', alice);
+  await journal.save('root:private', 'Keep in Personal', 1);
+  await journal.use(v => { v.mode = 'public'; }, true);
+  expect(await journal.mode()).toBe('bluesky');
+  await journal.setMode('private');
+  const restored = new Drafts(fs, 'https://jera.test', alice);
+  expect(await restored.mode()).toBe('private');
+  expect((await restored.get('root:private')).body).toBe('Keep in Personal');
+});

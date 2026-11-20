@@ -1,3 +1,5 @@
+import type { BlueskyDraft } from './bluesky.ts';
+import type { ExperienceMode } from './experience-store.ts';
 import { type Composition, type Definition, newComposition, compositionError } from './composition.ts';
 // Durable local drafts and posting intents; authoritative records/ACLs live in Snapback.
 // The host filesystem is account+origin scoped. A network timeout never means sent.
@@ -5,7 +7,7 @@ export type Mode = 'private' | 'public';
 export type PostRecord = { id: string; author: string; body: string; deleted: boolean; visibility: Mode; audience: string | null; parent: string | null; root: string | null; at: number; intent: string; lexicon?:string|null; lexiconDigest?:string|null; payloadJson?:string|null };
 export type Posting = { intent: string; body: string; visibility: Mode; audience: string | null; parent: string | null; draftDevice?: string; draftRevision?: number; draftScope?: string; composition?:Composition };
 export type Draft = { body: string; revision: number; intent: string; sealed: Posting | null; posted?: string; syncedRevision?: number; cloudRevision?: number; composition?:Composition; viewContext?:string; alternatives?:Record<string,Composition> };
-type Vault = { version: 1; principal: string; origin: string; mode: Mode; device: string; drafts: Record<string, Draft> };
+type Vault = { version: 1; principal: string; origin: string; mode: Mode; selectedFeed?: ExperienceMode; bluesky?: BlueskyDraft; device: string; drafts: Record<string, Draft> };
 export type Files = { readFile(path: string): Promise<ArrayBuffer>; atomicWriteFile(path: string, data: Uint8Array): Promise<unknown>; readdir(path: string): Promise<string[]> };
 export type Request = (kind: 'q' | 'm', operation: string, args: Record<string, unknown>, id?: string) => Promise<any>;
 const queues = new Map<string, Promise<unknown>>();
@@ -67,10 +69,10 @@ export class Drafts {
     }, true);
   }
   device() { return this.use(v => v.device); }
-  mode() { return this.use(v => v.mode); }
-  setMode(mode: Mode) {
-    if (!['public','private'].includes(mode)) throw new Error('Unknown experience.');
-    return this.use(v => {v.mode=mode; return mode;}, true);
+  mode() { return this.use(v => v.selectedFeed ?? 'bluesky'); }
+  setMode(mode: ExperienceMode) {
+    if (!['public','private','bluesky'].includes(mode)) throw new Error('Unknown experience.');
+    return this.use(v => {v.selectedFeed=mode; if (mode !== 'bluesky') v.mode=mode; return mode;}, true);
   }
 }
 export async function allRows(request: Request, operation: string, args: Record<string, unknown> = {}) {
