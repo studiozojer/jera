@@ -475,7 +475,8 @@ component App
     deleteActor = ""
   derive feedScroll = currentTimeline and queryCursor == "" and threadFocus == "" ? (mode == "private" ? personalScroll : (mode == "public" ? publicScroll : 0)) : 0
   action rememberFeedScroll(left: number, offset: number)
-    if top(nav).name == "home" and currentTimeline and queryCursor == "" and not pending(experienceChanged) and not pending(timeline)
+    // A rubber-band pull is transient, not a position to restore.
+    if offset >= 0 and top(nav).name == "home" and currentTimeline and queryCursor == "" and not pending(experienceChanged) and not pending(timeline)
       if mode == "public"
         publicScroll = offset
       if mode == "private"
