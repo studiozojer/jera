@@ -249,7 +249,6 @@ component App
   mutation signedOut as shape Ack refreshes account then afterLogout
   derive compact = viewport.width < 704
   state feedHeaderHeight = 0
-  state threadHeaderHeight = 0
   resource views = viewOptions() as shape ViewOption[] else empty()
   resource viewPolicy = viewPolicy(mode) as shape ViewPolicy else empty()
   derive activeViewLabel = match views.filter(v => v.id == mode).at(0) { case some(v) => v.label, case none => "View" }
@@ -588,9 +587,6 @@ component App
   action measureFeedHeader(w: number, h: number)
     if h > 0
       feedHeaderHeight = h + (compact ? 0 : spaceSm())
-  action measureThreadHeader(w: number, h: number)
-    if h > 0
-      threadHeaderHeight = h + (compact ? 0 : spaceSm())
   state audienceDid = ""
   state recoveringEarlierDraft = false
   resource earlierDrafts = loadEarlierDrafts(account.principal, top(nav).name == "earlierDrafts", dataNow, page.navigationType != "") as shape EarlierDrafts else empty()
@@ -791,9 +787,9 @@ component App
                     SignInFAQ()
         if entry.name == "thread" and account.principal != ""
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 box-sizing="border-box"
+            ThreadHeader(back=dismiss, compact=compact, mode=mode)
             scroll id="conversation" testId="conversation" refresh=pullToRefreshThread(entry.id) refreshing=(top(nav).id == entry.id and pending(timeline)) aria-label="Conversation" tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
               column min-height="100%"
-                ThreadHeader(back=dismiss, compact=compact, measure=measureThreadHeader, mode=mode)
                 column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd()) padding-bottom=(compact ? "5rem" : "6rem")
                   column flex-shrink=0 border-left-width=(compact ? 0 : 1) border-right-width=(compact ? 0 : 1) border-bottom-width=(compact ? 0 : 1) border-left-style="solid" border-right-style="solid" border-bottom-style="solid" border-color="bd.primary" border-bottom-left-radius=(compact ? 0 : radiusFull()) border-bottom-right-radius=(compact ? 0 : radiusFull()) testId="thread-frame"
                     if visiblePosts.filter(p => p.id == entry.params.id).length == 0 and currentTimeline and timeline.available and not pending(timeline) and not failed(timeline)
@@ -805,17 +801,17 @@ component App
                         text "Earlier reply unavailable in this view" class=WhyteXs color="tx.secondary" padding=spaceLg() testId="missing-parent-context"
                       if focused.parent != ""
                         for parent in visiblePosts.filter(p => p.id == focused.parent) key=parent.id
-                          button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=(threadHeaderHeight + spaceSm()) min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
+                          button press=openThread(parent.id) testId="parent-thread" appearance="none" class=QuietAction scroll-margin-top=spaceSm() min-height=minTouchTarget() padding-left=spaceLg() padding-right=spaceLg() border-width=0 background-color="transparent" text-align="left"
                             text `Replying to ${parent.author}` color="tx.secondary" class=WhyteXs
-                      ThreadHero(remove=requestDelete, post=focused, posts=visiblePosts, reply=reply, mode=mode, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                      ThreadHero(remove=requestDelete, post=focused, posts=visiblePosts, reply=reply, mode=mode, context=`${entry.id}`, clearance=spaceSm())
                       if not focused.deleted and not focused.network
-                        ThreadReplyEntry(post=focused, reply=reply, avatar=profileAvatar, name=profileName, clearance=(threadHeaderHeight + spaceSm()))
+                        ThreadReplyEntry(post=focused, reply=reply, avatar=profileAvatar, name=profileName, clearance=spaceSm())
                       for child in visiblePosts.filter(p => p.parent == focused.id) key=child.id
-                        ThreadBranch(remove=requestDelete, post=child, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                        ThreadBranch(remove=requestDelete, post=child, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=spaceSm())
                       for continuation in visiblePosts.filter(p => p.network and p.missingParent and p.root == focused.id and p.id != focused.id) key=continuation.id
                         column gap=spaceSm() border-top="1px solid bd.primary"
                           text "Earlier reply unavailable in this view" class=WhyteXs color="tx.secondary" padding=spaceLg() testId=`missing-parent-${continuation.id}`
-                          ThreadBranch(remove=requestDelete, post=continuation, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=(threadHeaderHeight + spaceSm()))
+                          ThreadBranch(remove=requestDelete, post=continuation, posts=visiblePosts, mode=mode, reply=reply, open=openThread, context=`${entry.id}`, clearance=spaceSm())
                   box height="env(safe-area-inset-bottom)" flex-shrink=0
             if canWrite
               WriteButton(write=write, compact=compact)
