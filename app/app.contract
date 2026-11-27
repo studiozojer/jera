@@ -450,6 +450,9 @@ component App
         feedCursors = []
       else
         refresh timeline
+  action pullToRefreshThread(entryId: number)
+    if top(nav).id == entryId and top(nav).name == "thread" and not pending(timeline)
+      refresh timeline
   state deleteTarget = ""
   state deleteActor = ""
   state deleteErrorShown = false
@@ -788,7 +791,7 @@ component App
                     SignInFAQ()
         if entry.name == "thread" and account.principal != ""
           column navigationKey=`${entry.id}` navigationBar="none" position="absolute" inset=0 box-sizing="border-box"
-            scroll id="conversation" testId="conversation" aria-label="Conversation" tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
+            scroll id="conversation" testId="conversation" refresh=pullToRefreshThread(entry.id) refreshing=(top(nav).id == entry.id and pending(timeline)) aria-label="Conversation" tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
               column min-height="100%"
                 ThreadHeader(back=dismiss, compact=compact, measure=measureThreadHeader, mode=mode)
                 column width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd()) padding-bottom=(compact ? "5rem" : "6rem")
