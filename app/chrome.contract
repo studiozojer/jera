@@ -71,6 +71,23 @@ component ReadingHeader
       if not compact
         ReadingCap()
 
+component FeedScroll
+  props
+    mode: string
+    label: string
+    offset: number
+    remember: action
+    reload: action
+    refreshing: bool
+  slot
+  view
+    if mode == "bluesky"
+      scroll id="stream" testId="stream" scrollTop=offset scroll=remember aria-label="Bluesky posts" tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
+        children
+    else
+      scroll id="stream" testId="stream" scrollTop=offset scroll=remember refresh=reload refreshing=refreshing aria-label=label tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
+        children
+
 component ThreadHeader
   props
     mode: string

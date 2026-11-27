@@ -8,7 +8,7 @@ use WhyteSm, WhyteXs, WhyteMd, QuietAction from "./dao.contract"
 use Button, Action from "./dao/actions.contract"
 use Confirmation from "./dao/overlays.contract"
 use Post, PostContent, Author, PostAvatar, PostActions, bylineLabel, canReplyInExperience from "./post.contract"
-use ReadingHeader, ThreadHeader, WriteButton, FeedComposer from "./chrome.contract"
+use ReadingHeader, ThreadHeader, WriteButton, FeedComposer, FeedScroll from "./chrome.contract"
 use ThreadHero, ThreadBranch, ThreadReplyEntry from "./thread.contract"
 
 font "Whyte" = "assets/fonts/ABCWhyteEdu-Book.otf"
@@ -438,6 +438,18 @@ component App
         revealPage = false
   action refreshPosts
     refresh timeline
+  action pullToRefreshFeed
+    if top(nav).name == "home" and (mode == "public" or mode == "private") and not pending(experienceChanged) and not pending(timeline)
+      revealPage = false
+      if mode == "public"
+        publicScroll = 0
+      else
+        personalScroll = 0
+      // Resetting the cursor already requests the newest page.
+      if feedCursors.length > 0
+        feedCursors = []
+      else
+        refresh timeline
   state deleteTarget = ""
   state deleteActor = ""
   state deleteErrorShown = false
@@ -665,7 +677,7 @@ component App
               header appearance="none" border-width=0 padding="32px"
                 JeraWordmark(scale=2)
             if account.principal != ""
-              scroll id="stream" testId="stream" scrollTop=feedScroll scroll=rememberFeedScroll aria-label=(mode == "bluesky" ? "Bluesky posts" : activeViewLabel) tabindex=0 flex=1 min-height=0 width="100%" overflow-y="auto" overflow-x="hidden"
+              FeedScroll(mode=mode, label=activeViewLabel, offset=feedScroll, remember=rememberFeedScroll, reload=pullToRefreshFeed, refreshing=pending(timeline))
                 column min-height="100%"
                   ReadingHeader(account=openAccount, avatar=profileAvatar, name=profileName, compact=compact, measure=measureFeedHeader, mode=mode, options=views, changeExperience=selectExperience, switchDisabled=(pending(published) or pendingDraft), touch=(viewport.pointer == "coarse"))
                   column id="view-feed" role="tabpanel" aria-labelledby=`view-tab-${mode}` flex=1 min-height=0 width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box" padding-right=(compact ? 0 : spaceMd()) padding-left=(compact ? 0 : spaceMd())
