@@ -5,10 +5,21 @@ import {chromium as browserBinary} from '../tooling/exact/scripts/agent-launch.m
 import assert from 'node:assert/strict';
 const browser=await chromium.launch({executablePath:browserBinary().executable});
 const base=process.env.JERA_REVIEW_URL||'http://127.0.0.1:3035';
+const otherDid='did:plc:'+'b'.repeat(24);
+const unlistedDid='did:plc:'+'c'.repeat(24);
 const contexts=[];
 async function device(handle){
  const context=await browser.newContext({viewport:{width:390,height:844}});contexts.push(context);
- await context.route('https://public.api.bsky.app/**',route=>{const did=new URL(route.request().url()).searchParams.get('actor');return route.fulfill({json:{did,handle:did.includes('aaaa')?'owner.test':'other.test',displayName:did.includes('aaaa')?'Test Owner':'Other Account'}});});
+ await context.route('https://public.api.bsky.app/**',route=>{
+  const did=new URL(route.request().url()).searchParams.get('actor');
+  if(!did?.includes('aaaa'))return route.fulfill({status:404,json:{error:'ProfileNotFound'}});
+  return route.fulfill({json:{did,handle:'owner.test',displayName:'Test Owner'}});
+ });
+ await context.route('https://slingshot.microcosm.blue/**',route=>{
+  const identifier=new URL(route.request().url()).searchParams.get('identifier');
+  if(['other.test','wrong.test',otherDid].includes(identifier))return route.fulfill({json:{did:otherDid,handle:'other.test'}});
+  return route.fulfill({status:404,json:{error:'IdentityNotFound'}});
+ });
  const page=await context.newPage();const at=id=>page.locator(`[data-testid="${id}"]:visible`).last();
  await page.goto(base+'/');await at('handle').fill(handle);await at('login').click();await at('account-avatar').waitFor();
  await at('header-experience-private').click();
@@ -33,8 +44,16 @@ try{
  await other.at('cancel').click();await other.at('composer').waitFor({state:'hidden'});
  assert.equal(await other.page.locator('[data-testid^="body-"]:visible').count(),0);
  await first.at('cancel').click();await first.at('composer').waitFor({state:'hidden'});
- await audience(first);await first.at('audience-did').fill('did:plc:bbbbbbbbbbbbbbbbbbbbbbbb');await first.at('audience-add').click();
- await first.at('audience-member-did:plc:bbbbbbbbbbbbbbbbbbbbbbbb').waitFor();
+ await audience(first);
+ assert.match(await first.at('audience-owner').innerText(),/You[\s\S]*Owner/);
+ await first.at('audience-did').fill('@wrong.test');await first.at('audience-add').click();
+ await first.at('audience-error').waitFor();
+ assert.equal(await first.at(`audience-member-${otherDid}`).count(),0);
+ await first.at('audience-did').fill('@OTHER.TEST');await first.at('audience-add').click();
+ await first.at(`audience-member-${otherDid}`).getByText('@other.test',{exact:true}).waitFor();
+ assert.match(await first.at(`audience-member-${otherDid}`).innerText(),/Can read and reply/);
+ await first.at('audience-did').fill(unlistedDid);await first.at('audience-add').click();
+ await first.at(`audience-member-${unlistedDid}`).getByText(unlistedDid,{exact:true}).waitFor();
  await first.page.screenshot({path:'/tmp/jera-mobile-audience.png'});
  await other.page.goto(base+'/');await other.at(`body-${postId}`).waitFor();await other.at(`post-row-${postId}`).click();
  await other.at('reply').click();await other.at('reply-private-only').waitFor();
@@ -45,8 +64,9 @@ try{
  await first.page.waitForFunction(()=>[...document.querySelectorAll('[data-testid^="thread-body-"]')].some(e=>getComputedStyle(e).visibility!=='hidden'&&e.textContent==='A reply from an authorized DID'));
  await first.page.screenshot({path:'/tmp/jera-mobile-real-thread.png'});
  await first.page.setViewportSize({width:1280,height:900});await first.page.goto(base+'/');await first.at(`body-${postId}`).waitFor();await first.page.screenshot({path:'/tmp/jera-mobile-real-feed-desktop.png'});
- await audience(first);await first.at('audience-remove-did:plc:bbbbbbbbbbbbbbbbbbbbbbbb').click();
- await first.at('audience-member-did:plc:bbbbbbbbbbbbbbbbbbbbbbbb').waitFor({state:'hidden'});
+ await audience(first);await first.at(`audience-remove-${otherDid}`).click();
+ await first.at(`audience-member-${otherDid}`).waitFor({state:'hidden'});
+ assert.equal(await first.at(`audience-member-${unlistedDid}`).count(),1);
  await other.page.goto(base+`/thread/${postId}`);await other.at('thread-unavailable').waitFor();
  assert.equal(await other.page.locator('[data-testid^="thread-body-"]:visible').count(),0);
  console.log('PASS: real popup login; independent device cloud-draft recovery; other-DID isolation; posting; audience grant; attributed private reply; revoke removes parent+descendant; phone/desktop captures.');
