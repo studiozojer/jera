@@ -22,7 +22,7 @@
       "extends": "preview",
       "withoutCredentials": true,
       "env": {
-        "EXACT_BUILD_NUMBER": "35",
+        "EXACT_BUILD_NUMBER": "41",
         "JERA_APPDROP_UNSIGNED": "1"
       },
       "ios": {
