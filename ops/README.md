@@ -14,6 +14,8 @@ The app's own `auth.callback https://jera.ink/.exact/auth/callback` grant is req
 
 ## Internal iPhone releases through AppDrop
 
+Prefer the local builder for Jera when the release Mac has enough disk space and compute available. Use the EAS AppDrop profile when local capacity is limited, another build is using the machine, or a cloud build is requested.
+
 On each pull request, run `bun run test:app` and `npm test` and record the results in the PR. For an internal release, select the merged main commit, use its full checkout on the release Mac, and prepare the web package and iPhone build from that checkout. The Mac needs Jera’s pinned Bun and Exact SDK, the iPhone toolchain, and the project dependencies installed from the lockfile. The local publisher uses the existing AppDrop credential on this Mac. On another release machine, supply the management key through the release secret `APPDROP_MANAGE_KEY`. Keep that key and the private management link out of Git and build logs.
 
 1. Run `bun run release:iphone prepare` to build a device IPA for on-phone signing. Its build number comes from the selected main commit’s first-parent count, so successive main releases advance it. The command saves the archive, source commit, build number and SHA-256 under `.local/appdrop/<commit>/`. Repeating this step checks the existing archive.
@@ -22,4 +24,4 @@ On each pull request, run `bun run test:app` and `npm test` and record the resul
 4. On the next device update, leave a draft saved while signed in. Open the existing link, install the update, reopen Jera and confirm the same DID and draft. Record the result with the release receipt. [Jera iPhone install](https://appdrop.app/d/vyau9rfizz)
 
 
-For a separate public Exact preview, install the submission dependency in `app` with `bun install --frozen-lockfile`, then run `npx eas-cli@27.2.0 build --platform ios --profile appdrop` there. The custom workflow builds the Exact device IPA on Xcode 27.1. Check the resulting bundle ID and build number before creating a new link with `npx appdrop@0.9.0 <ipa>`. The stable publisher above targets the existing release link.
+The EAS `appdrop` profile builds an unsigned Exact device IPA on Xcode 27.1 for on-phone signing. Set `EXACT_BUILD_NUMBER` in that profile to the intended merged revision's first-parent count before submitting the release. Install the submission dependency in `app` with `bun install --frozen-lockfile`, then run `npx eas-cli@27.2.0 build --platform ios --profile appdrop` there. Check the resulting bundle ID and build number. The stable publisher above targets the existing release link.
