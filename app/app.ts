@@ -3,6 +3,7 @@ import { accessSession, forgetAccess, refused, type Access } from './access-sess
 import { rememberedSession, validAccess } from './remembered-session.ts';
 import { parseLoginInput } from './login-input.ts';
 import { loadAccountProfile, readCachedAccountProfile } from './account-profile.ts';
+import { resolveAudienceIdentity } from './audience-identity.ts';
 import { Drafts, beginDraft, allRows, draftScope, publish, newIntent, syncScope, syncDrafts, type Mode, type Request } from './social-data.ts';
 import { formFields, editedComposition, type Field } from './composition.ts';
 import { measureBlueskyPost, openBluesky, saveBluesky, sendBluesky } from './bluesky.ts';
@@ -27,7 +28,7 @@ function storageKey(value: string): string {
 }
 const sessionKey = storageKey(origin) + '-atproto-v1';
 const pendingKey = sessionKey + '-login';
-export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nauth.callback https://jera.ink/.exact/auth/callback\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1-device\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-device\nfs.read app:/data\nfs.write app:/data`;
+export const grants = `net.fetch ${origin}\nnet.fetch https://public.api.bsky.app\nnet.fetch https://slingshot.microcosm.blue\nnet.fetch https://cdn.bsky.app\nauth.session ${origin}\nauth.callback studio.zojer.jera.exact:/oauth\nauth.callback https://jera.ink/.exact/auth/callback\nsqlite.open app:/data\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1\nsecret.keep jera-https-snapback-jera-ink-atproto-v1\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4417-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4437-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4457-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4497-atproto-v1-device\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1-login\nsecret.keep jera-http-127.0.0.1-4477-atproto-v1-device\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-login\nsecret.keep jera-https-snapback-jera-ink-atproto-v1-device\nfs.read app:/data\nfs.write app:/data`;
 
 function randomToken(): string {
   return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -313,17 +314,39 @@ const sources: Sources = {
       const request=transport(db,store,principal);const groups=await allRows(request,'audienceList');
       const id=groups[0]?.id||'';
       const members=id?await allRows(request,'audienceMembersList',{audience:id}):[];
-      return {principal,id,members:members.map(m=>({principal:m.principal,access:m.access})),available:true};
+      return {principal,id,members:members.map(m=>({principal:m.principal,access:m.access,name:'',handle:'',avatar:''})),available:true};
     });} catch {return {principal:isActor(store,principal)?principal:'',id:'',members:[],available:false};}
   },
-  grantAudience: async ([principal,did,now,browser],store,storage,native) => using(store,now,browser,async db=>{
-    const value=parseLoginInput(did.trim());
-    if(!value.valid || !value.value.startsWith('did:'))reject('E_INPUT','Enter a complete DID.');
-    const request=transport(db,store,principal);const group=await request('m','ensureAudience',{},newIntent());
+  loadAudienceProfiles: async ([principal,members,now],store,storage) => {
+    const profiles: Awaited<ReturnType<typeof loadAccountProfile>>[] = [];
+    if(!isActor(store,principal))return {principal:'',profiles};
+    const queue=[...new Set(members)].filter(did=>parseLoginInput(did).valid && did.startsWith('did:') && did!==principal);
+    await Promise.all(Array.from({length:Math.min(6,queue.length)},async()=>{
+      while(queue.length && isActor(store,principal)){
+        const did=queue.shift()!;
+        const profile=await postProfile(did,storage,now);
+        if(profile.handle){profiles.push(profile);continue;}
+        try{
+          const {handle}=await resolveAudienceIdentity(did);
+          profiles.push({...profile,handle,name:handle,usesHandle:true});
+        }catch{ /* The membership row stays available with its DID. */ }
+      }
+    }));
+    return isActor(store,principal)?{principal,profiles}:{principal:'',profiles:[]};
+  },
+  grantAudience: async ([principal,input,now,browser],store,storage,native) => using(store,now,browser,async db=>{
+    const value=parseLoginInput(input);
+    if(!value.valid)reject('E_INPUT','Enter a full @handle or DID.');
+    const request=transport(db,store,principal);
+    const did=value.value.startsWith('did:')?value.value:await resolveAudienceIdentity(value.value)
+      .then(identity=>identity.did,()=>reject('E_INPUT','Could not verify this handle. Check the spelling or enter a DID.'));
+    if(did===principal)reject('E_INPUT','You already own this audience.');
+    const group=await request('m','ensureAudience',{},newIntent());
     if(group.state!=='sent'||!group.result?.id)reject('E_NETWORK','Could not open your private audience.');
-    const result=await request('m','setAudienceMember',{audience:group.result.id,principal:value.value,access:'reply'},newIntent());
+    const result=await request('m','setAudienceMember',{audience:group.result.id,principal:did,access:'reply'},newIntent());
     if(result.state==='failed')throw refused(result.why);
-    return {state:'sent',id:value.value};
+    if(result.state!=='sent'||result.result?.principal!==did||result.result?.access!=='reply')reject('E_NETWORK','Could not confirm the account was added. Try again.');
+    return {state:'sent',id:did};
   }),
   revokeAudience: async ([principal,audience,did,now,browser],store,storage,native) => using(store,now,browser,async db=>{
     const result=await transport(db,store,principal)('m','removeAudienceMember',{audience,principal:did},newIntent());

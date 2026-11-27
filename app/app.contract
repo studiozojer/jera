@@ -118,11 +118,21 @@ shape CloudDraft
 shape AudienceMember
   principal: string
   access: string
+  name: string
+  handle: string
+  avatar: string
 shape Audience
   available: bool
   principal: string
   id: string
   members: AudienceMember[]
+shape AudienceProfiles
+  principal: string
+  profiles: Profile[]
+fn namedAudienceMember(member: AudienceMember, profiles: Profile[]): AudienceMember = match profiles.filter(p => p.principal == member.principal).at(0) {
+  case some(p) => AudienceMember(member, name=(p.usesHandle ? "" : p.name), handle=p.handle, avatar=p.avatar),
+  case none => member
+}
 shape ViewPolicy
   id: string
   mode: string
@@ -587,7 +597,7 @@ component App
   action measureFeedHeader(w: number, h: number)
     if h > 0
       feedHeaderHeight = h + (compact ? 0 : spaceSm())
-  state audienceDid = ""
+  state audienceInput = ""
   state recoveringEarlierDraft = false
   resource earlierDrafts = loadEarlierDrafts(account.principal, top(nav).name == "earlierDrafts", dataNow, page.navigationType != "") as shape EarlierDrafts else empty()
   action openEarlierDrafts
@@ -605,17 +615,20 @@ component App
     recoveringEarlierDraft = true
     send experienceChanged = changeExperience(account.principal, "private", time.epochAtZero + performanceNow())
   resource audience = loadAudience(account.principal, page.navigationType != "", dataNow) as shape Audience else empty()
+  derive audienceMemberIds = top(nav).name == "audience" and audience.principal == account.principal and audience.available ? audience.members.map(member => member.principal) : []
+  resource audienceProfiles = loadAudienceProfiles(account.principal, audienceMemberIds, dataNow) as shape AudienceProfiles else empty()
+  derive audienceMembers = audience.members.map(member => namedAudienceMember(member, audienceProfiles.principal == account.principal ? audienceProfiles.profiles : []))
   mutation audienceGranted as shape Ack refreshes audience, timeline then afterAudienceGrant
   mutation audienceRevoked as shape Ack refreshes audience, timeline
   action openAudience
     nav = push(back(nav), "/audience")
-  action editAudienceDid(value: string)
-    audienceDid = value
+  action editAudienceInput(value: string)
+    audienceInput = value
   action addAudienceMember
-    if audienceDid.trim() != "" and not pending(audienceGranted)
-      send audienceGranted = grantAudience(account.principal, audienceDid, time.epochAtZero + performanceNow(), page.navigationType != "")
+    if audienceInput.trim() != "" and not pending(audienceGranted)
+      send audienceGranted = grantAudience(account.principal, audienceInput, time.epochAtZero + performanceNow(), page.navigationType != "")
   action afterAudienceGrant
-    audienceDid = ""
+    audienceInput = ""
   action removeAudienceMember(did: string)
     if audience.principal == account.principal and not pending(audienceRevoked)
       send audienceRevoked = revokeAudience(account.principal, audience.id, did, time.epochAtZero + performanceNow(), page.navigationType != "")
@@ -938,23 +951,35 @@ component App
               column padding=spaceLg() gap=spaceLg() width="100%" max-width="44rem" margin="0 auto" box-sizing="border-box"
                 text "Choose who can read and reply to posts shared through Personal. Changes apply to existing posts too." class=WhyteSm color="tx.secondary"
                 row gap=spaceSm() align-items="center" flex-wrap="wrap"
-                  input value=audienceDid input=editAudienceDid submit=addAudienceMember placeholder="did:plc:… or did:web:…" aria-label="DID to add" testId="audience-did" autocomplete="off" autocapitalize="none" spellcheck=false flex=1 min-width=0 min-height=minTouchTarget() padding=spaceMd() border="1px solid bd.primary" border-radius=radiusMd() background-color="bg.field" color="tx.primary"
-                  Button(controlId="", label="Add", kind="secondary", size="medium", icon=none, disabled=(audienceDid.trim() == ""), busy=pending(audienceGranted), press=addAudienceMember, testId="audience-add")
+                  input value=audienceInput input=editAudienceInput submit=addAudienceMember placeholder="@handle or DID" aria-label="Account handle or DID" testId="audience-did" autocomplete="off" autocapitalize="none" spellcheck=false disabled=pending(audienceGranted) flex=1 min-width=0 min-height=minTouchTarget() padding=spaceMd() border="1px solid bd.primary" border-radius=radiusMd() background-color="bg.field" color="tx.primary"
+                  Button(controlId="", label="Add", kind="secondary", size="medium", icon=none, disabled=(audienceInput.trim() == ""), busy=pending(audienceGranted), press=addAudienceMember, testId="audience-add")
                 if failed(audienceGranted)
-                  text (match failure(audienceGranted) { case some(f) => f.message, case none => "Couldn’t add this DID." }) role="status" class=WhyteSm color="tx.secondary" testId="audience-error"
+                  text (match failure(audienceGranted) { case some(f) => f.message, case none => "Couldn’t add this account." }) role="status" class=WhyteSm color="tx.secondary" testId="audience-error"
                 if failed(audienceRevoked)
-                  text "Couldn’t remove this DID. Try again." role="status" class=WhyteSm color="tx.secondary"
+                  text "Couldn’t remove this account. Try again." role="status" class=WhyteSm color="tx.secondary"
+                if pending(audience) and not audience.available
+                  text "Loading audience…" class=WhyteSm color="tx.secondary" role="status"
                 if not audience.available and not pending(audience)
                   text "Couldn’t load your Personal audience." class=WhyteSm color="tx.secondary" role="status"
-                if audience.principal == account.principal
-                  for member in audience.members key=member.principal
-                    row gap=spaceMd() align-items="center" flex-wrap="wrap" border-bottom="1px solid bd.primary" padding-bottom=spaceMd()
-                      column flex=1 min-width=0 gap=spaceSm()
-                        text member.principal class=WhyteSm overflow-wrap="anywhere" testId=`audience-member-${member.principal}`
-                        text (member.access == "reply" ? "Can read and reply" : "Read only") class=WhyteXs color="tx.secondary"
-                      Button(controlId="", label="Remove", kind="ghost", size="medium", icon=none, disabled=pending(audienceRevoked), busy=false, press=removeAudienceMember(member.principal), testId=`audience-remove-${member.principal}`)
-                  if audience.members.length == 0 and audience.available and not pending(audience)
-                    text "Only you can see posts shared through Personal." class=WhyteSm color="tx.secondary"
+                if audience.principal == account.principal and audience.available
+                  column gap=spaceMd()
+                    text "Accounts with access" class=WhyteMd role="heading" aria-level=2
+                    row gap=spaceMd() align-items="center" border-bottom="1px solid bd.primary" padding-bottom=spaceMd() testId="audience-owner"
+                      AccountAvatar(src=profileAvatar, label=profileName, size="2.5rem", radius=6)
+                      column flex=1 min-width=0
+                        text "You" class=WhyteSm
+                        if profileHandle != ""
+                          text `@${profileHandle}` class=WhyteXs color="tx.secondary" overflow-wrap="anywhere"
+                      text "Owner" class=WhyteXs color="tx.secondary"
+                    for member in audienceMembers key=member.principal
+                      row gap=spaceMd() align-items="center" border-bottom="1px solid bd.primary" padding-bottom=spaceMd() testId=`audience-member-${member.principal}`
+                        AccountAvatar(src=member.avatar, label=(member.name != "" ? member.name : member.handle), size="2.5rem", radius=6)
+                        column flex=1 min-width=0
+                          if member.name != ""
+                            text member.name class=WhyteSm overflow-wrap="anywhere"
+                          text (member.handle != "" ? `@${member.handle}` : member.principal) class=WhyteSm overflow-wrap="anywhere"
+                          text (member.access == "reply" ? "Can read and reply" : "Read only") class=WhyteXs color="tx.secondary"
+                        Button(controlId="", label="Remove", kind="ghost", size="medium", icon=none, disabled=pending(audienceRevoked), busy=false, press=removeAudienceMember(member.principal), testId=`audience-remove-${member.principal}`)
       if account.principal != ""
         Confirmation(id="delete-post-confirmation", question="Delete post?", message="This can’t be undone. Replies from others will stay.", confirmLabel="Delete", confirm=confirmDelete, cancel=cancelDelete, testId="confirm-delete-post")
         if failed(deletedPost)
